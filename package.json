@@ -1,0 +1,19 @@
+{
+  "name": "electro-commerce-server-side",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "npx tsc",
+    "start": "node dist/server.js"
+  },
+  "keywords": [],
+  "author": "Flex Softr",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}
