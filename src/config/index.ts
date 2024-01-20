@@ -9,4 +9,5 @@ export default {
   env: env.NODE_ENV,
   port: env.PORT,
   DBUrl: env.DB_URL,
+  clientSideURL: env.CLIENT_SIDE_URL,
 };
