@@ -7,21 +7,22 @@ import morgan from "morgan";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import config from "./config";
+import router from "./routes";
 import successResponse from "./shared/successResponse";
 
 const app: Application = express();
 
 const corsOptions: CorsOptions = {
-  origin: [config.clientSideURL as string],
+  origin: config.clientSideURL?.split(","),
   credentials: true,
 };
+
 // Middlewares
 app.use(express.json());
 app.use(cors(corsOptions));
 app.use(compression());
 app.use(helmet());
 app.use(cookieParser());
-
 if (config.env === "development") {
   app.use(morgan("dev"));
 }
@@ -30,8 +31,12 @@ if (config.env === "development") {
 app.get("/api/v1", (req, res) => {
   successResponse(res, {
     statusCode: 200,
+    message: "Server sunning successfully.",
   });
 });
+
+// API routes
+app.use("/api/v1", router);
 
 // Global error handler
 app.use(globalErrorhandler);
