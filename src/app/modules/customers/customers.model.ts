@@ -6,14 +6,13 @@ const CustomersSchema = new Schema<ICustomers>(
     uid: {
       type: String,
       required: true,
+      unique: true,
     },
     fullName: {
       type: String,
-      required: true,
     },
     fullAddress: {
       type: String,
-      required: String,
     },
   },
   {
