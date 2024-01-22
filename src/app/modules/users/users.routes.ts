@@ -1,8 +1,14 @@
 import express from "express";
+import validateRequest from "../../middlewares/validateRequest";
 import { UserController } from "./users.controller";
+import { UsersValidation } from "./users.validate";
 
 const router = express.Router();
 
-router.post("/create-customer", UserController.createCustomer);
+router.post(
+  "/create-customer",
+  validateRequest(UsersValidation.createCustomer),
+  UserController.createCustomer,
+);
 
 export const UsersRoute = router;
