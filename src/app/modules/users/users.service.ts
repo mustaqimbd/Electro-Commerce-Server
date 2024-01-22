@@ -19,7 +19,7 @@ const createCustomer = async (
   try {
     session.startTransaction();
     const id = await createCustomerId();
-    userInfo.id = "C240000001";
+    userInfo.id = id;
     customersInfo.uid = id;
     const createCustomer = await Customers.create([customersInfo], [session]);
     if (!createCustomer.length) {

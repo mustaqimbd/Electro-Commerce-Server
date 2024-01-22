@@ -1,7 +1,9 @@
 import { ErrorRequestHandler } from "express";
+import { ZodError } from "zod";
 import config from "../../config";
 import ApiError from "../../errors/ApiError";
 import handleApiError from "../../errors/handleApiError";
+import handleJodError from "../../errors/handleJodError";
 import handleMongooseCastError from "../../errors/handleMongooseCastError";
 import handleMongooseDuplicateError from "../../errors/handleMongooseDuplicateError";
 import handleMongooseValidationError from "../../errors/handleMongooseValidationError";
@@ -26,6 +28,11 @@ const globalErrorhandler: ErrorRequestHandler = (err, req, res, next) => {
     errorMessages = modifiedError.errorMessages;
   } else if (err.name === "MongoServerError" && err.code === 11000) {
     const modifiedError: IErrorResponse = handleMongooseDuplicateError(err);
+    message = modifiedError.message;
+    statusCode = modifiedError.statusCode;
+    errorMessages = modifiedError.errorMessages;
+  } else if (err instanceof ZodError) {
+    const modifiedError: IErrorResponse = handleJodError(err);
     message = modifiedError.message;
     statusCode = modifiedError.statusCode;
     errorMessages = modifiedError.errorMessages;
