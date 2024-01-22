@@ -1,8 +1,6 @@
 import bcrypt from "bcrypt";
-import httpStatus from "http-status";
 import { Schema, model } from "mongoose";
 import config from "../../../config";
-import ApiError from "../../../errors/ApiError";
 import { rolesEnums } from "./users.const";
 import { IUser } from "./users.interface";
 
@@ -21,6 +19,7 @@ const UserSchema = new Schema<IUser>(
     phoneNumber: {
       type: String,
       required: true,
+      unique: true,
     },
     email: String,
     password: {
@@ -58,13 +57,6 @@ const UserSchema = new Schema<IUser>(
 );
 
 UserSchema.pre("save", async function (next) {
-  const isAlreadyExist = await Users.find({ phoneNumber: this.phoneNumber });
-  if (isAlreadyExist.length) {
-    throw new ApiError(
-      httpStatus.CONFLICT,
-      "An user is already exist with this phone number.",
-    );
-  }
   this.password = await bcrypt.hash(
     this.password,
     Number(config.bcrypt_salt_round),
