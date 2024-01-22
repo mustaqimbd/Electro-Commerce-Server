@@ -1,6 +1,6 @@
 import { consoleLogger, errorLogger, logger } from "./shared/logger";
 
-process.on("uncaughtException", error => {
+process.on("uncaughtException", (error) => {
   consoleLogger.error(
     "😴 `Uncaught exception` happened, exiting the process and  closing the server.",
     error,
@@ -29,7 +29,7 @@ const bootstrap = async () => {
     errorLogger.error(`❌ Can't connect to Database.`, error);
   }
 
-  process.on("unhandledRejection", error => {
+  process.on("unhandledRejection", (error) => {
     errorLogger.error(
       `😴 Unhandled rejection happened. Exiting the process.`,
       error,

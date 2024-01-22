@@ -11,13 +11,11 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "npx tsc",
     "start": "node dist/server.js",
-    "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
-    "prettier:fix": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
-    "lint-prettier": "npm run prettier:fix && npm run lint:check",
+    "lint": "eslint --ignore-path .eslintignore --ext .js,.ts . && prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
     "prepare": "husky install"
   },
   "lint-staged": {
-    "src/**/*.ts": "npm run lint-prettier"
+    "*.{ts,js,json}": "npm run lint"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
