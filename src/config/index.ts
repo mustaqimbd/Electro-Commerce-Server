@@ -10,4 +10,5 @@ export default {
   port: env.PORT,
   DBUrl: env.DB_URL,
   clientSideURL: env.CLIENT_SIDE_URL,
+  bcrypt_salt_round: env.BCRYPT_SALT_ROUND,
 };

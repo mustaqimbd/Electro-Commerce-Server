@@ -4,17 +4,20 @@ import cors, { CorsOptions } from "cors";
 import express, { Application } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import config from "./config";
+import router from "./routes";
 import successResponse from "./shared/successResponse";
 
 const app: Application = express();
 
 const corsOptions: CorsOptions = {
-  origin: [config.clientSideURL as string],
+  origin: config.clientSideURL?.split(","),
   credentials: true,
 };
+
 // Middlewares
 app.use(express.json());
 app.use(cors(corsOptions));
@@ -30,8 +33,16 @@ if (config.env === "development") {
 app.get("/api/v1", (req, res) => {
   successResponse(res, {
     statusCode: 200,
+    message: "Server sunning successfully.",
   });
 });
+
+// static files
+const uploadsPath = path.join(__dirname, "..", "uploads/public");
+app.use("/uploads/public", express.static(uploadsPath));
+
+// API routes
+app.use("/api/v1", router);
 
 // Global error handler
 app.use(globalErrorhandler);
