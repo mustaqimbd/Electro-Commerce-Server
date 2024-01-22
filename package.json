@@ -13,7 +13,8 @@
     "start": "node dist/server.js",
     "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
     "prettier:fix": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
-    "lint-prettier": "npm run prettier:fix && npm run lint:check"
+    "lint-prettier": "npm run prettier:fix && npm run lint:check",
+    "prepare": "husky install"
   },
   "lint-staged": {
     "src/**/*.ts": "npm run lint-prettier"

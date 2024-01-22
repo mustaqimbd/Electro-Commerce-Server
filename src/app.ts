@@ -4,6 +4,7 @@ import cors, { CorsOptions } from "cors";
 import express, { Application } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "path";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import config from "./config";
@@ -23,6 +24,7 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(helmet());
 app.use(cookieParser());
+
 if (config.env === "development") {
   app.use(morgan("dev"));
 }
@@ -34,6 +36,10 @@ app.get("/api/v1", (req, res) => {
     message: "Server sunning successfully.",
   });
 });
+
+// static files
+const uploadsPath = path.join(__dirname, "..", "uploads/public");
+app.use("/uploads/public", express.static(uploadsPath));
 
 // API routes
 app.use("/api/v1", router);
