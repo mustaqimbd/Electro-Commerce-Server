@@ -13,7 +13,6 @@ const createCustomer = async (
 ): Promise<IUser | null> => {
   // change user role
   userInfo.role = "customer";
-
   let newUser = null;
   const session = await mongoose.startSession();
   try {
@@ -21,16 +20,18 @@ const createCustomer = async (
     const id = await createCustomerId();
     userInfo.id = id;
     customersInfo.uid = id;
-    const createCustomer = await Customers.create([customersInfo], [session]);
-    if (!createCustomer.length) {
+    const [createCustomer] = await Customers.create([customersInfo], {
+      session,
+    });
+    if (!createCustomer) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
     }
-    userInfo.customer = createCustomer[0]._id;
-    const user = await Users.create([userInfo], [session]);
-    if (!user.length) {
+    userInfo.customer = createCustomer._id;
+    const [user] = await Users.create([userInfo], { session });
+    if (!user) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
     }
-    newUser = user[0];
+    newUser = user;
     await session.commitTransaction();
     await session.endSession();
   } catch (error) {
@@ -44,6 +45,9 @@ const createCustomer = async (
   return newUser;
 };
 
+const createAdminOrStaff = () => {};
+
 export const UsersService = {
   createCustomer,
+  createAdminOrStaff,
 };

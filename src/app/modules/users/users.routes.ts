@@ -10,5 +10,10 @@ router.post(
   validateRequest(UsersValidation.createCustomer),
   UserController.createCustomer,
 );
+router.post(
+  "/create-staff-or-admin",
+  validateRequest(UsersValidation.createCustomer),
+  UserController.createCustomer,
+);
 
 export const UsersRoute = router;
