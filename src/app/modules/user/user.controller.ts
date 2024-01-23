@@ -1,13 +1,13 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import catchAsync from "../../shared/catchAsync";
-import successResponse from "../../shared/successResponse";
+import catchAsync from "../../utilities/catchAsync";
+import successResponse from "../../utilities/successResponse";
 import { TUser } from "./user.interface";
-import { UsersService } from "./user.service";
+import { UserServices } from "./user.service";
 
 const createCustomer = catchAsync(async (req: Request, res: Response) => {
-  const { customersInfo, ...userInfo } = req.body;
-  const result = await UsersService.createCustomer(userInfo, customersInfo);
+  const { customerInfo, ...userInfo } = req.body;
+  const result = await UserServices.createCustomer(userInfo, customerInfo);
   successResponse<TUser>(res, {
     statusCode: httpStatus.CREATED,
     message: "User created successfully",
@@ -17,7 +17,7 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
 
 const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
   const { personalInfo, ...userInfo } = req.body;
-  const result = await UsersService.createAdminOrStaff(userInfo, personalInfo);
+  const result = await UserServices.createAdminOrStaff(userInfo, personalInfo);
   successResponse<TUser>(res, {
     statusCode: httpStatus.CREATED,
     message: `${userInfo.role} created successfully`,
@@ -25,7 +25,7 @@ const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const UserController = {
+export const UserControllers = {
   createCustomer,
   createAdminOrStaff,
 };

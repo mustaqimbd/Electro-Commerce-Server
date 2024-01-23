@@ -1,3 +1,4 @@
-import { roles } from "./user.interface";
+import { TRoles, TStatus } from "./user.interface";
 
-export const rolesEnums: roles[] = ["customer", "staff", "admin"];
+export const rolesEnum: TRoles[] = ["customer", "staff", "admin"];
+export const statusEnum: TStatus[] = ["active", "banned", "deleted"];

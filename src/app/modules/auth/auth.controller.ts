@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import catchAsync from "../../shared/catchAsync";
-import successResponse from "../../shared/successResponse";
+import catchAsync from "../../utilities/catchAsync";
+import successResponse from "../../utilities/successResponse";
 import { ILoginResponse } from "./auth.interface";
 import { AUthService } from "./auth.service";
 
@@ -10,7 +10,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
   const result = await AUthService.login(payload);
   successResponse<ILoginResponse>(res, {
     statusCode: httpStatus.CREATED,
-    message: `Logged in successfully`,
+    message: "Logged in successfully",
     data: result,
   });
 });
