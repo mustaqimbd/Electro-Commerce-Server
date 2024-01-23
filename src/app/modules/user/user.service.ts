@@ -1,21 +1,21 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import ApiError from "../../../errors/ApiError";
-import { IAdmins } from "../admins/admins.interface";
-import { Admins } from "../admins/admins.model";
-import { ICustomers } from "../customers/customers.interface";
-import { Customers } from "../customers/customers.model";
-import { IStaffs } from "../staffs/staff.interface";
-import { Staffs } from "../staffs/staff.model";
-import { UserHelper } from "./users.helper";
-import { IUser } from "./users.interface";
-import { Users } from "./users.model";
-import { createCustomerId } from "./users.util";
+import ApiError from "../../errors/ApiError";
+import { TAdmin } from "../admin/admin.interface";
+import { Admins } from "../admin/admin.model";
+import { TCustomer } from "../customer/customer.interface";
+import { Customers } from "../customer/customer.model";
+import { IStaffs } from "../staff/staff.interface";
+import { Staffs } from "../staff/staff.model";
+import { UserHelper } from "./user.helper";
+import { TUser } from "./user.interface";
+import { Users } from "./user.model";
+import { createCustomerId } from "./user.util";
 
 const createCustomer = async (
-  userInfo: IUser,
-  customersInfo: ICustomers,
-): Promise<IUser | null> => {
+  userInfo: TUser,
+  customersInfo: TCustomer,
+): Promise<TUser | null> => {
   // change user role
   userInfo.role = "customer";
   let newUser = null;
@@ -51,9 +51,9 @@ const createCustomer = async (
 };
 
 const createAdminOrStaff = async (
-  userInfo: IUser,
-  personalInfo: IAdmins | IStaffs,
-): Promise<IUser | null> => {
+  userInfo: TUser,
+  personalInfo: TAdmin | IStaffs,
+): Promise<TUser | null> => {
   let newUser = null;
   const session = await mongoose.startSession();
   try {

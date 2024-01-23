@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import { IErrorMessages } from "../../types/error";
+import { IErrorMessages } from "../types/error";
 
 export const notFoundRoute = (
   req: Request,
