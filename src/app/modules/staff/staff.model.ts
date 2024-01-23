@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { IStaffs } from "./staff.interface";
+import { TStaff } from "./staff.interface";
 
-const StaffSchema = new Schema<IStaffs>({
+const StaffSchema = new Schema<TStaff>({
   uid: {
     type: String,
     required: true,
@@ -21,4 +21,4 @@ const StaffSchema = new Schema<IStaffs>({
   },
 });
 
-export const Staffs = model<IStaffs>("Staff", StaffSchema);
+export const Staff = model<TStaff>("Staff", StaffSchema);

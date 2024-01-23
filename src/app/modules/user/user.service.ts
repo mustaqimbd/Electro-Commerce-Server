@@ -1,20 +1,20 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import ApiError from "../../errors/ApiError";
+import ApiError from "../../errorHandlers/ApiError";
 import { TAdmin } from "../admin/admin.interface";
-import { Admins } from "../admin/admin.model";
+import { Admin } from "../admin/admin.model";
 import { TCustomer } from "../customer/customer.interface";
-import { Customers } from "../customer/customer.model";
-import { IStaffs } from "../staff/staff.interface";
-import { Staffs } from "../staff/staff.model";
-import { UserHelper } from "./user.helper";
+import { Customer } from "../customer/customer.model";
+import { TStaff } from "../staff/staff.interface";
+import { Staff } from "../staff/staff.model";
+import { UserHelpers } from "./user.helper";
 import { TUser } from "./user.interface";
-import { Users } from "./user.model";
+import { User } from "./user.model";
 import { createCustomerId } from "./user.util";
 
 const createCustomer = async (
   userInfo: TUser,
-  customersInfo: TCustomer,
+  customerInfo: TCustomer,
 ): Promise<TUser | null> => {
   // change user role
   userInfo.role = "customer";
@@ -23,16 +23,17 @@ const createCustomer = async (
   try {
     session.startTransaction();
     const id = await createCustomerId();
-    userInfo.id = id;
-    customersInfo.uid = id;
-    const [createCustomer] = await Customers.create([customersInfo], {
+    userInfo.uid = id;
+    customerInfo.uid = id;
+
+    const [createCustomer] = await Customer.create([customerInfo], {
       session,
     });
     if (!createCustomer) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
     }
     userInfo.customer = createCustomer._id;
-    const [user] = await Users.create([userInfo], { session });
+    const [user] = await User.create([userInfo], { session });
     if (!user) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
     }
@@ -45,14 +46,14 @@ const createCustomer = async (
     throw error;
   }
   if (newUser) {
-    newUser = await Users.findOne({ _id: newUser._id }).populate("customer");
+    newUser = await User.findOne({ _id: newUser._id }).populate("customer");
   }
   return newUser;
 };
 
 const createAdminOrStaff = async (
   userInfo: TUser,
-  personalInfo: TAdmin | IStaffs,
+  personalInfo: TAdmin | TStaff,
 ): Promise<TUser | null> => {
   let newUser = null;
   const session = await mongoose.startSession();
@@ -60,19 +61,19 @@ const createAdminOrStaff = async (
     session.startTransaction();
     // Create Admin or staff account base on request type
     if (userInfo.role === "admin") {
-      newUser = await UserHelper.createAdminOrStaffUser(
+      newUser = await UserHelpers.createAdminOrStaffUser(
         "admin",
         false,
-        Admins,
+        Admin,
         userInfo,
         personalInfo,
         session,
       );
     } else if (userInfo.role === "staff") {
-      newUser = await UserHelper.createAdminOrStaffUser(
+      newUser = await UserHelpers.createAdminOrStaffUser(
         "staff",
         true,
-        Staffs,
+        Staff,
         userInfo,
         personalInfo,
         session,
@@ -85,13 +86,13 @@ const createAdminOrStaff = async (
     await session.endSession();
     throw error;
   }
-  newUser = await Users.findById(newUser?._id).populate(
+  newUser = await User.findById(newUser?._id).populate(
     newUser?.role.toLowerCase() as string,
   );
   return newUser;
 };
 
-export const UsersService = {
+export const UserServices = {
   createCustomer,
   createAdminOrStaff,
 };

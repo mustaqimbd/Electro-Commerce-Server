@@ -1,12 +1,12 @@
 import { ErrorRequestHandler } from "express";
 import { ZodError } from "zod";
-import config from "../config";
-import ApiError from "../errors/ApiError";
-import handleApiError from "../errors/handleApiError";
-import handleJodError from "../errors/handleJodError";
-import handleMongooseCastError from "../errors/handleMongooseCastError";
-import handleMongooseDuplicateError from "../errors/handleMongooseDuplicateError";
-import handleMongooseValidationError from "../errors/handleMongooseValidationError";
+import config from "../config/config";
+import ApiError from "../errorHandlers/ApiError";
+import handleApiError from "../errorHandlers/handleApiError";
+import handleJodError from "../errorHandlers/handleJodError";
+import handleMongooseCastError from "../errorHandlers/handleMongooseCastError";
+import handleMongooseDuplicateError from "../errorHandlers/handleMongooseDuplicateError";
+import handleMongooseValidationError from "../errorHandlers/handleMongooseValidationError";
 import { IErrorMessages, IErrorResponse } from "../types/error";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

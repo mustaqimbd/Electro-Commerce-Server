@@ -21,4 +21,4 @@ const AdminSchema = new Schema<TAdmin>({
   },
 });
 
-export const Admins = model<TAdmin>("Admin", AdminSchema);
+export const Admin = model<TAdmin>("Admin", AdminSchema);

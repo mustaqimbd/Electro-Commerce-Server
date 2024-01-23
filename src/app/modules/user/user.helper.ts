@@ -1,22 +1,22 @@
 import httpStatus from "http-status";
 import { ClientSession, Model } from "mongoose";
-import ApiError from "../../errors/ApiError";
+import ApiError from "../../errorHandlers/ApiError";
 import { TAdmin } from "../admin/admin.interface";
-import { IStaffs } from "../staff/staff.interface";
+import { TStaff } from "../staff/staff.interface";
 import { TUser } from "./user.interface";
-import { Users } from "./user.model";
+import { User } from "./user.model";
 import { createAdminOrStaffId } from "./user.util";
 
 const createAdminOrStaffUser = async (
   role: "admin" | "staff",
   isStaff: boolean,
-  modelName: Model<TAdmin | IStaffs>,
+  modelName: Model<TAdmin | TStaff>,
   userInfo: TUser,
-  personalInfo: TAdmin | IStaffs,
+  personalInfo: TAdmin | TStaff,
   session: ClientSession,
 ): Promise<TUser> => {
   const id = await createAdminOrStaffId(isStaff);
-  userInfo.id = id;
+  userInfo.uid = id;
   personalInfo.uid = id;
   const [createdModel] = await modelName.create([personalInfo], { session });
   if (!createdModel) {
@@ -26,7 +26,7 @@ const createAdminOrStaffUser = async (
     );
   }
   userInfo[role] = createdModel._id;
-  const [user] = await Users.create([userInfo], { session });
+  const [user] = await User.create([userInfo], { session });
   if (!user) {
     throw new ApiError(httpStatus.BAD_REQUEST, `Failed to create the user`);
   }
@@ -34,6 +34,6 @@ const createAdminOrStaffUser = async (
   return user;
 };
 
-export const UserHelper = {
+export const UserHelpers = {
   createAdminOrStaffUser,
 };

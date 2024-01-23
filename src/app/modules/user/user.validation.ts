@@ -13,7 +13,7 @@ const createCustomer = z.object({
     phoneNumber: phoneNumberSchema,
     email: z.string().email().optional(),
     password: z.string({ required_error: "Password is required" }),
-    customersInfo: z.object({
+    customerInfo: z.object({
       fullName: z.string().optional(),
       fullAddress: z.string().optional(),
     }),
@@ -26,7 +26,7 @@ const createStaffOrAdmin = z.object({
     email: z.string({ required_error: "Email is required." }).email(),
     password: z.string({ required_error: "Password is required" }),
     role: z.enum(["staff", "admin"], { required_error: "Role is required" }),
-    customersInfo: z
+    personalInfo: z
       .object({
         fullName: z.string({ required_error: "Full name is required." }),
         fullAddress: z.string({ required_error: "Full address is required" }),
@@ -36,7 +36,7 @@ const createStaffOrAdmin = z.object({
   }),
 });
 
-export const UsersValidation = {
+export const UserValidation = {
   createCustomer,
   createStaffOrAdmin,
 };
