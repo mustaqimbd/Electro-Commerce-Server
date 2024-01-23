@@ -1,4 +1,4 @@
-import { consoleLogger, errorLogger, logger } from "./shared/logger";
+import { consoleLogger, errorLogger, logger } from "./app/shared/logger";
 
 process.on("uncaughtException", (error) => {
   consoleLogger.error(
@@ -11,7 +11,7 @@ process.on("uncaughtException", (error) => {
 import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
-import config from "./config";
+import config from "./app/config";
 
 let server: Server;
 

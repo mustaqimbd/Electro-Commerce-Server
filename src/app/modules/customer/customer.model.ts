@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { ICustomers } from "./customers.interface";
+import { TCustomer } from "./customer.interface";
 
-const CustomersSchema = new Schema<ICustomers>(
+const CustomersSchema = new Schema<TCustomer>(
   {
     uid: {
       type: String,
@@ -23,4 +23,4 @@ const CustomersSchema = new Schema<ICustomers>(
   },
 );
 
-export const Customers = model<ICustomers>("Customers", CustomersSchema);
+export const Customers = model<TCustomer>("Customer", CustomersSchema);

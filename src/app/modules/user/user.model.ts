@@ -1,10 +1,10 @@
 import bcrypt from "bcrypt";
 import { Schema, model } from "mongoose";
-import config from "../../../config";
-import { rolesEnums } from "./users.const";
-import { IUser } from "./users.interface";
+import config from "../../config";
+import { rolesEnums } from "./user.const";
+import { TUser, TUserModel } from "./user.interface";
 
-const UserSchema = new Schema<IUser>(
+const UserSchema = new Schema<TUser, TUserModel>(
   {
     id: {
       type: String,
@@ -29,15 +29,15 @@ const UserSchema = new Schema<IUser>(
     },
     customer: {
       type: Schema.Types.ObjectId,
-      ref: "Customers",
+      ref: "Customer",
     },
     staff: {
       type: Schema.Types.ObjectId,
-      ref: "Staffs",
+      ref: "Staff",
     },
     admin: {
       type: Schema.Types.ObjectId,
-      ref: "Admins",
+      ref: "Admin",
     },
     isDeleted: {
       type: Boolean,
@@ -58,6 +58,13 @@ const UserSchema = new Schema<IUser>(
   },
 );
 
+UserSchema.statics.isPasswordMatch = async function (
+  givenPassWord,
+  savedPassword,
+) {
+  return await bcrypt.compare(givenPassWord, savedPassword);
+};
+
 UserSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(
     this.password,
@@ -66,4 +73,4 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
-export const Users = model<IUser>("Users", UserSchema);
+export const Users = model<TUser, TUserModel>("User", UserSchema);

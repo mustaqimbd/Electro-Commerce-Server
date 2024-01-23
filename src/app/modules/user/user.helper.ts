@@ -1,20 +1,20 @@
 import httpStatus from "http-status";
 import { ClientSession, Model } from "mongoose";
-import ApiError from "../../../errors/ApiError";
-import { IAdmins } from "../admins/admins.interface";
-import { IStaffs } from "../staffs/staff.interface";
-import { IUser } from "./users.interface";
-import { Users } from "./users.model";
-import { createAdminOrStaffId } from "./users.util";
+import ApiError from "../../errors/ApiError";
+import { TAdmin } from "../admin/admin.interface";
+import { IStaffs } from "../staff/staff.interface";
+import { TUser } from "./user.interface";
+import { Users } from "./user.model";
+import { createAdminOrStaffId } from "./user.util";
 
 const createAdminOrStaffUser = async (
   role: "admin" | "staff",
   isStaff: boolean,
-  modelName: Model<IAdmins | IStaffs>,
-  userInfo: IUser,
-  personalInfo: IAdmins | IStaffs,
+  modelName: Model<TAdmin | IStaffs>,
+  userInfo: TUser,
+  personalInfo: TAdmin | IStaffs,
   session: ClientSession,
-): Promise<IUser> => {
+): Promise<TUser> => {
   const id = await createAdminOrStaffId(isStaff);
   userInfo.id = id;
   personalInfo.uid = id;

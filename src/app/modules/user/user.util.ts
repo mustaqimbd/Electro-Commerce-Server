@@ -1,4 +1,4 @@
-import { Users } from "./users.model";
+import { Users } from "./user.model";
 
 const findLastCustomer = async (): Promise<string | undefined> => {
   const lastCustomer = await Users.findOne(
