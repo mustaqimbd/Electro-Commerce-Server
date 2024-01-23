@@ -10,7 +10,7 @@ categoryRoutes.post(
   "/",
   // authGuard('admin'),
   validateRequest(categoryValidationSchema),
-  categoryControllers.createCategory,
+  categoryControllers.createCategory
 );
 
 categoryRoutes.get("/", categoryControllers.getAllCategories);
@@ -19,12 +19,12 @@ categoryRoutes.patch(
   "/:categoryId",
   // authGuard('admin'),
   validateRequest(categoryValidationSchema),
-  categoryControllers.updateCategory,
+  categoryControllers.updateCategory
 );
 categoryRoutes.delete(
   "/:categoryId",
   // authGuard('admin'),
-  categoryControllers.deleteCategory,
+  categoryControllers.deleteCategory
 );
 
 export default categoryRoutes;

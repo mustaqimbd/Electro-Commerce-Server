@@ -2,14 +2,12 @@ import httpStatus from "http-status";
 import successResponse from "../../../../shared/successResponse";
 import { categoryServices } from "./categories.service";
 import catchAsync from "../../../../shared/catchAsync";
-import mongoose from "mongoose";
 
 const createCategory = catchAsync(async (req, res) => {
-  // const createdBy = req.user._id
-  const createdBy = new mongoose.Types.ObjectId("658d6b8eb1340407b7148545"); // testing purpose
+  const createdBy = req.user._id;
   const result = await categoryServices.createCategoryIntoDB(
     createdBy,
-    req.body,
+    req.body
   );
   successResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -28,33 +26,29 @@ const getAllCategories = catchAsync(async (req, res) => {
 });
 
 const updateCategory = catchAsync(async (req, res) => {
-  // const createdBy = req.user._id
-  const createdBy = new mongoose.Types.ObjectId("658d6b8eb1340407b7148545"); // testing purpose
+  const createdBy = req.user._id;
   const categoryId = req.params.categoryId;
   const result = await categoryServices.updateCategoryIntoDB(
     createdBy,
     categoryId,
-    req.body,
+    req.body
   );
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "Category updated successfully",
     data: result,
   });
 });
 
 const deleteCategory = catchAsync(async (req, res) => {
-  // const createdBy = req.user._id
-  const createdBy = new mongoose.Types.ObjectId("658d6b8eb1340407b7148545"); // testing purpose
+  const createdBy = req.user._id;
   const categoryId = req.params.categoryId;
-  const result = await categoryServices.deleteCategoryIntoDB(
-    createdBy,
-    categoryId,
-  );
+  await categoryServices.deleteCategoryIntoDB(createdBy, categoryId);
+
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Category deleted successfully",
-    data: result,
+    data: null,
   });
 });
 

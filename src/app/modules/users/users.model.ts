@@ -53,13 +53,13 @@ const UserSchema = new Schema<IUser>(
     toJSON: {
       virtuals: true,
     },
-  },
+  }
 );
 
 UserSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(
     this.password,
-    Number(config.bcrypt_salt_round),
+    Number(config.bcrypt_salt_round)
   );
   next();
 });

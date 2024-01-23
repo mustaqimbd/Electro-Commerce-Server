@@ -9,7 +9,7 @@ import { createCustomerId } from "./users.util";
 
 const createCustomer = async (
   userInfo: IUser,
-  customersInfo: ICustomers,
+  customersInfo: ICustomers
 ): Promise<IUser | null> => {
   // change user role
   userInfo.role = "customer";

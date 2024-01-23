@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { IErrorMessages, IErrorResponse } from "../types/error";
 
 const handleMongooseCastError = (
-  err: mongoose.Error.CastError,
+  err: mongoose.Error.CastError
 ): IErrorResponse => {
   const message = "Invalid id";
   const errorMessages: IErrorMessages[] = [

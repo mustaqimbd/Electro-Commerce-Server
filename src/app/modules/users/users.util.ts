@@ -3,7 +3,7 @@ import { Users } from "./users.model";
 const findLastCustomer = async (): Promise<string | undefined> => {
   const lastCustomer = await Users.findOne(
     { role: "customer" },
-    { _id: 1, id: 1 },
+    { _id: 1, id: 1 }
   )
     .sort({
       createdAt: -1,

@@ -25,7 +25,7 @@ const logger = createLogger({
         "logs",
         "winston",
         "success",
-        "um-%DATE%-success.log",
+        "um-%DATE%-success.log"
       ),
       datePattern: "YYYY-MM-DD-HH",
       zippedArchive: true,
@@ -46,7 +46,7 @@ const errorLogger = createLogger({
         "logs",
         "winston",
         "error",
-        "um-%DATE%-error.log",
+        "um-%DATE%-error.log"
       ),
       datePattern: "YYYY-MM-DD-HH",
       zippedArchive: true,

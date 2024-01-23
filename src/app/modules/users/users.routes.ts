@@ -8,12 +8,12 @@ const router = express.Router();
 router.post(
   "/create-customer",
   validateRequest(UsersValidation.createCustomer),
-  UserController.createCustomer,
+  UserController.createCustomer
 );
 router.post(
   "/create-staff-or-admin",
   validateRequest(UsersValidation.createCustomer),
-  UserController.createCustomer,
+  UserController.createCustomer
 );
 
 export const UsersRoute = router;

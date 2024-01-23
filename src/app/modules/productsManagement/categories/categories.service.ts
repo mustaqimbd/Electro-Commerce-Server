@@ -4,11 +4,11 @@ import { CategoryModel } from "./categories.model";
 
 const createCategoryIntoDB = async (
   createdBy: Types.ObjectId,
-  payload: TCategory,
+  payload: TCategory
 ) => {
   payload.createdBy = createdBy;
   const isCategoryExist = await CategoryModel.findOne({
-    categoryName: payload.categoryName,
+    name: payload.name,
     isDeleted: true,
   });
 
@@ -16,7 +16,7 @@ const createCategoryIntoDB = async (
     const result = await CategoryModel.findByIdAndUpdate(
       isCategoryExist._id,
       { createdBy, isDeleted: false },
-      { new: true },
+      { new: true }
     );
     return result;
   } else {
@@ -26,14 +26,14 @@ const createCategoryIntoDB = async (
 };
 
 const getAllCategoriesFromDB = async () => {
-  const result = await CategoryModel.find();
+  const result = await CategoryModel.find({ isDeleted: false });
   return result;
 };
 
 const updateCategoryIntoDB = async (
   createdBy: Types.ObjectId,
   id: string,
-  payload: TCategory,
+  payload: TCategory
 ) => {
   payload.createdBy = createdBy;
   const result = await CategoryModel.findByIdAndUpdate(id, payload, {
@@ -43,11 +43,11 @@ const updateCategoryIntoDB = async (
 };
 
 const deleteCategoryIntoDB = async (createdBy: Types.ObjectId, id: string) => {
-  const result = await CategoryModel.findByIdAndUpdate(
-    id,
-    { createdBy, isDeleted: true },
-    { new: true },
-  );
+  const result = await CategoryModel.findByIdAndUpdate(id, {
+    createdBy,
+    isDeleted: true,
+  });
+
   return result;
 };
 

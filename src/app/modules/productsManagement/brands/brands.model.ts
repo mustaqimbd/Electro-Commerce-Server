@@ -1,9 +1,11 @@
 import { Schema, model } from "mongoose";
-import { TCategory } from "./categories.interface";
+import { TBrand } from "./brands.interface";
 
-const categorySchema = new Schema<TCategory>(
+const brandSchema = new Schema<TBrand>(
   {
     name: { type: String, required: true, unique: true },
+    description: { type: String },
+    logo: { type: String },
     createdBy: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -16,4 +18,4 @@ const categorySchema = new Schema<TCategory>(
   }
 );
 
-export const CategoryModel = model<TCategory>("Category", categorySchema);
+export const BrandModel = model<TBrand>("Brand", brandSchema);
