@@ -12,8 +12,8 @@ router.post(
 );
 router.post(
   "/create-staff-or-admin",
-  validateRequest(UsersValidation.createCustomer),
-  UserController.createCustomer,
+  validateRequest(UsersValidation.createStaffOrAdmin),
+  UserController.createAdminOrStaff,
 );
 
 export const UsersRoute = router;

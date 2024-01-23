@@ -1,8 +1,13 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errors/ApiError";
+import { IAdmins } from "../admins/admins.interface";
+import { Admins } from "../admins/admins.model";
 import { ICustomers } from "../customers/customers.interface";
 import { Customers } from "../customers/customers.model";
+import { IStaffs } from "../staffs/staff.interface";
+import { Staffs } from "../staffs/staff.model";
+import { UserHelper } from "./users.helper";
 import { IUser } from "./users.interface";
 import { Users } from "./users.model";
 import { createCustomerId } from "./users.util";
@@ -45,7 +50,46 @@ const createCustomer = async (
   return newUser;
 };
 
-const createAdminOrStaff = () => {};
+const createAdminOrStaff = async (
+  userInfo: IUser,
+  personalInfo: IAdmins | IStaffs,
+): Promise<IUser | null> => {
+  let newUser = null;
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    // Create Admin or staff account base on request type
+    if (userInfo.role === "admin") {
+      newUser = await UserHelper.createAdminOrStaffUser(
+        "admin",
+        false,
+        Admins,
+        userInfo,
+        personalInfo,
+        session,
+      );
+    } else if (userInfo.role === "staff") {
+      newUser = await UserHelper.createAdminOrStaffUser(
+        "staff",
+        true,
+        Staffs,
+        userInfo,
+        personalInfo,
+        session,
+      );
+    }
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+  newUser = await Users.findById(newUser?._id).populate(
+    newUser?.role.toLowerCase() as string,
+  );
+  return newUser;
+};
 
 export const UsersService = {
   createCustomer,

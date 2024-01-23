@@ -21,4 +21,4 @@ const StaffSchema = new Schema<IStaffs>({
   },
 });
 
-export const Stuffs = model<IStaffs>("Staffs", StaffSchema);
+export const Staffs = model<IStaffs>("Staffs", StaffSchema);
