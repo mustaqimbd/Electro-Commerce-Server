@@ -33,9 +33,11 @@ const UserSchema = new Schema<IUser>(
     },
     staff: {
       type: Schema.Types.ObjectId,
+      ref: "Staffs",
     },
     admin: {
       type: Schema.Types.ObjectId,
+      ref: "Admins",
     },
     isDeleted: {
       type: Boolean,

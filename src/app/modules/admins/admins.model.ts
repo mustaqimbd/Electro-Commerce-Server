@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
 import { IAdmins } from "./admins.interface";
 
-const StaffSchema = new Schema<IAdmins>({
+const AdminSchema = new Schema<IAdmins>({
   uid: {
     type: String,
     required: true,
@@ -21,4 +21,4 @@ const StaffSchema = new Schema<IAdmins>({
   },
 });
 
-export const Stuffs = model<IAdmins>("Staffs", StaffSchema);
+export const Admins = model<IAdmins>("Admins", AdminSchema);
