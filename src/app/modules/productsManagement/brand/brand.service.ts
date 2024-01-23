@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
-import { TBrand } from "./brands.interface";
-import { BrandModel } from "./brands.model";
+import { TBrand } from "./brand.interface";
+import { BrandModel } from "./brand.model";
 
 const createBrandIntoDB = async (
   createdBy: Types.ObjectId,

@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import catchAsync from "../../../../shared/catchAsync";
 import successResponse from "../../../../shared/successResponse";
-import { brandServices } from "./brands.service";
+import { brandServices } from "./brand.service";
 
 const createBrand = catchAsync(async (req, res) => {
   const createdBy = req.user._id;

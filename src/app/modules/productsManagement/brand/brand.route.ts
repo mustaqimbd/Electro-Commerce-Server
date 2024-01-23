@@ -1,7 +1,10 @@
 import express from "express";
 import validateRequest from "../../../middlewares/validateRequest";
-import { brandControllers } from "./brands.controller";
-import brandValidationSchema from "./brands.validation";
+import { brandControllers } from "./brand.controller";
+import {
+  brandValidationSchema,
+  updateBrandValidationSchema,
+} from "./brand.validation";
 // import authGuard from '../../middlewares/authGuard';
 
 const brandRoutes = express.Router();
@@ -18,7 +21,7 @@ brandRoutes.get("/", brandControllers.getAllBrands);
 brandRoutes.patch(
   "/:brandId",
   // authGuard('admin'),
-  validateRequest(brandValidationSchema),
+  validateRequest(updateBrandValidationSchema),
   brandControllers.updateBrand
 );
 

@@ -1,6 +1,6 @@
 import express from "express";
-import { categoryControllers } from "./categories.controller";
-import categoryValidationSchema from "./categories.validation";
+import { categoryControllers } from "./category.controller";
+import categoryValidationSchema from "./category.validation";
 import validateRequest from "../../../middlewares/validateRequest";
 // import authGuard from '../../middlewares/authGuard';
 

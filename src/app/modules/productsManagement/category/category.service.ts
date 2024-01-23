@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
-import { TCategory } from "./categories.interface";
-import { CategoryModel } from "./categories.model";
+import { TCategory } from "./category.interface";
+import { CategoryModel } from "./category.model";
 
 const createCategoryIntoDB = async (
   createdBy: Types.ObjectId,

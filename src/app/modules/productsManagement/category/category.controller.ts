@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 import successResponse from "../../../../shared/successResponse";
-import { categoryServices } from "./categories.service";
+import { categoryServices } from "./category.service";
 import catchAsync from "../../../../shared/catchAsync";
 
 const createCategory = catchAsync(async (req, res) => {

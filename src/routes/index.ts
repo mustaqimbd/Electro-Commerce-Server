@@ -1,7 +1,7 @@
 import express from "express";
 import { UsersRoute } from "../app/modules/users/users.routes";
-import categoryRoutes from "../app/modules/productsManagement/categories/categories.route";
-import brandRoutes from "../app/modules/productsManagement/brands/categories.route";
+import categoryRoutes from "../app/modules/productsManagement/category/category.route";
+import brandRoutes from "../app/modules/productsManagement/brand/brand.route";
 
 const router = express();
 const moduleRoutes = [
