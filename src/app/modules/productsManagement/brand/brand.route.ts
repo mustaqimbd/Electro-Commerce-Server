@@ -1,34 +1,34 @@
 import express from "express";
 import validateRequest from "../../../middlewares/validateRequest";
-import { brandControllers } from "./brand.controller";
+import { BrandControllers } from "./brand.controller";
 import {
   brandValidationSchema,
   updateBrandValidationSchema,
 } from "./brand.validation";
 // import authGuard from '../../middlewares/authGuard';
 
-const brandRoutes = express.Router();
+const router = express.Router();
 
-brandRoutes.post(
+router.post(
   "/",
   // authGuard('admin'),
   validateRequest(brandValidationSchema),
-  brandControllers.createBrand
+  BrandControllers.createBrand
 );
 
-brandRoutes.get("/", brandControllers.getAllBrands);
+router.get("/", BrandControllers.getAllBrands);
 
-brandRoutes.patch(
+router.patch(
   "/:id",
   // authGuard('admin'),
   validateRequest(updateBrandValidationSchema),
-  brandControllers.updateBrand
+  BrandControllers.updateBrand
 );
 
-brandRoutes.delete(
+router.delete(
   "/:id",
   // authGuard('admin'),
-  brandControllers.deleteBrand
+  BrandControllers.deleteBrand
 );
 
-export default brandRoutes;
+export const BrandRoutes = router;

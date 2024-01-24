@@ -1,34 +1,34 @@
 import express from "express";
 import validateRequest from "../../../middlewares/validateRequest";
-import { attributeControllers } from "./attribute.controller";
+import { AttributeControllers } from "./attribute.controller";
 import {
   attributeValidationSchema,
   updateAttributeValidationSchema,
 } from "./attribute.validation";
 // import authGuard from '../../middlewares/authGuard';
 
-const attributeRoutes = express.Router();
+const router = express.Router();
 
-attributeRoutes.post(
+router.post(
   "/",
   // authGuard('admin'),
   validateRequest(attributeValidationSchema),
-  attributeControllers.createAttribute
+  AttributeControllers.createAttribute
 );
 
-attributeRoutes.get("/", attributeControllers.getAllAttributes);
+router.get("/", AttributeControllers.getAllAttributes);
 
-attributeRoutes.patch(
+router.patch(
   "/:id",
   // authGuard('admin'),
   validateRequest(updateAttributeValidationSchema),
-  attributeControllers.updateAttribute
+  AttributeControllers.updateAttribute
 );
 
-attributeRoutes.delete(
+router.delete(
   "/:id",
   // authGuard('admin'),
-  attributeControllers.deleteAttribute
+  AttributeControllers.deleteAttribute
 );
 
-export default attributeRoutes;
+export const AttributeRoutes = router;

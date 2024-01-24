@@ -1,11 +1,11 @@
 import httpStatus from "http-status";
-import { categoryServices } from "./category.service";
+import { CategoryServices } from "./category.service";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 
 const createCategory = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
-  const result = await categoryServices.createCategoryIntoDB(
+  const createdBy = req.user.id;
+  const result = await CategoryServices.createCategoryIntoDB(
     createdBy,
     req.body
   );
@@ -17,7 +17,7 @@ const createCategory = catchAsync(async (req, res) => {
 });
 
 const getAllCategories = catchAsync(async (req, res) => {
-  const result = await categoryServices.getAllCategoriesFromDB();
+  const result = await CategoryServices.getAllCategoriesFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Categories retrieved successfully",
@@ -26,9 +26,9 @@ const getAllCategories = catchAsync(async (req, res) => {
 });
 
 const updateCategory = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
+  const createdBy = req.user.id;
   const categoryId = req.params.id;
-  const result = await categoryServices.updateCategoryIntoDB(
+  const result = await CategoryServices.updateCategoryIntoDB(
     createdBy,
     categoryId,
     req.body
@@ -41,9 +41,9 @@ const updateCategory = catchAsync(async (req, res) => {
 });
 
 const deleteCategory = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
+  const createdBy = req.user.id;
   const categoryId = req.params.id;
-  await categoryServices.deleteCategoryIntoDB(createdBy, categoryId);
+  await CategoryServices.deleteCategoryIntoDB(createdBy, categoryId);
 
   successResponse(res, {
     statusCode: httpStatus.OK,
@@ -52,7 +52,7 @@ const deleteCategory = catchAsync(async (req, res) => {
   });
 });
 
-export const categoryControllers = {
+export const CategoryControllers = {
   createCategory,
   getAllCategories,
   updateCategory,

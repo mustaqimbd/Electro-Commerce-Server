@@ -77,7 +77,7 @@ const deleteCategoryIntoDB = async (createdBy: Types.ObjectId, id: string) => {
   return result;
 };
 
-export const categoryServices = {
+export const CategoryServices = {
   createCategoryIntoDB,
   getAllCategoriesFromDB,
   updateCategoryIntoDB,

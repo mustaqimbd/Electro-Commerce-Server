@@ -1,11 +1,11 @@
 import httpStatus from "http-status";
-import { attributeServices } from "./attribute.service";
+import { AttributeServices } from "./attribute.service";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 
 const createAttribute = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
-  const result = await attributeServices.createAttributeIntoDB(
+  const createdBy = req.user.id;
+  const result = await AttributeServices.createAttributeIntoDB(
     createdBy,
     req.body
   );
@@ -17,7 +17,7 @@ const createAttribute = catchAsync(async (req, res) => {
 });
 
 const getAllAttributes = catchAsync(async (req, res) => {
-  const result = await attributeServices.getAllAttributesFromDB();
+  const result = await AttributeServices.getAllAttributesFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Attributes retrieved successfully",
@@ -26,9 +26,9 @@ const getAllAttributes = catchAsync(async (req, res) => {
 });
 
 const updateAttribute = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
+  const createdBy = req.user.id;
   const attributeId = req.params.id;
-  const result = await attributeServices.updateAttributeIntoDB(
+  const result = await AttributeServices.updateAttributeIntoDB(
     createdBy,
     attributeId,
     req.body
@@ -41,9 +41,9 @@ const updateAttribute = catchAsync(async (req, res) => {
 });
 
 const deleteAttribute = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
+  const createdBy = req.user.id;
   const attributeId = req.params.id;
-  await attributeServices.deleteAttributeIntoDB(createdBy, attributeId);
+  await AttributeServices.deleteAttributeIntoDB(createdBy, attributeId);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Attribute deleted successfully",
@@ -51,7 +51,7 @@ const deleteAttribute = catchAsync(async (req, res) => {
   });
 });
 
-export const attributeControllers = {
+export const AttributeControllers = {
   createAttribute,
   getAllAttributes,
   updateAttribute,

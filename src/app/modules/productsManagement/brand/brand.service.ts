@@ -74,7 +74,7 @@ const deleteBrandIntoDB = async (createdBy: Types.ObjectId, id: string) => {
   return result;
 };
 
-export const brandServices = {
+export const BrandServices = {
   createBrandIntoDB,
   getAllBrandsFromDB,
   updateBrandIntoDB,

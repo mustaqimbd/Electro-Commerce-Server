@@ -1,11 +1,11 @@
 import httpStatus from "http-status";
-import { brandServices } from "./brand.service";
-import catchAsync from "../../../shared/catchAsync";
-import successResponse from "../../../shared/successResponse";
+import { BrandServices } from "./brand.service";
+import catchAsync from "../../../utilities/catchAsync";
+import successResponse from "../../../utilities/successResponse";
 
 const createBrand = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
-  const result = await brandServices.createBrandIntoDB(createdBy, req.body);
+  const createdBy = req.user.id;
+  const result = await BrandServices.createBrandIntoDB(createdBy, req.body);
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Brand created successfully",
@@ -14,7 +14,7 @@ const createBrand = catchAsync(async (req, res) => {
 });
 
 const getAllBrands = catchAsync(async (req, res) => {
-  const result = await brandServices.getAllBrandsFromDB();
+  const result = await BrandServices.getAllBrandsFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Brands retrieved successfully",
@@ -23,9 +23,9 @@ const getAllBrands = catchAsync(async (req, res) => {
 });
 
 const updateBrand = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
+  const createdBy = req.user.id;
   const brandId = req.params.id;
-  const result = await brandServices.updateBrandIntoDB(
+  const result = await BrandServices.updateBrandIntoDB(
     createdBy,
     brandId,
     req.body
@@ -38,9 +38,9 @@ const updateBrand = catchAsync(async (req, res) => {
 });
 
 const deleteBrand = catchAsync(async (req, res) => {
-  const createdBy = req.user._id;
+  const createdBy = req.user.id;
   const brandId = req.params.id;
-  await brandServices.deleteBrandIntoDB(createdBy, brandId);
+  await BrandServices.deleteBrandIntoDB(createdBy, brandId);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Brand deleted successfully",
@@ -48,7 +48,7 @@ const deleteBrand = catchAsync(async (req, res) => {
   });
 });
 
-export const brandControllers = {
+export const BrandControllers = {
   createBrand,
   getAllBrands,
   updateBrand,

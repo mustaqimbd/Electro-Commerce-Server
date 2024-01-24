@@ -77,7 +77,7 @@ const deleteAttributeIntoDB = async (createdBy: Types.ObjectId, id: string) => {
   return result;
 };
 
-export const attributeServices = {
+export const AttributeServices = {
   createAttributeIntoDB,
   getAllAttributesFromDB,
   updateAttributeIntoDB,

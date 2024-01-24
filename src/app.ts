@@ -9,7 +9,6 @@ import config from "./app/config/config";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import router from "./app/routes";
-import mongoose from "mongoose";
 import successResponse from "./app/utilities/successResponse";
 
 const app: Application = express();
@@ -41,13 +40,6 @@ app.get("/api/v1", (req, res) => {
 // static files
 const uploadsPath = path.join(__dirname, "..", "uploads/public");
 app.use("/uploads/public", express.static(uploadsPath));
-
-// for testing purpose
-app.use("/api/v1", (req, res, next) => {
-  req.user = {};
-  req.user._id = new mongoose.Types.ObjectId("658d6b8eb1340407b7148545");
-  next();
-});
 
 app.use("/api/v1", router);
 

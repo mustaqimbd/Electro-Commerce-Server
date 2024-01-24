@@ -1,8 +1,8 @@
 import express from "express";
 import { AuthRouter } from "../modules/auth/auth.routes";
-import attributeRoutes from "../modules/productsManagement/attribute/attribute.route";
-import brandRoutes from "../modules/productsManagement/brand/brand.route";
-import categoryRoutes from "../modules/productsManagement/category/category.route";
+import { AttributeRoutes } from "../modules/productsManagement/attribute/attribute.route";
+import { BrandRoutes } from "../modules/productsManagement/brand/brand.route";
+import { CategoryRoutes } from "../modules/productsManagement/category/category.route";
 import { UserRoute } from "../modules/user/user.routes";
 
 const router = express();
@@ -17,15 +17,15 @@ const moduleRoutes = [
   },
   {
     path: "/categories",
-    route: categoryRoutes,
+    route: CategoryRoutes,
   },
   {
     path: "/brands",
-    route: brandRoutes,
+    route: BrandRoutes,
   },
   {
     path: "/attributes",
-    route: attributeRoutes,
+    route: AttributeRoutes,
   },
 ];
 

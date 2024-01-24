@@ -1,30 +1,31 @@
 import express from "express";
-import { categoryControllers } from "./category.controller";
+import { CategoryControllers } from "./category.controller";
 import categoryValidationSchema from "./category.validation";
 import validateRequest from "../../../middlewares/validateRequest";
 // import authGuard from '../../middlewares/authGuard';
 
-const categoryRoutes = express.Router();
+const router = express.Router();
 
-categoryRoutes.post(
+router.post(
   "/",
   // authGuard('admin'),
   validateRequest(categoryValidationSchema),
-  categoryControllers.createCategory
+  CategoryControllers.createCategory
 );
 
-categoryRoutes.get("/", categoryControllers.getAllCategories);
+router.get("/", CategoryControllers.getAllCategories);
 
-categoryRoutes.patch(
+router.patch(
   "/:id",
   // authGuard('admin'),
   validateRequest(categoryValidationSchema),
-  categoryControllers.updateCategory
-);
-categoryRoutes.delete(
-  "/:id",
-  // authGuard('admin'),
-  categoryControllers.deleteCategory
+  CategoryControllers.updateCategory
 );
 
-export default categoryRoutes;
+router.delete(
+  "/:id",
+  // authGuard('admin'),
+  CategoryControllers.deleteCategory
+);
+
+export const CategoryRoutes = router;
