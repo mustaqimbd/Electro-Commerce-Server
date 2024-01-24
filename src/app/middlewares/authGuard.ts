@@ -6,7 +6,7 @@ import ApiError from "../errorHandlers/ApiError";
 import { jwtHelper } from "../helper/jwt.helper";
 import { TJwtPayload } from "../modules/auth/auth.interface";
 
-const auth =
+const authGuard =
   (...requiredRoles: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -28,4 +28,4 @@ const auth =
     }
   };
 
-export default auth;
+export default authGuard;

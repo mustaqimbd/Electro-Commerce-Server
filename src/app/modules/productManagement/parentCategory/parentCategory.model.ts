@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { TCategory } from "./category.interface";
+import { TParentCategory } from "./parentCategory.interface";
 
-const categorySchema = new Schema<TCategory>(
+const parentCategorySchema = new Schema<TParentCategory>(
   {
     name: { type: String, required: true, unique: true },
     createdBy: {
@@ -16,4 +16,7 @@ const categorySchema = new Schema<TCategory>(
   }
 );
 
-export const CategoryModel = model<TCategory>("Category", categorySchema);
+export const ParentCategoryModel = model<TParentCategory>(
+  "Parent_Category",
+  parentCategorySchema
+);

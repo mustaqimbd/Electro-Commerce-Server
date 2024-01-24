@@ -1,9 +1,10 @@
 import express from "express";
 import { AuthRouter } from "../modules/auth/auth.routes";
-import { AttributeRoutes } from "../modules/productsManagement/attribute/attribute.route";
-import { BrandRoutes } from "../modules/productsManagement/brand/brand.route";
-import { CategoryRoutes } from "../modules/productsManagement/category/category.route";
+import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.route";
+import { BrandRoutes } from "../modules/productManagement/brand/brand.route";
+import { CategoryRoutes } from "../modules/productManagement/category/category.route";
 import { UserRoute } from "../modules/user/user.routes";
+import { ParentCategoryRoutes } from "../modules/productManagement/parentCategory/parentCategory.route";
 
 const router = express();
 const moduleRoutes = [
@@ -14,6 +15,10 @@ const moduleRoutes = [
   {
     path: "/auth",
     route: AuthRouter,
+  },
+  {
+    path: "/parent-categories",
+    route: ParentCategoryRoutes,
   },
   {
     path: "/categories",

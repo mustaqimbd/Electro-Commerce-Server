@@ -1,6 +1,9 @@
 import express from "express";
 import { CategoryControllers } from "./category.controller";
-import categoryValidationSchema from "./category.validation";
+import {
+  categoryValidationSchema,
+  updateCategoryValidationSchema,
+} from "./category.validation";
 import validateRequest from "../../../middlewares/validateRequest";
 // import authGuard from '../../middlewares/authGuard';
 
@@ -18,7 +21,7 @@ router.get("/", CategoryControllers.getAllCategories);
 router.patch(
   "/:id",
   // authGuard('admin'),
-  validateRequest(categoryValidationSchema),
+  validateRequest(updateCategoryValidationSchema),
   CategoryControllers.updateCategory
 );
 

@@ -29,7 +29,10 @@ const createCategoryIntoDB = async (
 };
 
 const getAllCategoriesFromDB = async () => {
-  const result = await CategoryModel.find({ isDeleted: false });
+  const result = await CategoryModel.find(
+    { isDeleted: false },
+    "name"
+  ).populate("parentCategory", "name");
   return result;
 };
 

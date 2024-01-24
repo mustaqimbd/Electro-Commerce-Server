@@ -28,7 +28,10 @@ const createBrandIntoDB = async (
 };
 
 const getAllBrandsFromDB = async () => {
-  const result = await BrandModel.find({ isDeleted: false });
+  const result = await BrandModel.find(
+    { isDeleted: false },
+    "name description logo"
+  );
   return result;
 };
 

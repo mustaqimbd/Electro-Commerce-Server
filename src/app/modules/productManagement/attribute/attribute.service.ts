@@ -28,7 +28,7 @@ const createAttributeIntoDB = async (
 };
 
 const getAllAttributesFromDB = async () => {
-  const result = await AttributeModel.find({ isDeleted: false });
+  const result = await AttributeModel.find({ isDeleted: false }, "name values");
   return result;
 };
 
