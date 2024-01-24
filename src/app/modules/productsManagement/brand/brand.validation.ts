@@ -10,7 +10,7 @@ export const brandValidationSchema = z.object({
 
 export const updateBrandValidationSchema = z.object({
   body: z.object({
-    name: z.string().min(1, { message: "Brand name is required!" }),
+    name: z.string().min(1, { message: "Brand name is required!" }).optional(),
     description: z.string().optional(),
     logo: z.string().optional(),
   }),

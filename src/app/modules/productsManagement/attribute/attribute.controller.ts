@@ -1,56 +1,59 @@
 import httpStatus from "http-status";
-import catchAsync from "../../../../shared/catchAsync";
-import successResponse from "../../../../shared/successResponse";
-import { brandServices } from "./attribute.service";
+import { attributeServices } from "./attribute.service";
+import catchAsync from "../../../shared/catchAsync";
+import successResponse from "../../../shared/successResponse";
 
-const createBrand = catchAsync(async (req, res) => {
+const createAttribute = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const result = await brandServices.createBrandIntoDB(createdBy, req.body);
+  const result = await attributeServices.createAttributeIntoDB(
+    createdBy,
+    req.body
+  );
   successResponse(res, {
     statusCode: httpStatus.CREATED,
-    message: "Brand created successfully",
+    message: "Attribute created successfully",
     data: result,
   });
 });
 
-const getAllBrands = catchAsync(async (req, res) => {
-  const result = await brandServices.getAllBrandsFromDB();
+const getAllAttributes = catchAsync(async (req, res) => {
+  const result = await attributeServices.getAllAttributesFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Brands retrieved successfully",
+    message: "Attributes retrieved successfully",
     data: result,
   });
 });
 
-const updateBrand = catchAsync(async (req, res) => {
+const updateAttribute = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const brandId = req.params.brandId;
-  const result = await brandServices.updateBrandIntoDB(
+  const attributeId = req.params.id;
+  const result = await attributeServices.updateAttributeIntoDB(
     createdBy,
-    brandId,
+    attributeId,
     req.body
   );
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Brand updated successfully",
+    message: "Attribute updated successfully",
     data: result,
   });
 });
 
-const deleteBrand = catchAsync(async (req, res) => {
+const deleteAttribute = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const brandId = req.params.brandId;
-  await brandServices.deleteBrandIntoDB(createdBy, brandId);
+  const attributeId = req.params.id;
+  await attributeServices.deleteAttributeIntoDB(createdBy, attributeId);
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Brand deleted successfully",
+    message: "Attribute deleted successfully",
     data: null,
   });
 });
 
-export const brandControllers = {
-  createBrand,
-  getAllBrands,
-  updateBrand,
-  deleteBrand,
+export const attributeControllers = {
+  createAttribute,
+  getAllAttributes,
+  updateAttribute,
+  deleteAttribute,
 };

@@ -1,6 +1,8 @@
 import { Types } from "mongoose";
 import { TBrand } from "./brand.interface";
 import { BrandModel } from "./brand.model";
+import ApiError from "../../../errors/ApiError";
+import httpStatus from "http-status";
 
 const createBrandIntoDB = async (
   createdBy: Types.ObjectId,
@@ -36,6 +38,16 @@ const updateBrandIntoDB = async (
   payload: TBrand
 ) => {
   payload.createdBy = createdBy;
+  const isBrandExist = await BrandModel.findById(id);
+
+  if (!isBrandExist) {
+    throw new ApiError(httpStatus.NOT_FOUND, "The brand was not found!");
+  }
+
+  if (isBrandExist.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "The brand is deleted!");
+  }
+
   const result = await BrandModel.findByIdAndUpdate(id, payload, {
     new: true,
   });
@@ -43,7 +55,19 @@ const updateBrandIntoDB = async (
 };
 
 const deleteBrandIntoDB = async (createdBy: Types.ObjectId, id: string) => {
+  const isBrandExist = await BrandModel.findById(id);
+
+  if (!isBrandExist) {
+    throw new ApiError(httpStatus.NOT_FOUND, "The brand was not found!");
+  }
+
+  if (isBrandExist.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "The brand is already deleted!");
+  }
+
   const result = await BrandModel.findByIdAndUpdate(id, {
+    description: "",
+    logo: "",
     createdBy,
     isDeleted: true,
   });

@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
-import catchAsync from "../../../../shared/catchAsync";
-import successResponse from "../../../../shared/successResponse";
 import { brandServices } from "./brand.service";
+import catchAsync from "../../../shared/catchAsync";
+import successResponse from "../../../shared/successResponse";
 
 const createBrand = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
@@ -24,7 +24,7 @@ const getAllBrands = catchAsync(async (req, res) => {
 
 const updateBrand = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const brandId = req.params.brandId;
+  const brandId = req.params.id;
   const result = await brandServices.updateBrandIntoDB(
     createdBy,
     brandId,
@@ -39,7 +39,7 @@ const updateBrand = catchAsync(async (req, res) => {
 
 const deleteBrand = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const brandId = req.params.brandId;
+  const brandId = req.params.id;
   await brandServices.deleteBrandIntoDB(createdBy, brandId);
   successResponse(res, {
     statusCode: httpStatus.OK,

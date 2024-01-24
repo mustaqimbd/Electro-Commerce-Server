@@ -16,13 +16,13 @@ categoryRoutes.post(
 categoryRoutes.get("/", categoryControllers.getAllCategories);
 
 categoryRoutes.patch(
-  "/:categoryId",
+  "/:id",
   // authGuard('admin'),
   validateRequest(categoryValidationSchema),
   categoryControllers.updateCategory
 );
 categoryRoutes.delete(
-  "/:categoryId",
+  "/:id",
   // authGuard('admin'),
   categoryControllers.deleteCategory
 );

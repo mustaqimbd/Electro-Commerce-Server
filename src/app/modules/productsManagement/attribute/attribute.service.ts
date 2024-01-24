@@ -1,58 +1,85 @@
 import { Types } from "mongoose";
 import { TAttribute } from "./attribute.interface";
-import { BrandModel } from "./attribute.model";
+import { AttributeModel } from "./attribute.model";
+import ApiError from "../../../errors/ApiError";
+import httpStatus from "http-status";
 
-const createBrandIntoDB = async (
+const createAttributeIntoDB = async (
   createdBy: Types.ObjectId,
   payload: TAttribute
 ) => {
   payload.createdBy = createdBy;
-  const isBrandExist = await BrandModel.findOne({
+  const isAttributeExist = await AttributeModel.findOne({
     name: payload.name,
     isDeleted: true,
   });
 
-  if (isBrandExist) {
-    const result = await BrandModel.findByIdAndUpdate(
-      isBrandExist._id,
+  if (isAttributeExist) {
+    const result = await AttributeModel.findByIdAndUpdate(
+      isAttributeExist._id,
       { ...payload, isDeleted: false },
       { new: true }
     );
     return result;
   } else {
-    const result = await BrandModel.create(payload);
+    const result = await AttributeModel.create(payload);
     return result;
   }
 };
 
-const getAllBrandsFromDB = async () => {
-  const result = await BrandModel.find({ isDeleted: false });
+const getAllAttributesFromDB = async () => {
+  const result = await AttributeModel.find({ isDeleted: false });
   return result;
 };
 
-const updateBrandIntoDB = async (
+const updateAttributeIntoDB = async (
   createdBy: Types.ObjectId,
   id: string,
   payload: TAttribute
 ) => {
   payload.createdBy = createdBy;
-  const result = await BrandModel.findByIdAndUpdate(id, payload, {
+  const isAttributeExist = await AttributeModel.findById(id);
+
+  if (!isAttributeExist) {
+    throw new ApiError(httpStatus.NOT_FOUND, "The attribute was not found!");
+  }
+  if (isAttributeExist.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "The attribute is deleted!");
+  }
+  payload.values = [
+    ...new Set([...isAttributeExist.values, ...payload.values]),
+  ];
+
+  const result = await AttributeModel.findByIdAndUpdate(id, payload, {
     new: true,
   });
   return result;
 };
 
-const deleteBrandIntoDB = async (createdBy: Types.ObjectId, id: string) => {
-  const result = await BrandModel.findByIdAndUpdate(id, {
+const deleteAttributeIntoDB = async (createdBy: Types.ObjectId, id: string) => {
+  const isAttributeExist = await AttributeModel.findById(id);
+
+  if (!isAttributeExist) {
+    throw new ApiError(httpStatus.NOT_FOUND, "The attribute was not found!");
+  }
+  if (isAttributeExist.isDeleted) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "The attribute is already deleted!"
+    );
+  }
+
+  const result = await AttributeModel.findByIdAndUpdate(id, {
+    values: [],
     createdBy,
     isDeleted: true,
   });
   return result;
 };
 
-export const brandServices = {
-  createBrandIntoDB,
-  getAllBrandsFromDB,
-  updateBrandIntoDB,
-  deleteBrandIntoDB,
+export const attributeServices = {
+  createAttributeIntoDB,
+  getAllAttributesFromDB,
+  updateAttributeIntoDB,
+  deleteAttributeIntoDB,
 };

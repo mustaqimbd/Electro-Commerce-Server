@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
-import successResponse from "../../../../shared/successResponse";
 import { categoryServices } from "./category.service";
-import catchAsync from "../../../../shared/catchAsync";
+import catchAsync from "../../../shared/catchAsync";
+import successResponse from "../../../shared/successResponse";
 
 const createCategory = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
@@ -27,7 +27,7 @@ const getAllCategories = catchAsync(async (req, res) => {
 
 const updateCategory = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const categoryId = req.params.categoryId;
+  const categoryId = req.params.id;
   const result = await categoryServices.updateCategoryIntoDB(
     createdBy,
     categoryId,
@@ -42,7 +42,7 @@ const updateCategory = catchAsync(async (req, res) => {
 
 const deleteCategory = catchAsync(async (req, res) => {
   const createdBy = req.user._id;
-  const categoryId = req.params.categoryId;
+  const categoryId = req.params.id;
   await categoryServices.deleteCategoryIntoDB(createdBy, categoryId);
 
   successResponse(res, {

@@ -1,9 +1,10 @@
 import { Schema, model } from "mongoose";
 import { TAttribute } from "./attribute.interface";
 
-const brandSchema = new Schema<TAttribute>(
+const attributeSchema = new Schema<TAttribute>(
   {
     name: { type: String, required: true, unique: true },
+    values: { type: [String], required: true },
     createdBy: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -16,4 +17,4 @@ const brandSchema = new Schema<TAttribute>(
   }
 );
 
-export const BrandModel = model<TAttribute>("Brand", brandSchema);
+export const AttributeModel = model<TAttribute>("Attribute", attributeSchema);

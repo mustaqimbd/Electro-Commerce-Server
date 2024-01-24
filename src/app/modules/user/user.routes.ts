@@ -1,7 +1,7 @@
 import express from "express";
 import validateRequest from "../../middlewares/validateRequest";
-import { UserController } from "./users.controller";
-import { UsersValidation } from "./users.validate";
+import { UserController } from "./user.controller";
+import { UsersValidation } from "./user.validate";
 
 const router = express.Router();
 
@@ -12,8 +12,8 @@ router.post(
 );
 router.post(
   "/create-staff-or-admin",
-  validateRequest(UsersValidation.createCustomer),
-  UserController.createCustomer
+  validateRequest(UsersValidation.createStaffOrAdmin),
+  UserController.createAdminOrStaff
 );
 
 export const UsersRoute = router;

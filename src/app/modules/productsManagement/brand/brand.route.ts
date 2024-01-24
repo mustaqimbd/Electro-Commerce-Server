@@ -19,14 +19,14 @@ brandRoutes.post(
 brandRoutes.get("/", brandControllers.getAllBrands);
 
 brandRoutes.patch(
-  "/:brandId",
+  "/:id",
   // authGuard('admin'),
   validateRequest(updateBrandValidationSchema),
   brandControllers.updateBrand
 );
 
 brandRoutes.delete(
-  "/:brandId",
+  "/:id",
   // authGuard('admin'),
   brandControllers.deleteBrand
 );
