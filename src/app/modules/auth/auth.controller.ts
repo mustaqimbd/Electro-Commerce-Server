@@ -32,7 +32,17 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const changePassword = catchAsync(async (req: Request, res: Response) => {
+  const { refreshToken } = req.cookies;
+  const result = await AuthServices.refreshToken(refreshToken);
+  successResponse<TRefreshTokenResponse>(res, {
+    statusCode: httpStatus.OK,
+    data: result,
+  });
+});
+
 export const AuthControllers = {
   login,
   refreshToken,
+  changePassword,
 };
