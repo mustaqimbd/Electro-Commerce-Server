@@ -1,11 +1,11 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import { IErrorMessages, IErrorResponse } from "../types/error";
+import { TErrorMessages, TIErrorResponse } from "../types/error";
 
 const handleMongooseValidationError = (
   error: mongoose.Error.ValidationError
-): IErrorResponse => {
-  const errorMessages: IErrorMessages[] = Object.values(error.errors).map(
+): TIErrorResponse => {
+  const errorMessages: TErrorMessages[] = Object.values(error.errors).map(
     (
       singleError: mongoose.Error.ValidatorError | mongoose.Error.CastError
     ) => ({
@@ -14,7 +14,7 @@ const handleMongooseValidationError = (
     })
   );
 
-  const modifiedError: IErrorResponse = {
+  const modifiedError: TIErrorResponse = {
     statusCode: httpStatus.BAD_REQUEST,
     message: "Validation error",
     errorMessages,

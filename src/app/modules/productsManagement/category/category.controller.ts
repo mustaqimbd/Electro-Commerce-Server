@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import { categoryServices } from "./category.service";
-import catchAsync from "../../../shared/catchAsync";
-import successResponse from "../../../shared/successResponse";
+import catchAsync from "../../../utilities/catchAsync";
+import successResponse from "../../../utilities/successResponse";
 
 const createCategory = catchAsync(async (req, res) => {
   const createdBy = req.user._id;

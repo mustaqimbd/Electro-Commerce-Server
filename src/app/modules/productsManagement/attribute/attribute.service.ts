@@ -1,8 +1,8 @@
 import { Types } from "mongoose";
 import { TAttribute } from "./attribute.interface";
 import { AttributeModel } from "./attribute.model";
-import ApiError from "../../../errors/ApiError";
 import httpStatus from "http-status";
+import ApiError from "../../../errorHandlers/ApiError";
 
 const createAttributeIntoDB = async (
   createdBy: Types.ObjectId,

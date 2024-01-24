@@ -1,15 +1,12 @@
-import { Users } from "./user.model";
+import { User } from "./user.model";
 
 const findLastCustomer = async (): Promise<string | undefined> => {
-  const lastCustomer = await Users.findOne(
-    { role: "customer" },
-    { _id: 1, id: 1 }
-  )
+  const lastCustomer = await User.findOne({ role: "customer" }, { uid: 1 })
     .sort({
       createdAt: -1,
     })
     .lean();
-  return lastCustomer?.id ? lastCustomer.id.substring(3) : undefined;
+  return lastCustomer?._id ? lastCustomer?.uid.substring(3) : undefined;
 };
 
 export const createCustomerId = async (): Promise<string> => {
@@ -23,15 +20,15 @@ export const createCustomerId = async (): Promise<string> => {
 export const createAdminOrStaffId = async (isStaff: boolean) => {
   let lastId = undefined;
   if (isStaff) {
-    const lastStaff = await Users.findOne({ role: "staff" }, { _id: 1, id: 1 })
+    const lastStaff = await User.findOne({ role: "staff" }, { uid: 1 })
       .sort({ createdAt: -1 })
       .lean();
-    lastId = lastStaff?._id ? lastStaff.id.substring(3) : undefined;
+    lastId = lastStaff?._id ? lastStaff.uid.substring(3) : undefined;
   } else {
-    const lastAdmin = await Users.findOne({ role: "admin" }, { _id: 1, id: 1 })
+    const lastAdmin = await User.findOne({ role: "admin" }, { uid: 1 })
       .sort({ createdAt: -1 })
       .lean();
-    lastId = lastAdmin?._id ? lastAdmin.id.substring(3) : undefined;
+    lastId = lastAdmin?._id ? lastAdmin.uid.substring(3) : undefined;
   }
   const currentId = lastId || "0";
   const incrementedId = (parseInt(currentId) + 1).toString().padStart(3, "0");

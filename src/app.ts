@@ -5,12 +5,12 @@ import express, { Application } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import path from "path";
-import config from "./app/config";
+import config from "./app/config/config";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import router from "./app/routes";
-import successResponse from "./app/shared/successResponse";
 import mongoose from "mongoose";
+import successResponse from "./app/utilities/successResponse";
 
 const app: Application = express();
 

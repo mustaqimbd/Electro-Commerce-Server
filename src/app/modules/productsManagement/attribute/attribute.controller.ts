@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import { attributeServices } from "./attribute.service";
-import catchAsync from "../../../shared/catchAsync";
-import successResponse from "../../../shared/successResponse";
+import catchAsync from "../../../utilities/catchAsync";
+import successResponse from "../../../utilities/successResponse";
 
 const createAttribute = catchAsync(async (req, res) => {
   const createdBy = req.user._id;

@@ -1,7 +1,7 @@
-import { IErrorResponse } from "../types/error";
+import { TIErrorResponse } from "../types/error";
 import ApiError from "./ApiError";
 
-const handleApiError = (err: ApiError): IErrorResponse => {
+const handleApiError = (err: ApiError): TIErrorResponse => {
   return {
     statusCode: err.statusCode,
     message: err.message,

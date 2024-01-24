@@ -1,21 +1,21 @@
 import { Document, Model, Types } from "mongoose";
 import { TAdmin } from "../admin/admin.interface";
 import { TCustomer } from "../customer/customer.interface";
-import { IStaffs } from "../staff/staff.interface";
+import { TStaff } from "../staff/staff.interface";
 
-export type roles = "customer" | "staff" | "admin";
+export type TRoles = "customer" | "staff" | "admin";
+export type TStatus = "active" | "banned" | "deleted";
 
 export type TUser = {
-  id: string;
-  role: roles;
+  uid: string;
+  role: TRoles;
   phoneNumber: string;
   email?: string;
   password: string;
   customer: Types.ObjectId | TCustomer;
-  staff: Types.ObjectId | IStaffs;
+  staff: Types.ObjectId | TStaff;
   admin: Types.ObjectId | TAdmin;
-  isDeleted: boolean;
-  status: boolean;
+  status: TStatus;
 } & Document;
 
 export type TUserModel = {

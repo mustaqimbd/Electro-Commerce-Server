@@ -1,19 +1,19 @@
 import bcrypt from "bcrypt";
 import { Schema, model } from "mongoose";
-import config from "../../config";
-import { rolesEnums } from "./user.const";
+import config from "../../config/config";
+import { rolesEnum, statusEnum } from "./user.const";
 import { TUser, TUserModel } from "./user.interface";
 
 const UserSchema = new Schema<TUser, TUserModel>(
   {
-    id: {
+    uid: {
       type: String,
       required: true,
       unique: true,
     },
     role: {
       type: String,
-      enum: rolesEnums,
+      enum: rolesEnum,
       required: true,
     },
     phoneNumber: {
@@ -39,15 +39,11 @@ const UserSchema = new Schema<TUser, TUserModel>(
       type: Schema.Types.ObjectId,
       ref: "Admin",
     },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-      set: () => false,
-    },
     status: {
-      type: Boolean,
-      default: true,
-      set: () => true,
+      type: String,
+      enum: statusEnum,
+      default: "active",
+      set: () => "active",
     },
   },
   {
@@ -73,4 +69,4 @@ UserSchema.pre("save", async function (next) {
   next();
 });
 
-export const Users = model<TUser, TUserModel>("User", UserSchema);
+export const User = model<TUser, TUserModel>("User", UserSchema);

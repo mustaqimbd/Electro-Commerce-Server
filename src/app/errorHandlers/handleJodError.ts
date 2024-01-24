@@ -1,9 +1,9 @@
 import httpStatus from "http-status";
 import { ZodError, ZodIssue } from "zod";
-import { IErrorMessages, IErrorResponse } from "../types/error";
+import { TErrorMessages, TIErrorResponse } from "../types/error";
 
-const handleJodError = (err: ZodError): IErrorResponse => {
-  const errorMessages: IErrorMessages[] = err.issues.map((issue: ZodIssue) => ({
+const handleJodError = (err: ZodError): TIErrorResponse => {
+  const errorMessages: TErrorMessages[] = err.issues.map((issue: ZodIssue) => ({
     path: `${issue?.path[issue?.path.length - 1]}`,
     message: issue?.message,
   }));

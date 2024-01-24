@@ -1,8 +1,9 @@
 import { Types } from "mongoose";
 import { TCategory } from "./category.interface";
 import { CategoryModel } from "./category.model";
-import ApiError from "../../../errors/ApiError";
+
 import httpStatus from "http-status";
+import ApiError from "../../../errorHandlers/ApiError";
 
 const createCategoryIntoDB = async (
   createdBy: Types.ObjectId,

@@ -1,8 +1,8 @@
 import { Types } from "mongoose";
 import { TBrand } from "./brand.interface";
 import { BrandModel } from "./brand.model";
-import ApiError from "../../../errors/ApiError";
 import httpStatus from "http-status";
+import ApiError from "../../../errorHandlers/ApiError";
 
 const createBrandIntoDB = async (
   createdBy: Types.ObjectId,
