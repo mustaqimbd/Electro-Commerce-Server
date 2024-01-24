@@ -16,3 +16,8 @@ export type TJwtPayload = {
 export type TRefreshTokenResponse = {
   accessToken: string;
 };
+
+export type TChangePasswordPayload = {
+  previousPassword: string;
+  newPassword: string;
+};

@@ -1,10 +1,10 @@
 import httpStatus from "http-status";
-import { IErrorMessages, IErrorResponse } from "../types/error";
+import { TErrorMessages, TIErrorResponse } from "../types/error";
 
-const handleMongooseDuplicateError = (err: Error): IErrorResponse => {
+const handleMongooseDuplicateError = (err: Error): TIErrorResponse => {
   const errorField = err.message.split("{")[1].replace("}", "").split(":");
   const path = errorField[0].replace(" ", "").toUpperCase();
-  const errorMessages: IErrorMessages[] = [
+  const errorMessages: TErrorMessages[] = [
     {
       path,
       message: `This ${path}${errorField[1]

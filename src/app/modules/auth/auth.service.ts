@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import jwt, { Secret } from "jsonwebtoken";
+import { Secret } from "jsonwebtoken";
 import config from "../../config/config";
 import ApiError from "../../errorHandlers/ApiError";
 import { jwtHelper } from "../../helper/jwt.helper";
@@ -50,7 +50,7 @@ const login = async (payload: TLogin): Promise<TLoginResponse> => {
 const refreshToken = async (token: string): Promise<TRefreshTokenResponse> => {
   let verifiedToken = null;
   try {
-    verifiedToken = jwt.verify(
+    verifiedToken = jwtHelper.verifyToken<TJwtPayload>(
       token,
       config.token_data.refresh_token_secret as Secret,
     );
@@ -74,7 +74,10 @@ const refreshToken = async (token: string): Promise<TRefreshTokenResponse> => {
   return { accessToken };
 };
 
+const changePassword = async () => {};
+
 export const AuthServices = {
   login,
   refreshToken,
+  changePassword,
 };

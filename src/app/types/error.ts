@@ -1,10 +1,10 @@
-export type IErrorMessages = {
+export type TErrorMessages = {
   path: string;
   message: string;
 };
 
-export type IErrorResponse = {
+export type TIErrorResponse = {
   statusCode: number;
   message: string;
-  errorMessages: IErrorMessages[];
+  errorMessages: TErrorMessages[];
 };
