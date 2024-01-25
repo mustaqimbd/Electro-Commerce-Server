@@ -5,10 +5,11 @@ import config from "../config/config";
 import ApiError from "../errorHandlers/ApiError";
 import { jwtHelper } from "../helper/jwt.helper";
 import { TJwtPayload } from "../modules/auth/auth.interface";
+import { TRoles } from "../modules/user/user.interface";
 import { User } from "../modules/user/user.model";
 
 const authGuard =
-  (...requiredRoles: string[]) =>
+  (...requiredRoles: TRoles[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const token = req.headers.authorization;
