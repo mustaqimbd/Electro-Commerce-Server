@@ -1,21 +1,21 @@
 import { Response } from "express";
 
-type IResponseMeta = {
+export type TResponseMeta = {
   page: number;
   limit: number;
   total: number;
 };
 
-type ISuccessResponse<T> = {
+type TSuccessResponse<T> = {
   statusCode: number;
   success?: true;
   message?: string | null;
-  meta?: IResponseMeta | null;
+  meta?: TResponseMeta | null;
   data?: T | null;
 };
 
-const successResponse = <T>(res: Response, data: ISuccessResponse<T>) => {
-  const responseData: ISuccessResponse<T> = {
+const successResponse = <T>(res: Response, data: TSuccessResponse<T>) => {
+  const responseData: TSuccessResponse<T> = {
     success: true,
     statusCode: data?.statusCode,
     message: data?.message || "Operation success",

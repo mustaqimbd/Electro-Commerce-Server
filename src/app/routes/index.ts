@@ -6,6 +6,7 @@ import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subC
 import { UserRoute } from "../modules/user/user.routes";
 import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
+import { CustomerRoute } from "../modules/customer/customer.routes";
 
 const router = express();
 const moduleRoutes = [
@@ -16,6 +17,10 @@ const moduleRoutes = [
   {
     path: "/auth",
     route: AuthRouter,
+  },
+  {
+    path: "/customers",
+    route: CustomerRoute,
   },
   {
     path: "/categories",
