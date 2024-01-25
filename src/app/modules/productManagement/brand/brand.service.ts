@@ -9,14 +9,14 @@ const createBrandIntoDB = async (
   payload: TBrand
 ) => {
   payload.createdBy = createdBy;
-  const isBrandExist = await BrandModel.findOne({
+  const isBrandDeleted = await BrandModel.findOne({
     name: payload.name,
     isDeleted: true,
   });
 
-  if (isBrandExist) {
+  if (isBrandDeleted) {
     const result = await BrandModel.findByIdAndUpdate(
-      isBrandExist._id,
+      isBrandDeleted._id,
       { ...payload, isDeleted: false },
       { new: true }
     );
@@ -50,14 +50,28 @@ const updateBrandIntoDB = async (
   if (isBrandExist.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The brand is deleted!");
   }
-
-  const result = await BrandModel.findByIdAndUpdate(id, payload, {
-    new: true,
+  const isUpdateBrandDeleted = await BrandModel.findOne({
+    name: payload.name,
+    isDeleted: true,
   });
-  return result;
+
+  if (isUpdateBrandDeleted) {
+    const result = await BrandModel.findByIdAndUpdate(
+      isUpdateBrandDeleted._id,
+      { ...payload, isDeleted: false },
+      { new: true }
+    );
+    await BrandModel.findByIdAndUpdate(id, { isDeleted: true });
+    return result;
+  } else {
+    const result = await BrandModel.findByIdAndUpdate(id, payload, {
+      new: true,
+    });
+    return result;
+  }
 };
 
-const deleteBrandIntoDB = async (createdBy: Types.ObjectId, id: string) => {
+const deleteBrandFromDB = async (createdBy: Types.ObjectId, id: string) => {
   const isBrandExist = await BrandModel.findById(id);
 
   if (!isBrandExist) {
@@ -81,5 +95,5 @@ export const BrandServices = {
   createBrandIntoDB,
   getAllBrandsFromDB,
   updateBrandIntoDB,
-  deleteBrandIntoDB,
+  deleteBrandFromDB,
 };

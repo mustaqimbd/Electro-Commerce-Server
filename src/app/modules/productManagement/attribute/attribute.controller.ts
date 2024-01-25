@@ -43,7 +43,7 @@ const updateAttribute = catchAsync(async (req, res) => {
 const deleteAttribute = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
   const attributeId = req.params.id;
-  await AttributeServices.deleteAttributeIntoDB(createdBy, attributeId);
+  await AttributeServices.deleteAttributeFromDB(createdBy, attributeId);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Attribute deleted successfully",

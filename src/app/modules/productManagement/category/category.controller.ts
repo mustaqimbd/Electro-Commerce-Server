@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
-import { CategoryServices } from "./category.service";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
+import { CategoryServices } from "./category.service";
 
 const createCategory = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
@@ -20,7 +20,7 @@ const getAllCategories = catchAsync(async (req, res) => {
   const result = await CategoryServices.getAllCategoriesFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Categories retrieved successfully",
+    message: "Parent categories retrieved successfully",
     data: result,
   });
 });
@@ -43,7 +43,7 @@ const updateCategory = catchAsync(async (req, res) => {
 const deleteCategory = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
   const categoryId = req.params.id;
-  await CategoryServices.deleteCategoryIntoDB(createdBy, categoryId);
+  await CategoryServices.deleteCategoryFromDB(createdBy, categoryId);
 
   successResponse(res, {
     statusCode: httpStatus.OK,

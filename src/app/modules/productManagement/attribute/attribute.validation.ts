@@ -18,5 +18,6 @@ export const updateAttributeValidationSchema = z.object({
     values: z
       .array(z.string().min(1, { message: "Attribute value is required!" }))
       .optional(),
+    deleteValue: z.string().optional(),
   }),
 });

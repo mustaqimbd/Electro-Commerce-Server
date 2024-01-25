@@ -7,14 +7,14 @@ import ApiError from "../../../errorHandlers/ApiError";
 
 const createTagIntoDB = async (createdBy: Types.ObjectId, payload: TTag) => {
   payload.createdBy = createdBy;
-  const isTagExist = await TagModel.findOne({
+  const isTagDeleted = await TagModel.findOne({
     name: payload.name,
     isDeleted: true,
   });
 
-  if (isTagExist) {
+  if (isTagDeleted) {
     const result = await TagModel.findByIdAndUpdate(
-      isTagExist._id,
+      isTagDeleted._id,
       { createdBy, isDeleted: false },
       { new: true }
     );
@@ -46,11 +46,25 @@ const updateTagIntoDB = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "The Tag is deleted!");
   }
 
-  const result = await TagModel.findByIdAndUpdate(id, payload, {
-    new: true,
+  const isUpdateTagDeleted = await TagModel.findOne({
+    name: payload.name,
+    isDeleted: true,
   });
 
-  return result;
+  if (isUpdateTagDeleted) {
+    const result = await TagModel.findByIdAndUpdate(
+      isUpdateTagDeleted._id,
+      { createdBy, isDeleted: false },
+      { new: true }
+    );
+    await TagModel.findByIdAndUpdate(id, { isDeleted: true });
+    return result;
+  } else {
+    const result = await TagModel.findByIdAndUpdate(id, payload, {
+      new: true,
+    });
+    return result;
+  }
 };
 
 const deleteTagIntoDB = async (createdBy: Types.ObjectId, id: string) => {

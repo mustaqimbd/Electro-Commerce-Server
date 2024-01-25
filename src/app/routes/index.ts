@@ -1,10 +1,10 @@
 import express from "express";
 import { AuthRouter } from "../modules/auth/auth.routes";
-import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.route";
-import { BrandRoutes } from "../modules/productManagement/brand/brand.route";
-import { CategoryRoutes } from "../modules/productManagement/category/category.route";
+import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
+import { BrandRoutes } from "../modules/productManagement/brand/brand.routes";
+import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { UserRoute } from "../modules/user/user.routes";
-import { ParentCategoryRoutes } from "../modules/productManagement/parentCategory/parentCategory.route";
+import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 
 const router = express();
@@ -18,12 +18,12 @@ const moduleRoutes = [
     route: AuthRouter,
   },
   {
-    path: "/parent-categories",
-    route: ParentCategoryRoutes,
-  },
-  {
     path: "/categories",
     route: CategoryRoutes,
+  },
+  {
+    path: "/sub-categories",
+    route: SubCategoryRoutes,
   },
   {
     path: "/brands",

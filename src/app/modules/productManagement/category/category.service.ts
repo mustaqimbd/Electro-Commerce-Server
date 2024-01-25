@@ -1,7 +1,6 @@
 import { Types } from "mongoose";
 import { TCategory } from "./category.interface";
 import { CategoryModel } from "./category.model";
-
 import httpStatus from "http-status";
 import ApiError from "../../../errorHandlers/ApiError";
 
@@ -10,14 +9,14 @@ const createCategoryIntoDB = async (
   payload: TCategory
 ) => {
   payload.createdBy = createdBy;
-  const isCategoryExist = await CategoryModel.findOne({
+  const isCategoryDeleted = await CategoryModel.findOne({
     name: payload.name,
     isDeleted: true,
   });
 
-  if (isCategoryExist) {
+  if (isCategoryDeleted) {
     const result = await CategoryModel.findByIdAndUpdate(
-      isCategoryExist._id,
+      isCategoryDeleted._id,
       { createdBy, isDeleted: false },
       { new: true }
     );
@@ -29,10 +28,7 @@ const createCategoryIntoDB = async (
 };
 
 const getAllCategoriesFromDB = async () => {
-  const result = await CategoryModel.find(
-    { isDeleted: false },
-    "name"
-  ).populate("parentCategory", "name");
+  const result = await CategoryModel.find({ isDeleted: false }, "name");
   return result;
 };
 
@@ -42,8 +38,8 @@ const updateCategoryIntoDB = async (
   payload: TCategory
 ) => {
   payload.createdBy = createdBy;
-
   const isCategoryExist = await CategoryModel.findById(id);
+
   if (!isCategoryExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "The category was not found!");
   }
@@ -51,15 +47,28 @@ const updateCategoryIntoDB = async (
   if (isCategoryExist.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The category is deleted!");
   }
-
-  const result = await CategoryModel.findByIdAndUpdate(id, payload, {
-    new: true,
+  const isUpdateCategoryDeleted = await CategoryModel.findOne({
+    name: payload.name,
+    isDeleted: true,
   });
 
-  return result;
+  if (isUpdateCategoryDeleted) {
+    const result = await CategoryModel.findByIdAndUpdate(
+      isUpdateCategoryDeleted._id,
+      { createdBy, isDeleted: false },
+      { new: true }
+    );
+    await CategoryModel.findByIdAndUpdate(id, { isDeleted: true });
+    return result;
+  } else {
+    const result = await CategoryModel.findByIdAndUpdate(id, payload, {
+      new: true,
+    });
+    return result;
+  }
 };
 
-const deleteCategoryIntoDB = async (createdBy: Types.ObjectId, id: string) => {
+const deleteCategoryFromDB = async (createdBy: Types.ObjectId, id: string) => {
   const isCategoryExist = await CategoryModel.findById(id);
   if (!isCategoryExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "The category was not found!");
@@ -84,5 +93,5 @@ export const CategoryServices = {
   createCategoryIntoDB,
   getAllCategoriesFromDB,
   updateCategoryIntoDB,
-  deleteCategoryIntoDB,
+  deleteCategoryFromDB,
 };

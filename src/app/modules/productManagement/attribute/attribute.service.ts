@@ -9,14 +9,14 @@ const createAttributeIntoDB = async (
   payload: TAttribute
 ) => {
   payload.createdBy = createdBy;
-  const isAttributeExist = await AttributeModel.findOne({
+  const isAttributeDeleted = await AttributeModel.findOne({
     name: payload.name,
     isDeleted: true,
   });
 
-  if (isAttributeExist) {
+  if (isAttributeDeleted) {
     const result = await AttributeModel.findByIdAndUpdate(
-      isAttributeExist._id,
+      isAttributeDeleted._id,
       { ...payload, isDeleted: false },
       { new: true }
     );
@@ -38,6 +38,7 @@ const updateAttributeIntoDB = async (
   payload: TAttribute
 ) => {
   payload.createdBy = createdBy;
+  const { deleteValue } = payload;
   const isAttributeExist = await AttributeModel.findById(id);
 
   if (!isAttributeExist) {
@@ -46,17 +47,48 @@ const updateAttributeIntoDB = async (
   if (isAttributeExist.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The attribute is deleted!");
   }
-  payload.values = [
-    ...new Set([...isAttributeExist.values, ...payload.values]),
-  ];
 
-  const result = await AttributeModel.findByIdAndUpdate(id, payload, {
-    new: true,
+  if (deleteValue) {
+    const result = await AttributeModel.findByIdAndUpdate(
+      id,
+      { $pull: { values: deleteValue } },
+      { new: true }
+    );
+    return result;
+  }
+
+  const isUpdateAttributeDeleted = await AttributeModel.findOne({
+    name: payload.name,
+    isDeleted: true,
   });
-  return result;
+
+  const { name, values } = payload;
+
+  if (isUpdateAttributeDeleted) {
+    const updateData = values
+      ? payload
+      : { name, values: [...isAttributeExist.values] };
+    const result = await AttributeModel.findByIdAndUpdate(
+      isUpdateAttributeDeleted._id,
+      { ...updateData, isDeleted: false },
+      { new: true }
+    );
+    await AttributeModel.findByIdAndUpdate(id, { isDeleted: true });
+    return result;
+  } else {
+    const updateValues = values ? values : [];
+    payload.values = [
+      ...new Set([...isAttributeExist.values, ...updateValues]),
+    ];
+    const result = await AttributeModel.findByIdAndUpdate(id, payload, {
+      new: true,
+    });
+
+    return result;
+  }
 };
 
-const deleteAttributeIntoDB = async (createdBy: Types.ObjectId, id: string) => {
+const deleteAttributeFromDB = async (createdBy: Types.ObjectId, id: string) => {
   const isAttributeExist = await AttributeModel.findById(id);
 
   if (!isAttributeExist) {
@@ -81,5 +113,5 @@ export const AttributeServices = {
   createAttributeIntoDB,
   getAllAttributesFromDB,
   updateAttributeIntoDB,
-  deleteAttributeIntoDB,
+  deleteAttributeFromDB,
 };
