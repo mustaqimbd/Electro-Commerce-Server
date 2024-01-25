@@ -5,6 +5,7 @@ import { BrandRoutes } from "../modules/productManagement/brand/brand.route";
 import { CategoryRoutes } from "../modules/productManagement/category/category.route";
 import { UserRoute } from "../modules/user/user.routes";
 import { ParentCategoryRoutes } from "../modules/productManagement/parentCategory/parentCategory.route";
+import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 
 const router = express();
 const moduleRoutes = [
@@ -27,6 +28,10 @@ const moduleRoutes = [
   {
     path: "/brands",
     route: BrandRoutes,
+  },
+  {
+    path: "/tags",
+    route: TagRoutes,
   },
   {
     path: "/attributes",
