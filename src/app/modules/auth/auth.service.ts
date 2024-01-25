@@ -5,6 +5,7 @@ import ApiError from "../../errorHandlers/ApiError";
 import { jwtHelper } from "../../helper/jwt.helper";
 import { User } from "../user/user.model";
 import {
+  TChangePasswordPayload,
   TJwtPayload,
   TLogin,
   TLoginResponse,
@@ -14,29 +15,21 @@ import {
 const login = async (payload: TLogin): Promise<TLoginResponse> => {
   const { phoneNumber, password } = payload;
 
-  const isExist = await User.findOne(
-    { phoneNumber },
-    { password: 1, role: 1, status: 1 },
-  );
-  if (!isExist || isExist.status === "deleted") {
-    throw new ApiError(httpStatus.BAD_REQUEST, "No user found");
-  } else if (isExist.status === "banned") {
-    throw new ApiError(httpStatus.BAD_REQUEST, "You have been banned.");
-  }
+  const isExist = await User.isUserExist({ phoneNumber });
 
-  if (!(await User.isPasswordMatch(password, isExist.password))) {
+  if (!(await User.isPasswordMatch(password, isExist?.password as string))) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Password did not matched");
   }
 
   const refreshToken = jwtHelper.createToken(
-    { id: isExist._id, role: isExist.role },
+    { id: isExist?._id, role: isExist?.role as string },
     config.token_data.refresh_token_secret as Secret,
-    isExist.role === "customer"
+    isExist?.role === "customer"
       ? (config.token_data.customer_refresh_token_expires as string)
       : (config.token_data.admin_staff_refresh_token_expires as string),
   );
   const accessToken = jwtHelper.createToken(
-    { id: isExist._id, role: isExist.role },
+    { id: isExist?._id, role: isExist?.role as string },
     config.token_data.access_token_secret as Secret,
     config.token_data.access_token_expires as string,
   );
@@ -57,24 +50,41 @@ const refreshToken = async (token: string): Promise<TRefreshTokenResponse> => {
   } catch (error) {
     throw new ApiError(httpStatus.FORBIDDEN, "Invalid token");
   }
+
   const { id } = verifiedToken as TJwtPayload;
-  const isExist = await User.findById(id);
-  if (!isExist || isExist.status === "deleted") {
-    throw new ApiError(httpStatus.BAD_REQUEST, "No user found");
-  } else if (isExist.status === "banned") {
-    throw new ApiError(httpStatus.BAD_REQUEST, "You have been banned.");
-  }
+
+  const isExist = await User.isUserExist({ _id: id });
+
   const accessToken = jwtHelper.createToken(
-    { id: isExist._id, role: isExist.role },
+    { id: isExist?._id, role: isExist?.role as string },
     config.token_data.refresh_token_secret as Secret,
-    isExist.role === "customer"
+    isExist?.role === "customer"
       ? (config.token_data.customer_refresh_token_expires as string)
       : (config.token_data.admin_staff_refresh_token_expires as string),
   );
   return { accessToken };
 };
 
-const changePassword = async () => {};
+const changePassword = async (
+  payload: TChangePasswordPayload,
+  userIno: TJwtPayload,
+) => {
+  const { newPassword, previousPassword } = payload;
+  const user = await User.findOne({ _id: userIno.id }).select("+password");
+  if (
+    user?.password &&
+    !(await User.isPasswordMatch(previousPassword, user?.password as string))
+  ) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Previous password didn't not matched",
+    );
+  }
+  if (user?.password) {
+    user.password = newPassword;
+  }
+  user?.save();
+};
 
 export const AuthServices = {
   login,

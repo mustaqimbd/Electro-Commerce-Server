@@ -16,6 +16,14 @@ const createCustomer = async (
   userInfo: TUser,
   customerInfo: TCustomer,
 ): Promise<TUser | null> => {
+  // check that the phone number is already registered
+  const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
+  if (isExist) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "A user already registered with this number",
+    );
+  }
   // change user role
   userInfo.role = "customer";
   let newUser = null;
@@ -55,6 +63,14 @@ const createAdminOrStaff = async (
   userInfo: TUser,
   personalInfo: TAdmin | TStaff,
 ): Promise<TUser | null> => {
+  // check that the phone number is already registered
+  const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
+  if (isExist) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "A user already registered with this number",
+    );
+  }
   let newUser = null;
   const session = await mongoose.startSession();
   try {

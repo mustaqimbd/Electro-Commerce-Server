@@ -3,7 +3,11 @@ import httpStatus from "http-status";
 import config from "../../config/config";
 import catchAsync from "../../utilities/catchAsync";
 import successResponse from "../../utilities/successResponse";
-import { TLoginResponse, TRefreshTokenResponse } from "./auth.interface";
+import {
+  TJwtPayload,
+  TLoginResponse,
+  TRefreshTokenResponse,
+} from "./auth.interface";
 import { AuthServices } from "./auth.service";
 
 const login = catchAsync(async (req: Request, res: Response) => {
@@ -33,11 +37,11 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 });
 
 const changePassword = catchAsync(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies;
-  const result = await AuthServices.refreshToken(refreshToken);
-  successResponse<TRefreshTokenResponse>(res, {
+  const { ...passwordData } = req.body;
+  await AuthServices.changePassword(passwordData, req.user as TJwtPayload);
+  successResponse(res, {
     statusCode: httpStatus.OK,
-    data: result,
+    message: "Password changed successfully.",
   });
 });
 

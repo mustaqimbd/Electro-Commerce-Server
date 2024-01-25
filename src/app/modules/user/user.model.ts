@@ -1,6 +1,8 @@
 import bcrypt from "bcrypt";
+import httpStatus from "http-status";
 import { Schema, model } from "mongoose";
 import config from "../../config/config";
+import ApiError from "../../errorHandlers/ApiError";
 import { rolesEnum, statusEnum } from "./user.const";
 import { TUser, TUserModel } from "./user.interface";
 
@@ -59,6 +61,21 @@ UserSchema.statics.isPasswordMatch = async function (
   savedPassword,
 ) {
   return await bcrypt.compare(givenPassWord, savedPassword);
+};
+
+UserSchema.statics.isUserExist = async (field) => {
+  const user = await User.findOne(field, {
+    password: 1,
+    role: 1,
+    uid: 1,
+    status: 1,
+  });
+  if (!user || user.status === "deleted") {
+    throw new ApiError(httpStatus.NOT_FOUND, "No user found");
+  } else if (user.status === "banned") {
+    throw new ApiError(httpStatus.BAD_REQUEST, "You have been banned");
+  }
+  return user;
 };
 
 UserSchema.pre("save", async function (next) {

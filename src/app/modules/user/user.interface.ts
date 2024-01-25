@@ -23,4 +23,7 @@ export type TUserModel = {
     givenPassWord: string,
     savedPassword: string,
   ): Promise<boolean>;
+  isUserExist(
+    id: Record<string, unknown>,
+  ): Promise<Pick<TUser, "password" | "uid" | "_id" | "role"> | null>;
 } & Model<TUser>;
