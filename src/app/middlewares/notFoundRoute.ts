@@ -6,7 +6,7 @@ import { TErrorMessages } from "../types/error";
 export const notFoundRoute = (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const message = "Not found";
   const errorMessages: TErrorMessages[] = [

@@ -13,7 +13,7 @@ const createAdminOrStaffUser = async (
   modelName: Model<TAdmin | TStaff>,
   userInfo: TUser,
   personalInfo: TAdmin | TStaff,
-  session: ClientSession,
+  session: ClientSession
 ): Promise<TUser> => {
   const id = await createAdminOrStaffId(isStaff);
   userInfo.uid = id;
@@ -22,7 +22,7 @@ const createAdminOrStaffUser = async (
   if (!createdModel) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      `Failed to create the ${userInfo.role}`,
+      `Failed to create the ${userInfo.role}`
     );
   }
   userInfo[role] = createdModel._id;

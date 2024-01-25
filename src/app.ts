@@ -10,6 +10,7 @@ import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import router from "./app/routes";
 import successResponse from "./app/utilities/successResponse";
+import mongoose from "mongoose";
 
 const app: Application = express();
 
@@ -41,7 +42,13 @@ app.get("/api/v1", (req, res) => {
 const uploadsPath = path.join(__dirname, "..", "uploads/public");
 app.use("/uploads/public", express.static(uploadsPath));
 
-// API routes
+//fake user id for testing
+app.use("/api/v1", (req, res, next) => {
+  req.user = {};
+  req.user.id = new mongoose.Types.ObjectId("5f8f4cb272e4b01d9c23cd56");
+  next();
+});
+
 app.use("/api/v1", router);
 
 // Global error handler

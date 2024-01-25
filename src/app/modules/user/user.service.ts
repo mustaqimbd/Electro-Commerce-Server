@@ -14,14 +14,14 @@ import { createCustomerId } from "./user.util";
 
 const createCustomer = async (
   userInfo: TUser,
-  customerInfo: TCustomer,
+  customerInfo: TCustomer
 ): Promise<TUser | null> => {
   // check that the phone number is already registered
   const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
   if (isExist) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "A user already registered with this number",
+      "A user already registered with this number"
     );
   }
   // change user role
@@ -61,14 +61,14 @@ const createCustomer = async (
 
 const createAdminOrStaff = async (
   userInfo: TUser,
-  personalInfo: TAdmin | TStaff,
+  personalInfo: TAdmin | TStaff
 ): Promise<TUser | null> => {
   // check that the phone number is already registered
   const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
   if (isExist) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "A user already registered with this number",
+      "A user already registered with this number"
     );
   }
   let newUser = null;
@@ -83,7 +83,7 @@ const createAdminOrStaff = async (
         Admin,
         userInfo,
         personalInfo,
-        session,
+        session
       );
     } else if (userInfo.role === "staff") {
       newUser = await UserHelpers.createAdminOrStaffUser(
@@ -92,7 +92,7 @@ const createAdminOrStaff = async (
         Staff,
         userInfo,
         personalInfo,
-        session,
+        session
       );
     }
     await session.commitTransaction();
@@ -103,7 +103,7 @@ const createAdminOrStaff = async (
     throw error;
   }
   newUser = await User.findById(newUser?._id).populate(
-    newUser?.role.toLowerCase() as string,
+    newUser?.role.toLowerCase() as string
   );
   return newUser;
 };

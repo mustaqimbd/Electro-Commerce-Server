@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export type TLogin = {
   phoneNumber: string;
   password: string;
@@ -9,7 +11,7 @@ export type TLoginResponse = {
 };
 
 export type TJwtPayload = {
-  id: string;
+  id: Types.ObjectId;
   role: string;
 };
 

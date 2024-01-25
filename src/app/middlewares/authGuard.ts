@@ -7,7 +7,7 @@ import { jwtHelper } from "../helper/jwt.helper";
 import { TJwtPayload } from "../modules/auth/auth.interface";
 import { User } from "../modules/user/user.model";
 
-const auth =
+const authGuard =
   (...requiredRoles: string[]) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -18,7 +18,7 @@ const auth =
 
       const verifiedUser = jwtHelper.verifyToken<TJwtPayload>(
         token,
-        config.token_data.access_token_secret as Secret,
+        config.token_data.access_token_secret as Secret
       );
 
       // if any staff try to perform any action by their previous token, after deleting or banding them
@@ -40,4 +40,4 @@ const auth =
     }
   };
 
-export default auth;
+export default authGuard;

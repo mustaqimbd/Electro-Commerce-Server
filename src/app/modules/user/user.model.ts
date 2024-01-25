@@ -53,12 +53,12 @@ const UserSchema = new Schema<TUser, TUserModel>(
     toJSON: {
       virtuals: true,
     },
-  },
+  }
 );
 
 UserSchema.statics.isPasswordMatch = async function (
   givenPassWord,
-  savedPassword,
+  savedPassword
 ) {
   return await bcrypt.compare(givenPassWord, savedPassword);
 };
@@ -81,7 +81,7 @@ UserSchema.statics.isUserExist = async (field) => {
 UserSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(
     this.password,
-    Number(config.bcrypt_salt_round),
+    Number(config.bcrypt_salt_round)
   );
   next();
 });

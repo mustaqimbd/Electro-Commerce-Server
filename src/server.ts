@@ -3,7 +3,7 @@ import { consoleLogger, errorLogger, logger } from "./app/utilities/logger";
 process.on("uncaughtException", (error) => {
   consoleLogger.error(
     "😴 `Uncaught exception` happened, exiting the process and  closing the server.",
-    error,
+    error
   );
   process.exit(1);
 });
@@ -14,7 +14,6 @@ import app from "./app";
 import config from "./app/config/config";
 
 let server: Server;
-
 const bootstrap = async () => {
   try {
     await mongoose.connect(config.DBUrl as string);
@@ -22,7 +21,7 @@ const bootstrap = async () => {
     logger.info(`👌 Database is connected successfully.`);
     server = app.listen(config.port, () => {
       logger.info(
-        `😍 The server is running on http://localhost:${config.port}`,
+        `😍 The server is running on http://localhost:${config.port}`
       );
     });
   } catch (error) {
@@ -32,7 +31,7 @@ const bootstrap = async () => {
   process.on("unhandledRejection", (error) => {
     errorLogger.error(
       `😴 Unhandled rejection happened. Exiting the process.`,
-      error,
+      error
     );
     if (server) {
       server.close(() => {

@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
-import { TJwtPayload } from "../modules/auth/auth.interface";
+
+import { JwtPayload } from "jsonwebtoken";
 
 declare global {
   namespace Express {
     interface Request {
-      user: TJwtPayload | null;
+      user: JwtPayload;
     }
   }
 }

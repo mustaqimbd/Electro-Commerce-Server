@@ -5,7 +5,7 @@ import ApiError from "../errorHandlers/ApiError";
 const createToken = (
   payload: Record<string, string>,
   secret: Secret,
-  expiresIn: string,
+  expiresIn: string
 ) => {
   return jwt.sign(payload, secret, { expiresIn });
 };

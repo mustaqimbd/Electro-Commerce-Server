@@ -20,7 +20,7 @@ const CustomerSchema = new Schema<TCustomer>(
     toJSON: {
       virtuals: true,
     },
-  },
+  }
 );
 
 export const Customer = model<TCustomer>("Customer", CustomerSchema);
