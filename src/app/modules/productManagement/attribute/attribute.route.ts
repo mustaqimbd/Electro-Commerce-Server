@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   validateRequest(attributeValidationSchema),
   AttributeControllers.createAttribute
 );
@@ -20,14 +20,14 @@ router.get("/", AttributeControllers.getAllAttributes);
 
 router.patch(
   "/:id",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   validateRequest(updateAttributeValidationSchema),
   AttributeControllers.updateAttribute
 );
 
 router.delete(
   "/:id",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   AttributeControllers.deleteAttribute
 );
 

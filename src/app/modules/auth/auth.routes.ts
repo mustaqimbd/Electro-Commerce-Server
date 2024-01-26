@@ -18,4 +18,4 @@ route.post(
   AuthControllers.changePassword
 );
 
-export const AuthRouter = route;
+export const AuthRouters = route;

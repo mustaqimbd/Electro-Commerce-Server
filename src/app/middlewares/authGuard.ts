@@ -33,8 +33,8 @@ const authGuard =
       if (requiredRoles.length && !requiredRoles.includes(verifiedUser.role)) {
         throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
       }
-
       req.user = verifiedUser;
+
       next();
     } catch (error) {
       next(error);

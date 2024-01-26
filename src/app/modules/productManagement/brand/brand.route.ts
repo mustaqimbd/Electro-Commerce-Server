@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   validateRequest(brandValidationSchema),
   BrandControllers.createBrand
 );
@@ -20,14 +20,14 @@ router.get("/", BrandControllers.getAllBrands);
 
 router.patch(
   "/:id",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   validateRequest(updateBrandValidationSchema),
   BrandControllers.updateBrand
 );
 
 router.delete(
   "/:id",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   BrandControllers.deleteBrand
 );
 

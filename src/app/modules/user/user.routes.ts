@@ -19,4 +19,4 @@ router.post(
   UserControllers.createAdminOrStaff
 );
 
-export const UserRoute = router;
+export const UserRoutes = router;

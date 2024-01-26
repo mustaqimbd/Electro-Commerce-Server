@@ -6,6 +6,7 @@ const StaffSchema = new Schema<TStaff>({
     type: String,
     required: true,
     unique: true,
+    immutable: true,
   },
   fullName: {
     type: String,

@@ -6,6 +6,7 @@ const AdminSchema = new Schema<TAdmin>({
     type: String,
     required: true,
     unique: true,
+    immutable: true,
   },
   fullName: {
     type: String,

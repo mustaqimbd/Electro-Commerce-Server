@@ -12,7 +12,7 @@ import { TUser } from "./user.interface";
 import { User } from "./user.model";
 import { createCustomerId } from "./user.util";
 
-const createCustomer = async (
+const createCustomerIntoDB = async (
   userInfo: TUser,
   customerInfo: TCustomer
 ): Promise<TUser | null> => {
@@ -59,7 +59,7 @@ const createCustomer = async (
   return newUser;
 };
 
-const createAdminOrStaff = async (
+const createAdminOrStaffIntoDB = async (
   userInfo: TUser,
   personalInfo: TAdmin | TStaff
 ): Promise<TUser | null> => {
@@ -109,6 +109,6 @@ const createAdminOrStaff = async (
 };
 
 export const UserServices = {
-  createCustomer,
-  createAdminOrStaff,
+  createCustomerIntoDB,
+  createAdminOrStaffIntoDB,
 };

@@ -22,14 +22,22 @@ const login = async (payload: TLogin): Promise<TLoginResponse> => {
   }
 
   const refreshToken = jwtHelper.createToken(
-    { id: isExist?._id, role: isExist?.role as string },
+    {
+      id: isExist?._id,
+      role: isExist?.role as string,
+      uid: isExist?.uid as string,
+    },
     config.token_data.refresh_token_secret as Secret,
     isExist?.role === "customer"
       ? (config.token_data.customer_refresh_token_expires as string)
       : (config.token_data.admin_staff_refresh_token_expires as string)
   );
   const accessToken = jwtHelper.createToken(
-    { id: isExist?._id, role: isExist?.role as string },
+    {
+      id: isExist?._id,
+      role: isExist?.role as string,
+      uid: isExist?.uid as string,
+    },
     config.token_data.access_token_secret as Secret,
     config.token_data.access_token_expires as string
   );
@@ -56,7 +64,11 @@ const refreshToken = async (token: string): Promise<TRefreshTokenResponse> => {
   const isExist = await User.isUserExist({ _id: id });
 
   const accessToken = jwtHelper.createToken(
-    { id: isExist?._id, role: isExist?.role as string },
+    {
+      id: isExist?._id,
+      role: isExist?.role as string,
+      uid: isExist?.uid as string,
+    },
     config.token_data.refresh_token_secret as Secret,
     isExist?.role === "customer"
       ? (config.token_data.customer_refresh_token_expires as string)

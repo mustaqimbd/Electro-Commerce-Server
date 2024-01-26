@@ -10,4 +10,10 @@ router.get(
   CustomerControllers.getAllCustomer
 );
 
-export const CustomerRoute = router;
+router.patch(
+  "/",
+  authGuard(ENUM_USER_ROLE.CUSTOMER),
+  CustomerControllers.updateCustomer
+);
+
+export const CustomerRoutes = router;
