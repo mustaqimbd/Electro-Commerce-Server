@@ -18,4 +18,6 @@ export default {
     customer_refresh_token_expires: env.CUSTOMER_REFRESH_TOKEN_EXPIRES,
     admin_staff_refresh_token_expires: env.ADMIN_STAFF_REFRESH_TOKEN_EXPIRES,
   },
+  session_secret: env.SESSION_SECRET,
+  session_expires: env.SESSION_EXPIRES,
 };

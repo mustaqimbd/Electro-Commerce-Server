@@ -6,6 +6,7 @@ import { AttributeRoutes } from "../modules/productManagement/attribute/attribut
 import { BrandRoutes } from "../modules/productManagement/brand/brand.route";
 import { CategoryRoutes } from "../modules/productManagement/category/category.route";
 import { ParentCategoryRoutes } from "../modules/productManagement/parentCategory/parentCategory.route";
+import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
 import { UserRoutes } from "../modules/user/user.routes";
 
 const router = express();
@@ -41,6 +42,10 @@ const moduleRoutes = [
   {
     path: "/attributes",
     route: AttributeRoutes,
+  },
+  {
+    path: "/carts",
+    route: CartRoutes,
   },
 ];
 
