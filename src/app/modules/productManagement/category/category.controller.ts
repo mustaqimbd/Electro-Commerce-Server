@@ -20,7 +20,7 @@ const getAllCategories = catchAsync(async (req, res) => {
   const result = await CategoryServices.getAllCategoriesFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Parent categories retrieved successfully",
+    message: "Categories retrieved successfully",
     data: result,
   });
 });
