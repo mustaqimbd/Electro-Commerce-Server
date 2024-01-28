@@ -1,27 +1,33 @@
 import express from "express";
-import { AuthRouter } from "../modules/auth/auth.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
 import { BrandRoutes } from "../modules/productManagement/brand/brand.routes";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
-import { UserRoute } from "../modules/user/user.routes";
 import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
-import { CustomerRoute } from "../modules/customer/customer.routes";
 import { ProductRoutes } from "../modules/productManagement/product/product.routes";
+import { AdminRoutes } from "../modules/admin/admin.routes";
+import { AuthRouters } from "../modules/auth/auth.routes";
+import { CustomerRoutes } from "../modules/customer/customer.routes";
+import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
+import { UserRoutes } from "../modules/user/user.routes";
 
 const router = express();
 const moduleRoutes = [
   {
     path: "/users",
-    route: UserRoute,
+    route: UserRoutes,
   },
   {
     path: "/auth",
-    route: AuthRouter,
+    route: AuthRouters,
+  },
+  {
+    path: "/admin",
+    route: AdminRoutes,
   },
   {
     path: "/customers",
-    route: CustomerRoute,
+    route: CustomerRoutes,
   },
   {
     path: "/products",
@@ -46,6 +52,10 @@ const moduleRoutes = [
   {
     path: "/attributes",
     route: AttributeRoutes,
+  },
+  {
+    path: "/carts",
+    route: CartRoutes,
   },
 ];
 

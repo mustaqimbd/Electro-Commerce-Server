@@ -12,6 +12,7 @@ const UserSchema = new Schema<TUser, TUserModel>(
       type: String,
       required: true,
       unique: true,
+      immutable: true,
     },
     role: {
       type: String,

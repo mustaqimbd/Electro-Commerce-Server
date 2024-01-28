@@ -7,7 +7,10 @@ import { UserServices } from "./user.service";
 
 const createCustomer = catchAsync(async (req: Request, res: Response) => {
   const { customerInfo, ...userInfo } = req.body;
-  const result = await UserServices.createCustomer(userInfo, customerInfo);
+  const result = await UserServices.createCustomerIntoDB(
+    userInfo,
+    customerInfo
+  );
   successResponse<TUser>(res, {
     statusCode: httpStatus.CREATED,
     message: "User created successfully",
@@ -17,7 +20,10 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
 
 const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
   const { personalInfo, ...userInfo } = req.body;
-  const result = await UserServices.createAdminOrStaff(userInfo, personalInfo);
+  const result = await UserServices.createAdminOrStaffIntoDB(
+    userInfo,
+    personalInfo
+  );
   successResponse<TUser>(res, {
     statusCode: httpStatus.CREATED,
     message: `${userInfo.role} created successfully`,

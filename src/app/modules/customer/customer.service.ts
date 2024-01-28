@@ -1,10 +1,13 @@
 import { PaginationHelper } from "../../helper/pagination.helper";
 import { TMetaAndDataRes } from "../../types/common";
 import { TPaginationOption } from "../../types/pagination.types";
+import { TJwtPayload } from "../auth/auth.interface";
 import { TUser } from "../user/user.interface";
 import { User } from "../user/user.model";
+import { TCustomer } from "./customer.interface";
+import { Customer } from "./customer.model";
 
-const getAllCustomer = async (
+const getAllCustomerFromDB = async (
   paginationFields: TPaginationOption
 ): Promise<TMetaAndDataRes<TUser[]>> => {
   const { page, skip, limit, sortOption } =
@@ -36,6 +39,18 @@ const getAllCustomer = async (
   };
 };
 
+const updateCustomerIntoDB = async (
+  user: TJwtPayload,
+  payload: TCustomer
+): Promise<TCustomer | null> => {
+  const result = await Customer.findOneAndUpdate({ uid: user.uid }, payload, {
+    new: true,
+    runValidators: true,
+  });
+  return result;
+};
+
 export const CustomerServices = {
-  getAllCustomer,
+  getAllCustomerFromDB,
+  updateCustomerIntoDB,
 };

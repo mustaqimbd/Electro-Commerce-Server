@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   validateRequest(categoryValidationSchema),
   CategoryControllers.createCategory
 );
@@ -24,7 +24,7 @@ router.patch(
 
 router.delete(
   "/:id",
-  // authGuard('admin'),
+  // authGuard(ENUM_USER_ROLE.ADMIN),
   CategoryControllers.deleteCategory
 );
 

@@ -12,6 +12,7 @@ export type TLoginResponse = {
 
 export type TJwtPayload = {
   id: Types.ObjectId;
+  uid: string;
   role: string;
 };
 

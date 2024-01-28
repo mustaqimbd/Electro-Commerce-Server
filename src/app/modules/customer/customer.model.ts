@@ -7,6 +7,7 @@ const CustomerSchema = new Schema<TCustomer>(
       type: String,
       required: true,
       unique: true,
+      immutable: true,
     },
     fullName: {
       type: String,
