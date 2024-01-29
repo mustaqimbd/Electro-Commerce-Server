@@ -9,6 +9,7 @@ import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
 import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
+import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
 import { UserRoutes } from "../modules/userManagement/user/user.routes";
 
 const router = express();
@@ -56,6 +57,10 @@ const moduleRoutes = [
   {
     path: "/carts",
     route: CartRoutes,
+  },
+  {
+    path: "/permissions",
+    route: PermissionRoutes,
   },
 ];
 

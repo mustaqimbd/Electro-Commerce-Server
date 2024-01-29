@@ -47,6 +47,12 @@ const UserSchema = new Schema<TUser, TUserModel>(
       ref: "Address",
       required: true,
     },
+    permissions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Permission",
+      },
+    ],
     status: {
       type: String,
       enum: statusEnum,
@@ -75,7 +81,8 @@ UserSchema.statics.isUserExist = async (field) => {
     role: 1,
     uid: 1,
     status: 1,
-  });
+    permissions: 1,
+  }).populate("permissions");
   if (!user || user.status === "deleted") {
     throw new ApiError(httpStatus.NOT_FOUND, "No user found");
   } else if (user.status === "banned") {
