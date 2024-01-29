@@ -1,5 +1,4 @@
 import express from "express";
-import { ENUM_USER_ROLE } from "../../../enums/users";
 import authGuard from "../../../middlewares/authGuard";
 import validateRequest from "../../../middlewares/validateRequest";
 import { UserControllers } from "./user.controller";
@@ -14,7 +13,10 @@ router.post(
 );
 router.post(
   "/create-staff-or-admin",
-  authGuard(ENUM_USER_ROLE.ADMIN),
+  authGuard({
+    requiredRoles: ["staff", "admin"],
+    requiredPermission: "create admin or staff",
+  }),
   validateRequest(UserValidation.createStaffOrAdmin),
   UserControllers.createAdminOrStaff
 );
