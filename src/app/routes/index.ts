@@ -1,16 +1,17 @@
 import express from "express";
+import { AuthRouters } from "../modules/auth/auth.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
 import { BrandRoutes } from "../modules/productManagement/brand/brand.routes";
-import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
-import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { ProductRoutes } from "../modules/productManagement/product/product.routes";
-import { AdminRoutes } from "../modules/admin/admin.routes";
-import { AuthRouters } from "../modules/auth/auth.routes";
-import { CustomerRoutes } from "../modules/customer/customer.routes";
+import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
+import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
-import { UserRoutes } from "../modules/user/user.routes";
 import { ReviewRoutes } from "../modules/productManagement/review/review.route";
+import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
+import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
+import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
+import { UserRoutes } from "../modules/userManagement/user/user.routes";
 
 const router = express();
 const moduleRoutes = [
@@ -61,6 +62,10 @@ const moduleRoutes = [
   {
     path: "/carts",
     route: CartRoutes,
+  },
+  {
+    path: "/permissions",
+    route: PermissionRoutes,
   },
 ];
 
