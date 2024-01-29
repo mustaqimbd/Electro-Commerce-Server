@@ -10,10 +10,12 @@ const handleMongooseValidationError = (
       singleError: mongoose.Error.ValidatorError | mongoose.Error.CastError
     ) => ({
       path: singleError.path,
-      message: singleError.message.split("`").join(""),
+      message:
+        singleError.kind === "ObjectId"
+          ? `Invalid ${singleError.path} id`
+          : singleError.message.split("`").join(""),
     })
   );
-
   const modifiedError: TIErrorResponse = {
     statusCode: httpStatus.BAD_REQUEST,
     message: "Validation error",

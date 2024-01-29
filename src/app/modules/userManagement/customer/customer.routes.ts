@@ -1,6 +1,6 @@
 import express from "express";
-import { ENUM_USER_ROLE } from "../../enums/users";
-import authGuard from "../../middlewares/authGuard";
+import { ENUM_USER_ROLE } from "../../../enums/users";
+import authGuard from "../../../middlewares/authGuard";
 import { CustomerControllers } from "./customer.controller";
 const router = express.Router();
 

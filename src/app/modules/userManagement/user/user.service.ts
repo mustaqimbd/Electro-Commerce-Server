@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import ApiError from "../../errorHandlers/ApiError";
+import ApiError from "../../../errorHandlers/ApiError";
+import { Address } from "../address/address.model";
 import { TAdmin } from "../admin/admin.interface";
 import { Admin } from "../admin/admin.model";
 import { TCustomer } from "../customer/customer.interface";
@@ -34,13 +35,22 @@ const createCustomerIntoDB = async (
     userInfo.uid = id;
     customerInfo.uid = id;
 
+    // create customer
     const [createCustomer] = await Customer.create([customerInfo], {
       session,
     });
     if (!createCustomer) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
     }
+
+    // create address
+    const [address] = await Address.create([{ userId: id }], { session });
+
+    if (!address) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create address");
+    }
     userInfo.customer = createCustomer._id;
+    userInfo.address = address._id;
     const [user] = await User.create([userInfo], { session });
     if (!user) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
@@ -54,13 +64,17 @@ const createCustomerIntoDB = async (
     throw error;
   }
   if (newUser) {
-    newUser = await User.findOne({ _id: newUser._id }).populate("customer");
+    newUser = await User.findOne({ _id: newUser._id }).populate([
+      { path: "customer", select: "-createdAt -updatedAt" },
+      { path: "address", select: "-createdAt -updatedAt" },
+    ]);
   }
   return newUser;
 };
 
 const createAdminOrStaffIntoDB = async (
   userInfo: TUser,
+  fullAddress: string,
   personalInfo: TAdmin | TStaff
 ): Promise<TUser | null> => {
   // check that the phone number is already registered
@@ -83,6 +97,7 @@ const createAdminOrStaffIntoDB = async (
         Admin,
         userInfo,
         personalInfo,
+        fullAddress,
         session
       );
     } else if (userInfo.role === "staff") {
@@ -92,6 +107,7 @@ const createAdminOrStaffIntoDB = async (
         Staff,
         userInfo,
         personalInfo,
+        fullAddress,
         session
       );
     }
@@ -102,9 +118,13 @@ const createAdminOrStaffIntoDB = async (
     await session.endSession();
     throw error;
   }
-  newUser = await User.findById(newUser?._id).populate(
-    newUser?.role.toLowerCase() as string
-  );
+  newUser = await User.findById(newUser?._id).populate([
+    {
+      path: newUser?.role.toLowerCase() as string,
+      select: "-createdAt -updatedAt",
+    },
+    { path: "address", select: "-createdAt -updatedAt" },
+  ]);
   return newUser;
 };
 

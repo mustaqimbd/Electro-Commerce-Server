@@ -3,7 +3,7 @@ import { Secret } from "jsonwebtoken";
 import config from "../../config/config";
 import ApiError from "../../errorHandlers/ApiError";
 import { jwtHelper } from "../../helper/jwt.helper";
-import { User } from "../user/user.model";
+import { User } from "../userManagement/user/user.model";
 import {
   TChangePasswordPayload,
   TJwtPayload,

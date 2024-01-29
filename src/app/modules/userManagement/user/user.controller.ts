@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import catchAsync from "../../utilities/catchAsync";
-import successResponse from "../../utilities/successResponse";
+import catchAsync from "../../../utilities/catchAsync";
+import successResponse from "../../../utilities/successResponse";
 import { TUser } from "./user.interface";
 import { UserServices } from "./user.service";
 
@@ -19,9 +19,10 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
-  const { personalInfo, ...userInfo } = req.body;
+  const { personalInfo, fullAddress, ...userInfo } = req.body;
   const result = await UserServices.createAdminOrStaffIntoDB(
     userInfo,
+    fullAddress,
     personalInfo
   );
   successResponse<TUser>(res, {

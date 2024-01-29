@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import catchAsync from "../../utilities/catchAsync";
-import successResponse from "../../utilities/successResponse";
-import { TJwtPayload } from "../auth/auth.interface";
+import catchAsync from "../../../utilities/catchAsync";
+import successResponse from "../../../utilities/successResponse";
+import { TJwtPayload } from "../../auth/auth.interface";
 import { TAdmin } from "./admin.interface";
 import { AdminServices } from "./admin.service";
 

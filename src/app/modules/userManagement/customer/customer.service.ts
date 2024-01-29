@@ -1,7 +1,7 @@
-import { PaginationHelper } from "../../helper/pagination.helper";
-import { TMetaAndDataRes } from "../../types/common";
-import { TPaginationOption } from "../../types/pagination.types";
-import { TJwtPayload } from "../auth/auth.interface";
+import { PaginationHelper } from "../../../helper/pagination.helper";
+import { TMetaAndDataRes } from "../../../types/common";
+import { TPaginationOption } from "../../../types/pagination.types";
+import { TJwtPayload } from "../../auth/auth.interface";
 import { TUser } from "../user/user.interface";
 import { User } from "../user/user.model";
 import { TCustomer } from "./customer.interface";

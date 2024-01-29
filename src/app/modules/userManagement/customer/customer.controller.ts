@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import { paginationFields } from "../../constants/pagination.const";
-import catchAsync from "../../utilities/catchAsync";
-import pick from "../../utilities/pick";
-import successResponse from "../../utilities/successResponse";
-import { TJwtPayload } from "../auth/auth.interface";
+import { paginationFields } from "../../../constants/pagination.const";
+import catchAsync from "../../../utilities/catchAsync";
+import pick from "../../../utilities/pick";
+import successResponse from "../../../utilities/successResponse";
+import { TJwtPayload } from "../../auth/auth.interface";
 import { TUser } from "../user/user.interface";
 import { TCustomer } from "./customer.interface";
 import { CustomerServices } from "./customer.service";
