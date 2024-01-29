@@ -1,1 +1,7 @@
-export const stockStatus = ["In stock", "Out of stock", "On backorder"];
+import { TStockStatus } from "./inventory.interface";
+
+export const stockStatus: TStockStatus[] = [
+  "In stock",
+  "Out of stock",
+  "On backorder",
+];

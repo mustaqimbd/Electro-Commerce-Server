@@ -22,7 +22,6 @@ const successResponse = <T>(res: Response, data: TSuccessResponse<T>) => {
     meta: data.meta || null || undefined,
     data: data?.data || null || undefined,
   };
-
   res.status(data?.statusCode).json(responseData);
 };
 

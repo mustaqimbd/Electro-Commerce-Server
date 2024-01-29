@@ -10,6 +10,7 @@ import { AuthRouters } from "../modules/auth/auth.routes";
 import { CustomerRoutes } from "../modules/customer/customer.routes";
 import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
 import { UserRoutes } from "../modules/user/user.routes";
+import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 
 const router = express();
 const moduleRoutes = [
@@ -52,6 +53,10 @@ const moduleRoutes = [
   {
     path: "/attributes",
     route: AttributeRoutes,
+  },
+  {
+    path: "/reviews",
+    route: ReviewRoutes,
   },
   {
     path: "/carts",

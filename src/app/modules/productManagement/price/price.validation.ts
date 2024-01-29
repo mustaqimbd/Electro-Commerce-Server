@@ -1,6 +1,6 @@
 import { number, z } from "zod";
 
-export const priceValidationSchema = z.object({
+const price = z.object({
   regularPrice: z.number(),
   salePrice: z.number().optional(),
   discount: number().optional(),
@@ -12,7 +12,7 @@ export const priceValidationSchema = z.object({
     .optional(),
 });
 
-export const updatePriceValidationSchema = z.object({
+const updatePrice = z.object({
   body: z.object({
     regularPrice: z.number(),
     salePrice: z.number().optional(),
@@ -25,3 +25,8 @@ export const updatePriceValidationSchema = z.object({
       .optional(),
   }),
 });
+
+export const PriceValidation = {
+  price,
+  updatePrice,
+};

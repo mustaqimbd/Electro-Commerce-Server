@@ -1,7 +1,9 @@
 import express from "express";
 import { ProductControllers } from "./product.controller";
 import validateRequest from "../../../middlewares/validateRequest";
-import { productValidationSchema } from "./product.validation";
+import { ProductValidation } from "./product.validation";
+import imgUploader from "../../../utilities/imgUploader";
+import formDataParse from "../../../utilities/formDataParse";
 
 // import authGuard from '../../middlewares/authGuard';
 
@@ -10,7 +12,12 @@ const router = express.Router();
 router.post(
   "/",
   // authGuard('admin'),
-  validateRequest(productValidationSchema),
+  imgUploader.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "gallery", maxCount: 5 },
+  ]),
+  formDataParse,
+  validateRequest(ProductValidation.product),
   ProductControllers.createProduct
 );
 
@@ -19,7 +26,7 @@ router.get("/", ProductControllers.getAllProducts);
 router.patch(
   "/:id",
   // authGuard('admin'),
-  validateRequest(productValidationSchema),
+  validateRequest(ProductValidation.product),
   ProductControllers.updateProduct
 );
 

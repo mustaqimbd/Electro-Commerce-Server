@@ -1,9 +1,6 @@
 import express from "express";
 import { SubCategoryControllers } from "./subCategory.controller";
-import {
-  subCategoryValidationSchema,
-  updateSubCategoryValidationSchema,
-} from "./subCategory.validation";
+import { SubCategoryValidation } from "./subCategory.validation";
 import validateRequest from "../../../middlewares/validateRequest";
 // import authGuard from '../../middlewares/authGuard';
 
@@ -12,7 +9,7 @@ const router = express.Router();
 router.post(
   "/",
   // authGuard('admin'),
-  validateRequest(subCategoryValidationSchema),
+  validateRequest(SubCategoryValidation.subCategory),
   SubCategoryControllers.createSubCategory
 );
 
@@ -21,7 +18,7 @@ router.get("/", SubCategoryControllers.getAllSubCategories);
 router.patch(
   "/:id",
   // authGuard('admin'),
-  validateRequest(updateSubCategoryValidationSchema),
+  validateRequest(SubCategoryValidation.updateSubCategory),
   SubCategoryControllers.updateSubCategory
 );
 

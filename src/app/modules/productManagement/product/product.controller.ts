@@ -3,13 +3,10 @@ import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { ProductServices } from "./product.service";
 
-const createProduct = catchAsync(async (req, res, next) => {
+const createProduct = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
-  const result = await ProductServices.createProductIntoDB(
-    createdBy,
-    req.body,
-    next
-  );
+  const result = await ProductServices.createProductIntoDB(createdBy, req.body);
+
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Product created successfully",

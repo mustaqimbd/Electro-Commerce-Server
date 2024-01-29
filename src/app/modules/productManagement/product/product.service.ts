@@ -8,39 +8,42 @@ import ApiError from "../../../errorHandlers/ApiError";
 import httpStatus from "http-status";
 import ProductModel from "./product.mode";
 import generateProductId from "../../../utilities/generateProductId";
-import { NextFunction } from "express";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
-  payload: TProduct,
-  next: NextFunction
+  payload: TProduct
 ) => {
   const session = await mongoose.startSession();
-  session.startTransaction();
   try {
+    session.startTransaction();
+
     payload.createdBy = createdBy;
     const generatedProductId = await generateProductId();
     payload.id = generatedProductId;
-    const price = await PriceModel.create([payload.price], { session });
-    const image = await ProductImageModel.create([payload.image], { session });
-    const inventory = await InventoryModel.create([payload.inventory], {
-      session,
-    });
-    let seoData;
+    payload.price = (
+      await PriceModel.create([payload.price], { session })
+    )[0]._id;
+    payload.image = (
+      await ProductImageModel.create([payload.image], { session })
+    )[0]._id;
+    payload.inventory = (
+      await InventoryModel.create([payload.inventory], { session })
+    )[0]._id;
     if (payload.seoData) {
-      seoData = await SeoDataModel.create([payload.seoData], { session });
-      payload.seoData = seoData[0]._id;
+      payload.seoData = (
+        await SeoDataModel.create([payload.seoData], { session })
+      )[0]._id;
     }
-    payload.price = price[0]._id;
-    payload.image = image[0]._id;
-    payload.inventory = inventory[0]._id;
-    const product = await ProductModel.create([payload], { session });
+
+    const product = (await ProductModel.create([payload], { session }))[0];
+
     await session.commitTransaction();
-    return product[0];
+    return product;
   } catch (error) {
     await session.abortTransaction();
+    throw error;
+  } finally {
     session.endSession();
-    next(error);
   }
 };
 

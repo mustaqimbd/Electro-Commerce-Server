@@ -1,7 +1,7 @@
 import express from "express";
 import validateRequest from "../../../middlewares/validateRequest";
 import { TagControllers } from "./tag.controller";
-import tagValidationSchema from "./tag.validation";
+import { TagValidation } from "./tag.validation";
 // import authGuard from '../../middlewares/authGuard';
 
 const router = express.Router();
@@ -9,7 +9,7 @@ const router = express.Router();
 router.post(
   "/",
   // authGuard('admin'),
-  validateRequest(tagValidationSchema),
+  validateRequest(TagValidation.tag),
   TagControllers.createTag
 );
 
@@ -18,7 +18,7 @@ router.get("/", TagControllers.getAllTags);
 router.patch(
   "/:id",
   // authGuard('admin'),
-  validateRequest(tagValidationSchema),
+  validateRequest(TagValidation.tag),
   TagControllers.updateTag
 );
 

@@ -1,13 +1,11 @@
 import { z } from "zod";
-import { priceValidationSchema } from "../price/price.validation";
-import { productImageValidationSchema } from "../productImage/productImage.validation";
-import { inventoryValidationSchema } from "../inventory/inventory.validation";
-// import { brandValidationSchema } from '../brand/brand.validation';
-// import categoryValidationSchema from '../category/category.validation';
-// import tagValidationSchema from '../tag/tag.validation';
-import { seoDataValidationSchema } from "../seoData/seoData.validation";
+import { PriceValidation } from "../price/price.validation";
+import { ProductImageValidation } from "../productImage/productImage.validation";
+import { InventoryValidation } from "../inventory/inventory.validation";
+import { SeoDataValidation } from "../seoData/seoData.validation";
+import { publishedStatus, visibilityStatus } from "./product.const";
 
-const productAttributeValidationSchema = z.object({
+const productAttribute = z.object({
   _id: z.string().min(1, { message: "Attribute Id is required!" }).optional(),
   name: z.string().min(1, { message: "Attribute name is required!" }),
   values: z.array(
@@ -15,7 +13,7 @@ const productAttributeValidationSchema = z.object({
   ),
 });
 
-export const productValidationSchema = z.object({
+const product = z.object({
   body: z.object({
     title: z.string().min(1, { message: "Title is required!" }),
     permalink: z.string().optional(),
@@ -25,23 +23,22 @@ export const productValidationSchema = z.object({
     shortDescription: z.string().optional(),
     downloadable: z.boolean().optional(),
     featured: z.boolean().optional(),
-    price: priceValidationSchema,
-    image: productImageValidationSchema,
-    inventory: inventoryValidationSchema,
-    attribute: z.array(productAttributeValidationSchema),
-    shipping: z.object({
-      shippingConfiguration: z
-        .string()
-        .min(1, { message: "shipping configuration is required!" }),
-    }),
+    price: PriceValidation.price,
+    image: ProductImageValidation.productImage,
+    inventory: InventoryValidation.inventory,
+    attribute: z.array(productAttribute),
     brand: z.array(z.string()).optional(),
     category: z.array(z.string().min(1, { message: "Category is required!" })),
     tag: z.array(z.string()).optional(),
-    seoData: seoDataValidationSchema,
+    seoData: SeoDataValidation.seoData,
     publishedStatus: z.object({
-      status: z.string().min(1, { message: "Status is required!" }),
-      visibility: z.string().min(1, { message: "visibility is required!" }),
+      status: z.enum([...publishedStatus] as [string, ...string[]]),
+      visibility: z.enum([...visibilityStatus] as [string, ...string[]]),
       date: z.string().min(1, { message: "Date is required!" }),
     }),
   }),
 });
+
+export const ProductValidation = {
+  product,
+};

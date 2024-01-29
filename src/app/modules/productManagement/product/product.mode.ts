@@ -1,9 +1,7 @@
 import { Schema, model } from "mongoose";
 import { TProduct } from "./product.interface";
 import { TAttribute } from "../attribute/attribute.interface";
-// import { TBrand } from '../brand/brand.interface';
-// import { TCategory } from '../category/category.interface';
-// import { TTag } from '../tag/tag.interface';
+import { publishedStatus, visibilityStatus } from "./product.const";
 
 const productAttributeSchema = new Schema<TAttribute>(
   {
@@ -13,27 +11,6 @@ const productAttributeSchema = new Schema<TAttribute>(
   },
   { _id: false }
 );
-
-// const productBrandSchema = new Schema<TBrand>({
-//     _id: { type: Schema.Types.ObjectId, required: true, unique: true },
-//     name: { type: String, required: true },
-// },
-//     { _id: false }
-// );
-
-// const productCategorySchema = new Schema<TCategory>({
-//     _id: { type: Schema.Types.ObjectId, required: true, unique: true },
-//     name: { type: String, required: true },
-// },
-//     { _id: false }
-// );
-
-// const productTagSchema = new Schema<TTag>({
-//     _id: { type: Schema.Types.ObjectId, required: true, unique: true },
-//     name: { type: String, required: true },
-// },
-//     { _id: false }
-// );
 
 const productSchema = new Schema<TProduct>(
   {
@@ -46,29 +23,43 @@ const productSchema = new Schema<TProduct>(
     shortDescription: { type: String },
     downloadable: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
-    price: { type: Schema.Types.ObjectId, required: true, ref: "Price" },
-    image: { type: Schema.Types.ObjectId, required: true, ref: "ProductImage" },
+    price: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "Price",
+    },
+    image: {
+      type: Schema.Types.ObjectId,
+      required: true,
+      ref: "ProductImage",
+    },
     inventory: {
       type: Schema.Types.ObjectId,
       required: true,
       ref: "Inventory",
     },
-    attribute: { type: [productAttributeSchema], required: true },
-    shipping: {
-      type: { shippingConfiguration: { type: String, required: true } },
+    attribute: {
+      type: [productAttributeSchema],
       required: true,
     },
-    brand: { type: [{ type: Schema.Types.ObjectId, ref: "Brand" }] },
+    brand: {
+      type: [{ type: Schema.Types.ObjectId, ref: "Brand" }],
+    },
     category: {
       type: [{ type: Schema.Types.ObjectId, ref: "Category" }],
       required: true,
     },
-    tag: { type: [{ type: Schema.Types.ObjectId, ref: "Tag" }] },
-    seoData: { type: Schema.Types.ObjectId, ref: "SeoData" },
+    tag: {
+      type: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
+    },
     publishedStatus: {
-      status: { type: String, required: true },
-      visibility: { type: String, required: true },
+      status: { type: String, enum: publishedStatus, required: true },
+      visibility: { type: String, enum: visibilityStatus, required: true },
       date: { type: String, required: true },
+    },
+    seoData: {
+      type: Schema.Types.ObjectId,
+      ref: "SeoData",
     },
     createdBy: {
       type: Schema.Types.ObjectId,

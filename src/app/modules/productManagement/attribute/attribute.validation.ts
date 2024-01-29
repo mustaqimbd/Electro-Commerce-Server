@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const attributeValidationSchema = z.object({
+export const attribute = z.object({
   body: z.object({
     name: z.string().min(1, { message: "Attribute name is required!" }),
     values: z.array(
@@ -9,7 +9,7 @@ export const attributeValidationSchema = z.object({
   }),
 });
 
-export const updateAttributeValidationSchema = z.object({
+export const updateAttribute = z.object({
   body: z.object({
     name: z
       .string()
@@ -21,3 +21,8 @@ export const updateAttributeValidationSchema = z.object({
     deleteValue: z.string().optional(),
   }),
 });
+
+export const AttributeValidation = {
+  attribute,
+  updateAttribute,
+};

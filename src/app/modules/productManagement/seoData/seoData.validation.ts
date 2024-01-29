@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const seoDataValidationSchema = z.object({
+const seoData = z.object({
   focusKeyphrase: z
     .string()
     .min(1, { message: "Focus Keyphrase is required!" }),
@@ -11,7 +11,7 @@ export const seoDataValidationSchema = z.object({
     .min(1, { message: "Meta description is required!" }),
 });
 
-export const updatesSeoDataValidationSchema = z.object({
+const updatesSeoData = z.object({
   body: z.object({
     focusKeyphrase: z
       .string()
@@ -28,3 +28,8 @@ export const updatesSeoDataValidationSchema = z.object({
       .optional(),
   }),
 });
+
+export const SeoDataValidation = {
+  seoData,
+  updatesSeoData,
+};

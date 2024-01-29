@@ -1,18 +1,23 @@
 import { z } from "zod";
 
-const imageValidationSchema = z.object({
+const image = z.object({
   src: z.string().min(1, { message: "Thumbnail image is required!" }),
   alt: z.string().optional(),
 });
 
-export const productImageValidationSchema = z.object({
-  thumbnail: imageValidationSchema,
-  gallery: z.array(imageValidationSchema),
+const productImage = z.object({
+  thumbnail: image,
+  gallery: z.array(image),
 });
 
-export const updateProductImageValidationSchema = z.object({
+const updateProductImage = z.object({
   body: z.object({
-    thumbnail: imageValidationSchema,
-    gallery: z.array(imageValidationSchema),
+    thumbnail: image,
+    gallery: z.array(image),
   }),
 });
+
+export const ProductImageValidation = {
+  productImage,
+  updateProductImage,
+};

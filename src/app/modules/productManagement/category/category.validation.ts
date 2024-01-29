@@ -1,8 +1,11 @@
 import { z } from "zod";
 
-const categoryValidationSchema = z.object({
+const category = z.object({
   body: z.object({
     name: z.string().min(1, { message: "Category name is required!" }),
   }),
 });
-export default categoryValidationSchema;
+
+export const CategoryValidation = {
+  category,
+};
