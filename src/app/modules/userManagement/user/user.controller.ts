@@ -6,10 +6,11 @@ import { TUser } from "./user.interface";
 import { UserServices } from "./user.service";
 
 const createCustomer = catchAsync(async (req: Request, res: Response) => {
-  const { customerInfo, ...userInfo } = req.body;
+  const { personalInfo, address, ...userInfo } = req.body;
   const result = await UserServices.createCustomerIntoDB(
-    userInfo,
-    customerInfo
+    personalInfo,
+    address,
+    userInfo
   );
   successResponse<TUser>(res, {
     statusCode: httpStatus.CREATED,
@@ -19,11 +20,11 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
-  const { personalInfo, fullAddress, ...userInfo } = req.body;
+  const { personalInfo, address, ...userInfo } = req.body;
   const result = await UserServices.createAdminOrStaffIntoDB(
-    userInfo,
-    fullAddress,
-    personalInfo
+    personalInfo,
+    address,
+    userInfo
   );
   successResponse<TUser>(res, {
     statusCode: httpStatus.CREATED,

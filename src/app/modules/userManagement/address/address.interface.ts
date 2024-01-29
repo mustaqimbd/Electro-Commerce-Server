@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
 export type TAddressData = {
-  userId?: string;
+  uid?: string;
   sessionId?: string;
   fullAddress: string;
   city?: mongoose.Types.ObjectId;

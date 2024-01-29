@@ -13,11 +13,11 @@ router.post(
 );
 router.post(
   "/create-staff-or-admin",
+  validateRequest(UserValidation.createStaffOrAdmin),
   authGuard({
-    requiredRoles: ["staff", "admin"],
+    requiredRoles: ["admin"],
     requiredPermission: "create admin or staff",
   }),
-  validateRequest(UserValidation.createStaffOrAdmin),
   UserControllers.createAdminOrStaff
 );
 

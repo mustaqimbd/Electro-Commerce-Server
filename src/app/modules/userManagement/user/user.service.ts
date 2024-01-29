@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
+import { TAddressData } from "../address/address.interface";
 import { Address } from "../address/address.model";
 import { TAdmin } from "../admin/admin.interface";
 import { Admin } from "../admin/admin.model";
@@ -14,8 +15,9 @@ import { User } from "./user.model";
 import { createCustomerId } from "./user.util";
 
 const createCustomerIntoDB = async (
-  userInfo: TUser,
-  customerInfo: TCustomer
+  personalInfo: TCustomer,
+  addressData: TAddressData,
+  userInfo: TUser
 ): Promise<TUser | null> => {
   // check that the phone number is already registered
   const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
@@ -32,23 +34,25 @@ const createCustomerIntoDB = async (
   try {
     session.startTransaction();
     const id = await createCustomerId();
-    userInfo.uid = id;
-    customerInfo.uid = id;
 
+    personalInfo.uid = id;
     // create customer
-    const [createCustomer] = await Customer.create([customerInfo], {
+    const [createCustomer] = await Customer.create([personalInfo], {
       session,
     });
     if (!createCustomer) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create user");
     }
 
+    addressData.uid = id;
     // create address
-    const [address] = await Address.create([{ userId: id }], { session });
+    const [address] = await Address.create([addressData], { session });
 
     if (!address) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create address");
     }
+
+    userInfo.uid = id;
     userInfo.customer = createCustomer._id;
     userInfo.address = address._id;
     const [user] = await User.create([userInfo], { session });
@@ -65,17 +69,17 @@ const createCustomerIntoDB = async (
   }
   if (newUser) {
     newUser = await User.findOne({ _id: newUser._id }).populate([
-      { path: "customer", select: "-createdAt -updatedAt" },
-      { path: "address", select: "-createdAt -updatedAt" },
+      { path: "customer", select: "-createdAt -updatedAt -__v" },
+      { path: "address", select: "-createdAt -updatedAt -__v" },
     ]);
   }
   return newUser;
 };
 
 const createAdminOrStaffIntoDB = async (
-  userInfo: TUser,
-  fullAddress: string,
-  personalInfo: TAdmin | TStaff
+  personalInfo: TAdmin | TStaff,
+  address: TAddressData,
+  userInfo: TUser
 ): Promise<TUser | null> => {
   // check that the phone number is already registered
   const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
@@ -93,21 +97,19 @@ const createAdminOrStaffIntoDB = async (
     if (userInfo.role === "admin") {
       newUser = await UserHelpers.createAdminOrStaffUser(
         "admin",
-        false,
         Admin,
         userInfo,
         personalInfo,
-        fullAddress,
+        address,
         session
       );
     } else if (userInfo.role === "staff") {
       newUser = await UserHelpers.createAdminOrStaffUser(
         "staff",
-        true,
         Staff,
         userInfo,
         personalInfo,
-        fullAddress,
+        address,
         session
       );
     }

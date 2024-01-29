@@ -3,7 +3,7 @@ import { TAddress } from "./address.interface";
 
 const AddressSchema = new Schema<TAddress>(
   {
-    userId: {
+    uid: {
       type: String,
     },
     sessionId: {
