@@ -26,10 +26,10 @@ const createStaffOrAdmin = z.object({
     email: z.string({ required_error: "Email is required." }).email(),
     password: z.string({ required_error: "Password is required" }),
     role: z.enum(["staff", "admin"], { required_error: "Role is required" }),
+    fullAddress: z.string({ required_error: "Address is required" }),
     personalInfo: z
       .object({
         fullName: z.string({ required_error: "Full name is required." }),
-        fullAddress: z.string({ required_error: "Full address is required" }),
         profilePicture: z.string().optional(), // TODO: Make image uploading system.
       })
       .optional(), // TODO: make mandatory.

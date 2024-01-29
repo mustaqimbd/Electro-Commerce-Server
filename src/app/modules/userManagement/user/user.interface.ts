@@ -1,4 +1,5 @@
 import { Document, Model, Types } from "mongoose";
+import { TAddress } from "../address/address.interface";
 import { TAdmin } from "../admin/admin.interface";
 import { TCustomer } from "../customer/customer.interface";
 import { TStaff } from "../staff/staff.interface";
@@ -15,6 +16,7 @@ export type TUser = {
   customer: Types.ObjectId | TCustomer;
   staff: Types.ObjectId | TStaff;
   admin: Types.ObjectId | TAdmin;
+  address: Types.ObjectId | TAddress;
   status: TStatus;
 } & Document;
 

@@ -18,9 +18,6 @@ const CustomerSchema = new Schema<TCustomer>(
   },
   {
     timestamps: true,
-    toJSON: {
-      virtuals: true,
-    },
   }
 );
 

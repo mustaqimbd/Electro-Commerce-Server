@@ -1,7 +1,7 @@
 import express from "express";
-import { ENUM_USER_ROLE } from "../../enums/users";
-import authGuard from "../../middlewares/authGuard";
-import validateRequest from "../../middlewares/validateRequest";
+import { ENUM_USER_ROLE } from "../../../enums/users";
+import authGuard from "../../../middlewares/authGuard";
+import validateRequest from "../../../middlewares/validateRequest";
 import { UserControllers } from "./user.controller";
 import { UserValidation } from "./user.validation";
 

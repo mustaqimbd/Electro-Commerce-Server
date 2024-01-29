@@ -1,21 +1,29 @@
 import mongoose, { Schema, model } from "mongoose";
-import { TCart } from "./cart.interface";
+import { TCart, TCartItems } from "./cart.interface";
 
-const CartSchema = new Schema<TCart>({
-  userId: {
-    //user's _id
+const cartItemsSchema = new Schema<TCartItems>({
+  item: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: "CartItem",
+    required: true,
   },
-  sessionId: {
-    type: String,
-    immutable: true,
-  },
-  cartItems: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Cart_item",
-    },
-  ],
 });
+
+const CartSchema = new Schema<TCart>(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      immutable: true,
+    },
+    sessionId: {
+      type: String,
+      immutable: true,
+    },
+    cartItems: [cartItemsSchema],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 export const Cart = model<TCart>("cart", CartSchema);

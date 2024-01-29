@@ -1,8 +1,8 @@
 import bcrypt from "bcrypt";
 import httpStatus from "http-status";
-import { Schema, model } from "mongoose";
-import config from "../../config/config";
-import ApiError from "../../errorHandlers/ApiError";
+import mongoose, { Schema, model } from "mongoose";
+import config from "../../../config/config";
+import ApiError from "../../../errorHandlers/ApiError";
 import { rolesEnum, statusEnum } from "./user.const";
 import { TUser, TUserModel } from "./user.interface";
 
@@ -41,6 +41,11 @@ const UserSchema = new Schema<TUser, TUserModel>(
     admin: {
       type: Schema.Types.ObjectId,
       ref: "Admin",
+    },
+    address: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true,
     },
     status: {
       type: String,

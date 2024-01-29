@@ -5,6 +5,7 @@ export type TCartItemData = {
   sessionId?: string;
   product: mongoose.Types.ObjectId;
   quantity: number;
+  expireAt?: Date;
 };
 
 export type TCartItem = TCartItemData & Document;

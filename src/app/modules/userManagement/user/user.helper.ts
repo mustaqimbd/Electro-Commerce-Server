@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { ClientSession, Model } from "mongoose";
-import ApiError from "../../errorHandlers/ApiError";
+import ApiError from "../../../errorHandlers/ApiError";
+import { Address } from "../address/address.model";
 import { TAdmin } from "../admin/admin.interface";
 import { TStaff } from "../staff/staff.interface";
 import { TUser } from "./user.interface";
@@ -13,6 +14,7 @@ const createAdminOrStaffUser = async (
   modelName: Model<TAdmin | TStaff>,
   userInfo: TUser,
   personalInfo: TAdmin | TStaff,
+  addressData: string,
   session: ClientSession
 ): Promise<TUser> => {
   const id = await createAdminOrStaffId(isStaff);
@@ -25,6 +27,16 @@ const createAdminOrStaffUser = async (
       `Failed to create the ${userInfo.role}`
     );
   }
+  const [address] = await Address.create(
+    [{ userId: id, fullAddress: addressData }],
+    {
+      session,
+    }
+  );
+  if (!address) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create address");
+  }
+  userInfo.address = address;
   userInfo[role] = createdModel._id;
   const [user] = await User.create([userInfo], { session });
   if (!user) {

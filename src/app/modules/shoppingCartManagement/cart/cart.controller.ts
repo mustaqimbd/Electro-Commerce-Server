@@ -31,7 +31,7 @@ const updateQuantity = catchAsync(async (req: Request, res: Response) => {
   await CartServices.updateQuantityIntoDB(user, payload);
   successResponse<TCart>(res, {
     statusCode: httpStatus.CREATED,
-    message: "Added to cart successfully",
+    message: "Quantity updated",
   });
 });
 

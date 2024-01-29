@@ -5,8 +5,8 @@ import config from "../config/config";
 import ApiError from "../errorHandlers/ApiError";
 import { jwtHelper } from "../helper/jwt.helper";
 import { TJwtPayload } from "../modules/auth/auth.interface";
-import { TRoles } from "../modules/user/user.interface";
-import { User } from "../modules/user/user.model";
+import { TRoles } from "../modules/userManagement/user/user.interface";
+import { User } from "../modules/userManagement/user/user.model";
 
 const authGuard =
   (...requiredRoles: TRoles[]) =>

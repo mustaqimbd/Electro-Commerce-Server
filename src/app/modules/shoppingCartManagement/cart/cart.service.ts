@@ -13,7 +13,7 @@ const getCartFromDB = async (
 ): Promise<TCart | null> => {
   const query = CartHelper.findCartQuery(user);
   const result = await Cart.findOne(query, { cartItems: 1 }).populate(
-    "cartItems"
+    "cartItems.item"
   );
   return result;
 };
@@ -47,7 +47,7 @@ const addToCartIntoDB = async (
     if (cartData) {
       const updatedCartData = await Cart.updateOne(
         query,
-        { $push: { cartItems: cartItem._id } },
+        { $push: { cartItems: { item: cartItem._id } } },
         { session }
       );
       if (!updatedCartData.modifiedCount) {
@@ -60,7 +60,7 @@ const addToCartIntoDB = async (
       const newCartData: TCartData = {
         userId: user.id,
         sessionId: user.sessionId,
-        cartItems: [cartItem._id],
+        cartItems: [{ item: cartItem._id }],
       };
       const [newCart] = await Cart.create([newCartData], { session });
       if (!newCart) {
@@ -122,7 +122,7 @@ const deleteFromCartFromDB = async (
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to delete item");
     }
     const deletedFromCart = await Cart.updateOne(query, {
-      $pull: { cartItems: payload.itemId },
+      $pull: { cartItems: { item: payload.itemId } },
     }).session(session);
     if (!deletedFromCart.modifiedCount) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to delete from cart");

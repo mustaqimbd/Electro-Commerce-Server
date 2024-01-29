@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
 import { TCartItem } from "../cartItem/cartItem.interface";
 
-type TCartItems = mongoose.Types.ObjectId | TCartItem;
+export type TCartItems = {
+  item: mongoose.Types.ObjectId | TCartItem;
+  expireAt?: Date;
+};
 
 export type TCartData = {
   userId?: mongoose.Types.ObjectId;
