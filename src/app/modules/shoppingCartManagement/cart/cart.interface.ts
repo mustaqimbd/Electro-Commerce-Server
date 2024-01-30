@@ -13,8 +13,3 @@ export type TCartData = {
 };
 
 export type TCart = TCartData & Document;
-
-export type TAddToCartPayload = {
-  productId: mongoose.Types.ObjectId; // TODO : Set product model
-  quantity: number;
-};
