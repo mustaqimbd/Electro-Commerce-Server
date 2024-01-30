@@ -13,17 +13,15 @@ const price = z.object({
 });
 
 const updatePrice = z.object({
-  body: z.object({
-    regularPrice: z.number(),
-    salePrice: z.number().optional(),
-    discount: z.string().optional(),
-    date: z
-      .object({
-        start: z.string().min(1, { message: "Start date is required!" }),
-        end: z.string().min(1, { message: "End date is required!" }),
-      })
-      .optional(),
-  }),
+  regularPrice: z.number().optional(),
+  salePrice: z.number().optional(),
+  discount: z.number().optional(),
+  date: z
+    .object({
+      start: z.string().min(1, { message: "Start date is required!" }),
+      end: z.string().min(1, { message: "End date is required!" }),
+    })
+    .optional(),
 });
 
 export const PriceValidation = {

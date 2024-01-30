@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { TProduct } from "./product.interface";
+import { TProduct, TPublishedStatusSchema } from "./product.interface";
 import { TAttribute } from "../attribute/attribute.interface";
 import { publishedStatus, visibilityStatus } from "./product.const";
 
@@ -8,6 +8,14 @@ const productAttributeSchema = new Schema<TAttribute>(
     _id: { type: Schema.Types.ObjectId },
     name: { type: String, required: true },
     values: { type: [String], required: true },
+  },
+  { _id: false }
+);
+const publishedStatusSchema = new Schema<TPublishedStatusSchema>(
+  {
+    status: { type: String, enum: publishedStatus, required: true },
+    visibility: { type: String, enum: visibilityStatus, required: true },
+    date: { type: String, required: true },
   },
   { _id: false }
 );
@@ -23,6 +31,7 @@ const productSchema = new Schema<TProduct>(
     shortDescription: { type: String },
     downloadable: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
+    review: { type: Boolean, default: false },
     price: {
       type: Schema.Types.ObjectId,
       required: true,
@@ -53,9 +62,8 @@ const productSchema = new Schema<TProduct>(
       type: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
     },
     publishedStatus: {
-      status: { type: String, enum: publishedStatus, required: true },
-      visibility: { type: String, enum: visibilityStatus, required: true },
-      date: { type: String, required: true },
+      type: publishedStatusSchema,
+      required: true,
     },
     seoData: {
       type: Schema.Types.ObjectId,

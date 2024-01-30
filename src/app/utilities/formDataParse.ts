@@ -1,6 +1,6 @@
 import { RequestHandler } from "express";
 
-type UploadedFiles = {
+export type TUploadedFiles = {
   // eslint-disable-next-line no-undef
   [fieldname: string]: Express.Multer.File[];
 };
@@ -11,8 +11,8 @@ const formDataParse: RequestHandler = (req, res, next) => {
       req.body = JSON.parse(req.body.data);
     }
 
-    if (req.files) {
-      const { thumbnail, gallery } = req.files as UploadedFiles;
+    if (Object.keys(req.files as TUploadedFiles).length) {
+      const { thumbnail, gallery } = req.files as TUploadedFiles;
       let thumImg, galleryImg;
       if (Array.isArray(thumbnail)) {
         thumImg = thumbnail.map(({ path, originalname }) => ({

@@ -21,4 +21,6 @@ export default {
   session_secret: env.SESSION_SECRET,
   session_expires: env.SESSION_EXPIRES,
   cart_item_expires: env.CART_ITEM_EXPIRES,
+  upload_image_size: env.UPLOAD_IMAGE_SIZE,
+  upload_image_format: env.UPLOAD_IMAGE_FORMAT,
 };

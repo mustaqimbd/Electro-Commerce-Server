@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+
 export type TPrice = {
   regularPrice: number;
   salePrice?: number;
@@ -6,4 +8,5 @@ export type TPrice = {
     start: string;
     end: string;
   };
+  updatedBy?: Types.ObjectId;
 };

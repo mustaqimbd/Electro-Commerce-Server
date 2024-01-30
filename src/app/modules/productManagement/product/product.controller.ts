@@ -14,20 +14,30 @@ const createProduct = catchAsync(async (req, res) => {
   });
 });
 
+const getProduct = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  const result = await ProductServices.getProductFromDB(id);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Product retrieved successfully",
+    data: result,
+  });
+});
+
 const getAllProducts = catchAsync(async (req, res) => {
   const result = await ProductServices.getAllProductsFromDB();
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Parent Products retrieved successfully",
+    message: "All Products retrieved successfully",
     data: result,
   });
 });
 
 const updateProduct = catchAsync(async (req, res) => {
-  const createdBy = req.user.id;
+  const updatedBy = req.user.id;
   const ProductId = req.params.id;
   const result = await ProductServices.updateProductIntoDB(
-    createdBy,
+    updatedBy,
     ProductId,
     req.body
   );
@@ -39,9 +49,9 @@ const updateProduct = catchAsync(async (req, res) => {
 });
 
 const deleteProduct = catchAsync(async (req, res) => {
-  const createdBy = req.user.id;
+  const deletedBy = req.user.id;
   const ProductId = req.params.id;
-  await ProductServices.deleteProductFromDB(createdBy, ProductId);
+  await ProductServices.deleteProductFromDB(deletedBy, ProductId);
 
   successResponse(res, {
     statusCode: httpStatus.OK,
@@ -52,6 +62,7 @@ const deleteProduct = catchAsync(async (req, res) => {
 
 export const ProductControllers = {
   createProduct,
+  getProduct,
   getAllProducts,
   updateProduct,
   deleteProduct,

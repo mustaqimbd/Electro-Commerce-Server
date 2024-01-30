@@ -10,11 +10,17 @@ const productImage = z.object({
   gallery: z.array(image),
 });
 
+const updateImage = z.object({
+  src: z
+    .string()
+    .min(1, { message: "Thumbnail image is required!" })
+    .optional(),
+  alt: z.string().optional(),
+});
+
 const updateProductImage = z.object({
-  body: z.object({
-    thumbnail: image,
-    gallery: z.array(image),
-  }),
+  thumbnail: updateImage.optional(),
+  gallery: z.array(updateImage).optional(),
 });
 
 export const ProductImageValidation = {

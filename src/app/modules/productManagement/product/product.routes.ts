@@ -21,12 +21,19 @@ router.post(
   ProductControllers.createProduct
 );
 
+router.get("/:id", ProductControllers.getProduct);
+
 router.get("/", ProductControllers.getAllProducts);
 
 router.patch(
   "/:id",
   // authGuard('admin'),
-  validateRequest(ProductValidation.product),
+  imgUploader.fields([
+    { name: "thumbnail", maxCount: 1 },
+    { name: "gallery", maxCount: 5 },
+  ]),
+  formDataParse,
+  validateRequest(ProductValidation.updateProduct),
   ProductControllers.updateProduct
 );
 

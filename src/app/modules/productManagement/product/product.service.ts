@@ -47,8 +47,25 @@ const createProductIntoDB = async (
   }
 };
 
+const getProductFromDB = async (id: string) => {
+  const result = await ProductModel.findOne({
+    _id: id,
+    isDeleted: false,
+  }).populate([
+    { path: "price", select: "-createdAt -updatedAt" },
+    { path: "image", select: "-createdAt -updatedAt" },
+    { path: "inventory", select: "-createdAt -updatedAt" },
+    { path: "seoData", select: "-createdAt -updatedAt" },
+    { path: "brand", select: "name" },
+    { path: "category", select: "name" },
+    { path: "tag", select: "name" },
+  ]);
+
+  return result;
+};
+
 const getAllProductsFromDB = async () => {
-  const result = await ProductModel.find().populate([
+  const result = await ProductModel.find({ isDeleted: false }).populate([
     { path: "price", select: "-createdAt -updatedAt" },
     { path: "image", select: "-createdAt -updatedAt" },
     { path: "inventory", select: "-createdAt -updatedAt" },
@@ -62,41 +79,123 @@ const getAllProductsFromDB = async () => {
 };
 
 const updateProductIntoDB = async (
-  createdBy: Types.ObjectId,
+  updatedBy: Types.ObjectId,
   id: string,
   payload: TProduct
 ) => {
-  payload.createdBy = createdBy;
-  const isProductExist = await ProductModel.findById(id);
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const {
+      price,
+      image,
+      inventory,
+      seoData,
+      publishedStatus,
+      attribute,
+      brand,
+      category,
+      tag,
+      ...remainingUpdateData
+    } = payload;
+    const isProductExist = await ProductModel.findById(id);
 
-  if (!isProductExist) {
-    throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
-  }
+    if (!isProductExist) {
+      throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
+    }
 
-  if (isProductExist.isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "The Product is deleted!");
-  }
-  const isUpdateProductDeleted = await ProductModel.findOne({
-    isDeleted: true,
-  });
+    if (isProductExist.isDeleted) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "The Product is deleted!");
+    }
 
-  if (isUpdateProductDeleted) {
-    const result = await ProductModel.findByIdAndUpdate(
-      isUpdateProductDeleted._id,
-      { createdBy, isDeleted: false },
-      { new: true }
+    if (price && Object.keys(price).length) {
+      const updatePrice: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(price)) {
+        if (key === "date") {
+          for (const [dateKey, dateValue] of Object.entries(value)) {
+            updatePrice[`date.${dateKey}`] = dateValue;
+          }
+        } else {
+          updatePrice[key] = value;
+        }
+      }
+      await PriceModel.findByIdAndUpdate(
+        isProductExist.price,
+        { $set: { ...updatePrice, updatedBy } },
+        { session }
+      );
+    }
+
+    if (image && Object.keys(image).length) {
+      await ProductImageModel.findByIdAndUpdate(
+        isProductExist.image,
+        { $set: { ...image, updatedBy } },
+        { session }
+      );
+    }
+    if (inventory && Object.keys(inventory).length) {
+      await InventoryModel.findByIdAndUpdate(
+        isProductExist.inventory,
+        { $set: { ...inventory, updatedBy } },
+        { session }
+      );
+    }
+    if (seoData && Object.keys(seoData).length) {
+      await SeoDataModel.findByIdAndUpdate(
+        isProductExist.seoData,
+        { $set: { ...seoData, updatedBy } },
+        { session }
+      );
+    }
+
+    const updatePublishedStatus: Record<string, unknown> = {};
+    if (publishedStatus && Object.keys(publishedStatus).length) {
+      for (const [key, value] of Object.entries(publishedStatus)) {
+        updatePublishedStatus[`publishedStatus.${key}`] = value;
+      }
+    }
+
+    let updateAttribute, updateBrand, updateCategory, updateTag;
+    if (attribute?.length) {
+      updateAttribute = attribute;
+    }
+    if (brand?.length) {
+      updateBrand = brand;
+    }
+    if (category?.length) {
+      updateCategory = category;
+    }
+    if (tag?.length) {
+      updateTag = tag;
+    }
+
+    const product = await ProductModel.findByIdAndUpdate(
+      isProductExist._id,
+      {
+        $set: {
+          attribute: updateAttribute,
+          brand: updateBrand,
+          category: updateCategory,
+          tag: updateTag,
+          ...remainingUpdateData,
+          ...updatePublishedStatus,
+          updatedBy,
+        },
+      },
+      { session, new: true }
     );
-    await ProductModel.findByIdAndUpdate(id, { isDeleted: true });
-    return result;
-  } else {
-    const result = await ProductModel.findByIdAndUpdate(id, payload, {
-      new: true,
-    });
-    return result;
+
+    await session.commitTransaction();
+    return product;
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
   }
 };
 
-const deleteProductFromDB = async (createdBy: Types.ObjectId, id: string) => {
+const deleteProductFromDB = async (deletedBy: Types.ObjectId, id: string) => {
   const isProductExist = await ProductModel.findById(id);
   if (!isProductExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
@@ -110,7 +209,7 @@ const deleteProductFromDB = async (createdBy: Types.ObjectId, id: string) => {
   }
 
   const result = await ProductModel.findByIdAndUpdate(id, {
-    createdBy,
+    deletedBy,
     isDeleted: true,
   });
 
@@ -119,6 +218,7 @@ const deleteProductFromDB = async (createdBy: Types.ObjectId, id: string) => {
 
 export const ProductServices = {
   createProductIntoDB,
+  getProductFromDB,
   getAllProductsFromDB,
   updateProductIntoDB,
   deleteProductFromDB,
