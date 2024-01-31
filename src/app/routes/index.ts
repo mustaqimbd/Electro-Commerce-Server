@@ -1,5 +1,6 @@
 import express from "express";
 import { AuthRouters } from "../modules/auth/auth.routes";
+import { OrderRoutes } from "../modules/orderManagement/order/rder.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
 import { BrandRoutes } from "../modules/productManagement/brand/brand.routes";
 import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
@@ -61,6 +62,10 @@ const moduleRoutes = [
   {
     path: "/permissions",
     route: PermissionRoutes,
+  },
+  {
+    path: "/orders",
+    route: OrderRoutes,
   },
 ];
 

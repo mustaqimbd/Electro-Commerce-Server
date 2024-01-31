@@ -1,4 +1,5 @@
 import mongoose, { Document } from "mongoose";
+import { TSelectedAttributes } from "../../../types/attribute";
 
 export type TSelectedAttributesOnCart = {
   name: string;
@@ -9,7 +10,7 @@ export type TCartItemData = {
   userId?: mongoose.Types.ObjectId;
   sessionId?: string;
   product: mongoose.Types.ObjectId;
-  attributes: TSelectedAttributesOnCart[];
+  attributes: TSelectedAttributes[];
   quantity: number;
   expireAt?: Date;
 };

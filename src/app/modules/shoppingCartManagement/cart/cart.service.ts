@@ -32,9 +32,7 @@ const addToCartIntoDB = async (
     const cartItemData: TCartItemData = {
       userId: user.id,
       sessionId: user.sessionId,
-      product: payload.product,
-      attributes: payload.attributes,
-      quantity: payload.quantity,
+      ...payload,
     };
     const [cartItem]: TCartItem[] = await CartItem.create([cartItemData], {
       session,
