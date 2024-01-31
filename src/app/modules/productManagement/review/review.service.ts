@@ -4,43 +4,65 @@ import { ReviewModel } from "./review.model";
 
 import httpStatus from "http-status";
 import ApiError from "../../../errorHandlers/ApiError";
+import ProductModel from "../product/product.mode";
 
 const createReviewIntoDB = async (
+  product: string,
   customer: Types.ObjectId,
-  payload: TReview
+  payload: Partial<TReview>
 ) => {
-  const isReviewDeleted = await ReviewModel.findOne({
-    product: payload.product,
-    customer: customer,
-    isDeleted: true,
+  const isProductExist = await ProductModel.findById(product);
+  if (!isProductExist) {
+    throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
+  }
+  if (isProductExist.isDeleted) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "The Product is deleted!");
+  }
+  if (!isProductExist.review) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "The Product is not allowed to review!"
+    );
+  }
+  const isReviewExist = await ReviewModel.findOne({
+    product,
+    customer,
   });
-
-  if (isReviewDeleted) {
+  if (!isReviewExist?.isDeleted) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "You already reviewed in this product!"
+    );
+  }
+  if (isReviewExist.isDeleted) {
     const result = await ReviewModel.findByIdAndUpdate(
-      isReviewDeleted._id,
+      isReviewExist._id,
       { ...payload, isDeleted: false },
       { new: true }
     );
     return result;
   } else {
-    const result = await ReviewModel.create(payload);
+    const result = await ReviewModel.create({ product, customer, ...payload });
     return result;
   }
 };
 
-const getAllReviewsFromDB = async () => {
-  const result = await ReviewModel.find({ isDeleted: false }, "name");
+const getAllReviewsFromDB = async (product: string) => {
+  const result = await ReviewModel.find({ product, isDeleted: false }).populate(
+    [
+      { path: "product", select: "title" },
+      { path: "customer", select: "-createdAt -updatedAt" },
+    ]
+  );
   return result;
 };
 
 const updateReviewIntoDB = async (
   customer: Types.ObjectId,
-  id: string,
+  reviewId: string,
   payload: TReview
 ) => {
-  payload.customer = customer;
-
-  const isReviewExist = await ReviewModel.findById(id);
+  const isReviewExist = await ReviewModel.findOne({ customer, _id: reviewId });
   if (!isReviewExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "The Review was not found!");
   }
@@ -50,19 +72,20 @@ const updateReviewIntoDB = async (
   }
 
   const isUpdateReviewDeleted = await ReviewModel.findOne({
+    product: isReviewExist.product,
+    customer: isReviewExist.customer,
     isDeleted: true,
   });
 
   if (isUpdateReviewDeleted) {
     const result = await ReviewModel.findByIdAndUpdate(
       isUpdateReviewDeleted._id,
-      { customer, isDeleted: false },
+      { ...payload, isDeleted: false },
       { new: true }
     );
-    await ReviewModel.findByIdAndUpdate(id, { isDeleted: true });
     return result;
   } else {
-    const result = await ReviewModel.findByIdAndUpdate(id, payload, {
+    const result = await ReviewModel.findByIdAndUpdate(reviewId, payload, {
       new: true,
     });
     return result;
@@ -70,7 +93,7 @@ const updateReviewIntoDB = async (
 };
 
 const deleteReviewIntoDB = async (customer: Types.ObjectId, id: string) => {
-  const isReviewExist = await ReviewModel.findById(id);
+  const isReviewExist = await ReviewModel.findOne({ customer, _id: id });
   if (!isReviewExist) {
     throw new ApiError(httpStatus.NOT_FOUND, "The Review was not found!");
   }
@@ -83,7 +106,6 @@ const deleteReviewIntoDB = async (customer: Types.ObjectId, id: string) => {
   }
 
   const result = await ReviewModel.findByIdAndUpdate(id, {
-    customer,
     isDeleted: true,
   });
 

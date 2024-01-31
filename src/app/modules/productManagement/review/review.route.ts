@@ -7,13 +7,13 @@ import { ReviewValidation } from "./review.validation";
 const router = express.Router();
 
 router.post(
-  "/",
+  "/:id",
   // authGuard('admin'),
   validateRequest(ReviewValidation.review),
   ReviewControllers.createReview
 );
 
-router.get("/", ReviewControllers.getAllReviews);
+router.get("/:id", ReviewControllers.getAllReviews);
 
 router.patch(
   "/:id",

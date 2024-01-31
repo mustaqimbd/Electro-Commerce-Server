@@ -6,10 +6,12 @@ const reviewSchema = new Schema<TReview>(
     product: {
       type: Schema.Types.ObjectId,
       required: true,
+      ref: "Product",
     },
     customer: {
       type: Schema.Types.ObjectId,
       required: true,
+      ref: "Customer",
     },
     rating: {
       type: Number,

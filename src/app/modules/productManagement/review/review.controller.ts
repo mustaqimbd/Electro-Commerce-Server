@@ -4,8 +4,13 @@ import successResponse from "../../../utilities/successResponse";
 import { ReviewServices } from "./review.service";
 
 const createReview = catchAsync(async (req, res) => {
+  const product = req.params.id;
   const customer = req.user.id;
-  const result = await ReviewServices.createReviewIntoDB(customer, req.body);
+  const result = await ReviewServices.createReviewIntoDB(
+    product,
+    customer,
+    req.body
+  );
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Review created successfully",
@@ -14,7 +19,8 @@ const createReview = catchAsync(async (req, res) => {
 });
 
 const getAllReviews = catchAsync(async (req, res) => {
-  const result = await ReviewServices.getAllReviewsFromDB();
+  const product = req.params.id;
+  const result = await ReviewServices.getAllReviewsFromDB(product);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Reviews retrieved successfully",
