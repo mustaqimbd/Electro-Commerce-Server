@@ -1,5 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
-import { TAddress } from "./address.interface";
+import { TAddress } from "../../../types/address";
 
 const AddressSchema = new Schema<TAddress>(
   {

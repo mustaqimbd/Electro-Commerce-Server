@@ -3,7 +3,8 @@ import { Document } from "mongoose";
 export type TPermissionNames =
   | "create permission"
   | "create admin or staff"
-  | "create coupon";
+  | "create coupon"
+  | "read permissions";
 
 export type TPermissionData = {
   name: TPermissionNames;

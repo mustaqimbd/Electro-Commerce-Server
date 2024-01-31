@@ -4,4 +4,5 @@ export const permissionEnums: TPermissionNames[] = [
   "create permission",
   "create admin or staff",
   "create coupon",
+  "read permissions",
 ];
