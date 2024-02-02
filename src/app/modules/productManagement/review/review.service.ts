@@ -4,7 +4,7 @@ import { ReviewModel } from "./review.model";
 
 import httpStatus from "http-status";
 import ApiError from "../../../errorHandlers/ApiError";
-import ProductModel from "../product/product.mode";
+import ProductModel from "../product/product.model";
 
 const createReviewIntoDB = async (
   product: string,
@@ -28,19 +28,19 @@ const createReviewIntoDB = async (
     product,
     customer,
   });
-  if (!isReviewExist?.isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "You already reviewed in this product!"
-    );
-  }
-  if (isReviewExist.isDeleted) {
+
+  if (isReviewExist?.isDeleted) {
     const result = await ReviewModel.findByIdAndUpdate(
-      isReviewExist._id,
+      isReviewExist?._id,
       { ...payload, isDeleted: false },
       { new: true }
     );
     return result;
+  } else if (isReviewExist) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "You already reviewed in this product!"
+    );
   } else {
     const result = await ReviewModel.create({ product, customer, ...payload });
     return result;

@@ -4,10 +4,15 @@ import { stockStatus } from "./inventory.const";
 
 const inventorySchema = new Schema<TInventory>(
   {
-    sku: { type: String, unique: true },
+    sku: { type: String, unique: true, sparse: true },
     stockStatus: { type: String, enum: [...stockStatus], required: true },
     stockQuantity: { type: Number, required: true },
-    stockAvailable: { type: Number },
+    stockAvailable: {
+      type: Number,
+      default: function (this: TInventory) {
+        return this.stockQuantity;
+      },
+    },
     lowStockWarning: { type: Number },
     manageStock: { type: Boolean, default: false },
     productCode: { type: String },

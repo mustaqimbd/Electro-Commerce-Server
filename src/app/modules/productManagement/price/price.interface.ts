@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 export type TPrice = {
   regularPrice: number;
   salePrice?: number;
-  discount?: number;
+  discountPercent?: number;
   date?: {
     start: string;
     end: string;

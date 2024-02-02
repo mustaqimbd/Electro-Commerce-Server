@@ -2,8 +2,10 @@ import httpStatus from "http-status";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { ProductServices } from "./product.service";
+import updatedPriceData from "./utils";
 
 const createProduct = catchAsync(async (req, res) => {
+  updatedPriceData(req);
   const createdBy = req.user.id;
   const result = await ProductServices.createProductIntoDB(createdBy, req.body);
 
@@ -14,9 +16,9 @@ const createProduct = catchAsync(async (req, res) => {
   });
 });
 
-const getProduct = catchAsync(async (req, res) => {
+const getAProductCustomer = catchAsync(async (req, res) => {
   const id = req.params.id;
-  const result = await ProductServices.getProductFromDB(id);
+  const result = await ProductServices.getAProductCustomerFromDB(id);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Product retrieved successfully",
@@ -24,8 +26,18 @@ const getProduct = catchAsync(async (req, res) => {
   });
 });
 
-const getAllProducts = catchAsync(async (req, res) => {
-  const result = await ProductServices.getAllProductsFromDB();
+const getAProductAdmin = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  const result = await ProductServices.getAProductAdminFromDB(id);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Product retrieved successfully",
+    data: result,
+  });
+});
+
+const getAllProductsCustomer = catchAsync(async (req, res) => {
+  const result = await ProductServices.getAllProductsCustomerFromDB(req.query);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Products retrieved successfully",
@@ -33,7 +45,26 @@ const getAllProducts = catchAsync(async (req, res) => {
   });
 });
 
+const getAllProductsAdmin = catchAsync(async (req, res) => {
+  const result = await ProductServices.getAllProductsAdminFromDB(req.query);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "All Products retrieved successfully",
+    data: result,
+  });
+});
+
+const getFeaturedProducts = catchAsync(async (req, res) => {
+  const result = await ProductServices.getFeaturedProductsFromDB(req.query);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Featured Products retrieved successfully",
+    data: result,
+  });
+});
+
 const updateProduct = catchAsync(async (req, res) => {
+  updatedPriceData(req);
   const updatedBy = req.user.id;
   const ProductId = req.params.id;
   const result = await ProductServices.updateProductIntoDB(
@@ -62,8 +93,11 @@ const deleteProduct = catchAsync(async (req, res) => {
 
 export const ProductControllers = {
   createProduct,
-  getProduct,
-  getAllProducts,
+  getAProductCustomer,
+  getAProductAdmin,
+  getAllProductsCustomer,
+  getAllProductsAdmin,
+  getFeaturedProducts,
   updateProduct,
   deleteProduct,
 };

@@ -21,9 +21,15 @@ router.post(
   ProductControllers.createProduct
 );
 
-router.get("/:id", ProductControllers.getProduct);
+router.get("/featured", ProductControllers.getFeaturedProducts);
 
-router.get("/", ProductControllers.getAllProducts);
+router.get("/admin", ProductControllers.getAllProductsAdmin);
+
+router.get("/:id/admin", ProductControllers.getAProductAdmin);
+
+router.get("/:id", ProductControllers.getAProductCustomer);
+
+router.get("/", ProductControllers.getAllProductsCustomer);
 
 router.patch(
   "/:id",

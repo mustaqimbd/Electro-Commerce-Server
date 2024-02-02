@@ -1,4 +1,4 @@
-import ProductModel from "../modules/productManagement/product/product.mode";
+import ProductModel from "../modules/productManagement/product/product.model";
 
 export const findLastProductId = async () => {
   const lastProduct = await ProductModel.findOne()

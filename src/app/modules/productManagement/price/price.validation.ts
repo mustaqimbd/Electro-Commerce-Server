@@ -1,9 +1,9 @@
-import { number, z } from "zod";
+import { z } from "zod";
 
 const price = z.object({
-  regularPrice: z.number(),
-  salePrice: z.number().optional(),
-  discount: number().optional(),
+  regularPrice: z.number().min(0),
+  salePrice: z.number().min(0).optional(),
+  discountPercent: z.number().min(0).optional(),
   date: z
     .object({
       start: z.string().min(1, { message: "Start date is required!" }),
@@ -13,9 +13,9 @@ const price = z.object({
 });
 
 const updatePrice = z.object({
-  regularPrice: z.number().optional(),
-  salePrice: z.number().optional(),
-  discount: z.number().optional(),
+  regularPrice: z.number().min(0).optional(),
+  salePrice: z.number().min(0).optional(),
+  discountPercent: z.number().min(0).optional(),
   date: z
     .object({
       start: z.string().min(1, { message: "Start date is required!" }),
