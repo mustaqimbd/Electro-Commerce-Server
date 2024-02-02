@@ -1,5 +1,14 @@
 import mongoose, { Schema, model } from "mongoose";
-import { TCartItem } from "./cartItem.interface";
+import { TCartItem, TSelectedAttributesOnCart } from "./cartItem.interface";
+
+const selectedAttributesOnCartSchema = new Schema<TSelectedAttributesOnCart>({
+  name: {
+    type: String,
+  },
+  value: {
+    type: String,
+  },
+});
 
 const CartItemSchema = new Schema<TCartItem>(
   {
@@ -14,8 +23,9 @@ const CartItemSchema = new Schema<TCartItem>(
     product: {
       type: mongoose.Schema.ObjectId,
       immutable: true,
-      ref: "Product", // TODO: Enable ref
+      ref: "Product",
     },
+    attributes: [selectedAttributesOnCartSchema],
     quantity: {
       type: Number,
     },

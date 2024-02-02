@@ -5,7 +5,7 @@ import { TOptionalAuthGuardPayload } from "../../../types/common";
 import { TCartItem, TCartItemData } from "../cartItem/cartItem.interface";
 import { CartItem } from "../cartItem/cartItem.model";
 import { CartHelper } from "./cart.helper";
-import { TAddToCartPayload, TCart, TCartData } from "./cart.interface";
+import { TCart, TCartData } from "./cart.interface";
 import { Cart } from "./cart.model";
 
 const getCartFromDB = async (
@@ -20,7 +20,7 @@ const getCartFromDB = async (
 
 const addToCartIntoDB = async (
   user: TOptionalAuthGuardPayload,
-  payload: TAddToCartPayload
+  payload: TCartItemData
 ): Promise<void> => {
   const query = CartHelper.findCartQuery(user);
 
@@ -32,8 +32,7 @@ const addToCartIntoDB = async (
     const cartItemData: TCartItemData = {
       userId: user.id,
       sessionId: user.sessionId,
-      product: payload.productId,
-      quantity: payload.quantity,
+      ...payload,
     };
     const [cartItem]: TCartItem[] = await CartItem.create([cartItemData], {
       session,

@@ -1,9 +1,25 @@
 import { z } from "zod";
 
+const attributeSchema = z
+  .object({
+    name: z.string().optional(),
+    value: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      (data.name === undefined && data.value === undefined) ||
+      (data.name !== undefined && data.value !== undefined),
+    {
+      message:
+        "Either both name and value should be present, or both should not be present.",
+    }
+  );
+
 const addToCart = z.object({
   body: z.object({
-    productId: z.string({ required_error: "Product id is required" }),
+    product: z.string({ required_error: "Product id is required" }),
     quantity: z.number({ required_error: "Quantity is required" }),
+    attributes: z.array(attributeSchema),
   }),
 });
 
