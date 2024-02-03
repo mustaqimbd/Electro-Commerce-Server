@@ -24,9 +24,9 @@ const productSchema = new Schema<TProduct>(
   {
     id: { type: String, require: true, unique: true },
     title: { type: String, required: true, unique: true },
-    permalink: { type: String, unique: true },
+    permalink: { type: String, unique: true, sparse: true },
     type: { type: String },
-    slug: { type: String, unique: true },
+    slug: { type: String, unique: true, sparse: true },
     description: { type: String, required: true },
     shortDescription: { type: String },
     downloadable: { type: Boolean, default: false },
@@ -57,6 +57,9 @@ const productSchema = new Schema<TProduct>(
     category: {
       type: [{ type: Schema.Types.ObjectId, ref: "Category" }],
       required: true,
+    },
+    subCategory: {
+      type: [{ type: Schema.Types.ObjectId, ref: "SubCategory" }],
     },
     tag: {
       type: [{ type: Schema.Types.ObjectId, ref: "Tag" }],

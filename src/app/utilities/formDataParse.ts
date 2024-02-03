@@ -7,11 +7,11 @@ export type TUploadedFiles = {
 
 const formDataParse: RequestHandler = (req, res, next) => {
   try {
-    if (req.body.data) {
+    if (req.body?.data) {
       req.body = JSON.parse(req.body.data);
     }
 
-    if (Object.keys(req.files as TUploadedFiles).length) {
+    if (req.files && Object.keys(req.files as TUploadedFiles).length) {
       const { thumbnail, gallery } = req.files as TUploadedFiles;
       let thumImg, galleryImg;
       if (Array.isArray(thumbnail)) {

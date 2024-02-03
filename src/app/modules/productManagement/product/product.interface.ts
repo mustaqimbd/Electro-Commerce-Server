@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { TAttribute } from "../attribute/attribute.interface";
 
 export type TPublishedStatus = "Draft" | "Published";
-export type TVisibilityStatus = "Public" | "Password protected" | "Private";
+export type TVisibilityStatus = "Public" | "Private" | "Password protected";
 export type TPublishedStatusSchema = {
   status: TPublishedStatus;
   visibility: TVisibilityStatus;
@@ -26,6 +26,7 @@ export type TProduct = {
   attribute: Partial<TAttribute>[];
   brand: Types.ObjectId[];
   category: Types.ObjectId[];
+  subCategory: Types.ObjectId[];
   tag: Types.ObjectId[];
   seoData: Types.ObjectId; // | TSeoData
   publishedStatus: TPublishedStatusSchema;

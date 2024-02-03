@@ -40,7 +40,10 @@ const product = z.object({
     inventory: InventoryValidation.inventory,
     attribute: z.array(productAttribute),
     brand: z.array(z.string()).optional(),
-    category: z.array(z.string().min(1, { message: "Category is required!" })),
+    category: z.string().min(1, { message: "Category is required!" }),
+    subCategory: z
+      .array(z.string().min(1, { message: "Category is required!" }))
+      .optional(),
     tag: z.array(z.string()).optional(),
     seoData: SeoDataValidation.seoData,
     publishedStatus: z.object({
@@ -71,6 +74,10 @@ const updateProduct = z.object({
     attribute: z.array(updateProductAttribute).optional(),
     brand: z.array(z.string()).optional(),
     category: z
+      .string()
+      .min(1, { message: "Category is required!" })
+      .optional(),
+    subCategory: z
       .array(z.string().min(1, { message: "Category is required!" }))
       .optional(),
     tag: z.array(z.string()).optional(),

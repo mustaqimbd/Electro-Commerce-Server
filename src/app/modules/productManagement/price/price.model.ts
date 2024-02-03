@@ -5,7 +5,7 @@ const priceSchema = new Schema<TPrice>(
   {
     regularPrice: { type: Number, required: true },
     salePrice: { type: Number },
-    discount: { type: Number },
+    discountPercent: { type: Number },
     date: {
       start: { type: String },
       end: { type: String },
