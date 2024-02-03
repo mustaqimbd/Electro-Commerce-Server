@@ -1,5 +1,4 @@
 import express from "express";
-import authGuard from "../../../middlewares/authGuard";
 import validateRequest from "../../../middlewares/validateRequest";
 import { UserControllers } from "./user.controller";
 import { UserValidation } from "./user.validation";
@@ -14,10 +13,10 @@ router.post(
 router.post(
   "/create-staff-or-admin",
   validateRequest(UserValidation.createStaffOrAdmin),
-  authGuard({
-    requiredRoles: ["admin"],
-    requiredPermission: "create admin or staff",
-  }),
+  // authGuard({
+  //   requiredRoles: ["admin"],
+  //   requiredPermission: "create admin or staff",
+  // }),
   UserControllers.createAdminOrStaff
 );
 

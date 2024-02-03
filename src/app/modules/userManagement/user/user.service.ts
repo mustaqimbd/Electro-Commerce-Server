@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
-import { TAddressData } from "../../addressManagement/address/address.interface";
+import { TAddressData } from "../../../types/address";
 import { Address } from "../../addressManagement/address/address.model";
 import { TAdmin } from "../admin/admin.interface";
 import { Admin } from "../admin/admin.model";

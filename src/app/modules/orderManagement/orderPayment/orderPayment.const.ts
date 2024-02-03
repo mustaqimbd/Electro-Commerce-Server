@@ -1,4 +1,4 @@
-import { TPaymentMethods } from "./payment.interface";
+import { TPaymentMethods } from "./orderPayment.interface";
 
 export const paymentMethodEnum: TPaymentMethods[] = [
   "cod",

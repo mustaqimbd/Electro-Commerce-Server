@@ -47,6 +47,11 @@ const UserSchema = new Schema<TUser, TUserModel>(
       ref: "Address",
       required: true,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "User",
+    },
     permissions: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -60,6 +65,7 @@ const UserSchema = new Schema<TUser, TUserModel>(
       set: () => "active",
     },
   },
+
   {
     timestamps: true,
     toJSON: {

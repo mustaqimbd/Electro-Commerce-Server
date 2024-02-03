@@ -7,6 +7,7 @@ const PermissionSchema = new Schema<TPermission>({
     type: String,
     enum: permissionEnums,
     required: true,
+    unique: true,
   },
 });
 

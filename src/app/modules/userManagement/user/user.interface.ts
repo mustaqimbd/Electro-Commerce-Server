@@ -1,5 +1,5 @@
 import { Document, Model, Types } from "mongoose";
-import { TAddress } from "../../addressManagement/address/address.interface";
+import { TAddress } from "../../../types/address";
 import { TAdmin } from "../admin/admin.interface";
 import { TCustomer } from "../customer/customer.interface";
 import { TPermission } from "../permission/permission.interface";
@@ -19,6 +19,7 @@ export type TUser = {
   admin: Types.ObjectId | TAdmin;
   address: Types.ObjectId | TAddress;
   permissions: Types.ObjectId[] | TPermission[];
+  createdBy: Types.ObjectId | TUser;
   status: TStatus;
 } & Document;
 

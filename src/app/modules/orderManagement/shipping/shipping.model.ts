@@ -9,6 +9,14 @@ const ShippingSchema = new Schema<TShippingData>(
       unique: true,
       immutable: true,
     },
+    fullName: {
+      type: String,
+      required: true,
+    },
+    phoneNumber: {
+      type: String,
+      required: true,
+    },
     fullAddress: {
       type: String,
       required: true,

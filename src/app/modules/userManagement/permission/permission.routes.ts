@@ -4,7 +4,7 @@ import { PermissionController } from "./permission.controller";
 
 const router = Router();
 
-router.post(
+router.get(
   "/",
   authGuard({
     requiredRoles: ["admin", "staff"],
@@ -16,7 +16,7 @@ router.post(
   "/",
   authGuard({
     requiredRoles: ["admin"],
-    requiredPermission: "create permission",
+    requiredPermission: "manage permission",
   }),
   PermissionController.createPermission
 );

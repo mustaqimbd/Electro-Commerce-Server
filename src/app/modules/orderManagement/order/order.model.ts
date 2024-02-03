@@ -9,6 +9,13 @@ const OrderSchema = new Schema<TOrder>(
       unique: true,
       immutable: true,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    sessionId: {
+      type: String,
+    },
     orderedProductsDetails: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -26,12 +33,12 @@ const OrderSchema = new Schema<TOrder>(
       type: Number,
     },
     shippingCharge: {
-      type: Number,
+      type: mongoose.Schema.Types.ObjectId,
       required: true,
+      ref: "ShippingCharge",
     },
     discount: {
       type: Number,
-      required: true,
     },
     total: {
       type: Number,
@@ -40,6 +47,11 @@ const OrderSchema = new Schema<TOrder>(
     payment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
+      required: true,
+    },
+    status: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "OrderStatusHistory",
       required: true,
     },
     shipping: {
