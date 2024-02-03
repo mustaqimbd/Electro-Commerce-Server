@@ -14,6 +14,7 @@ import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
 import { UserRoutes } from "../modules/userManagement/user/user.routes";
+import { ImageRoutes } from "../modules/productManagement/image/image.routes";
 
 const router = express();
 const moduleRoutes = [
@@ -36,6 +37,10 @@ const moduleRoutes = [
   {
     path: "/products",
     route: ProductRoutes,
+  },
+  {
+    path: "/images",
+    route: ImageRoutes,
   },
   {
     path: "/categories",

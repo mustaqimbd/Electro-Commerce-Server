@@ -8,7 +8,7 @@ import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../auth/auth.interface";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
-import ProductModel from "../../productManagement/product/product.mode";
+import ProductModel from "../../productManagement/product/product.model";
 import { Cart } from "../../shoppingCartManagement/cart/cart.model";
 import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
