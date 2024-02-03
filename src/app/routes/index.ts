@@ -1,14 +1,15 @@
 import express from "express";
 import { AuthRouters } from "../modules/auth/auth.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/rder.routes";
+import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
 import { BrandRoutes } from "../modules/productManagement/brand/brand.routes";
 import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
 import { ProductRoutes } from "../modules/productManagement/product/product.routes";
+import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
-import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
@@ -71,6 +72,10 @@ const moduleRoutes = [
   {
     path: "/orders",
     route: OrderRoutes,
+  },
+  {
+    path: "/shipping-charges",
+    route: ShippingChargeRoutes,
   },
 ];
 

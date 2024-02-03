@@ -5,6 +5,9 @@ const AddressSchema = new Schema<TAddress>(
   {
     uid: {
       type: String,
+      required: true,
+      immutable: true,
+      unique: true,
     },
     sessionId: {
       type: String,

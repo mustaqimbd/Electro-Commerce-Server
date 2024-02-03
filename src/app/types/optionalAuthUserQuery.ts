@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import { TOptionalAuthGuardPayload } from "../../../types/common";
+import { TOptionalAuthGuardPayload } from "./common";
 
-const findCartQuery = (user: TOptionalAuthGuardPayload) => {
+const optionalAuthUserQuery = (user: TOptionalAuthGuardPayload) => {
   const query: { userId?: mongoose.Types.ObjectId; sessionId?: string } = {};
   if (user.isAuthenticated) {
     query.userId = user.id;
@@ -11,4 +11,4 @@ const findCartQuery = (user: TOptionalAuthGuardPayload) => {
   return query;
 };
 
-export const CartHelper = { findCartQuery };
+export default optionalAuthUserQuery;

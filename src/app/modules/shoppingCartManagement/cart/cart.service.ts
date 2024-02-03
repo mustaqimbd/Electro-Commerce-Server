@@ -2,16 +2,17 @@ import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
+import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import ProductModel from "../../productManagement/product/product.mode";
 import { TCartItem, TCartItemData } from "../cartItem/cartItem.interface";
 import { CartItem } from "../cartItem/cartItem.model";
-import { CartHelper } from "./cart.helper";
 import { TCart, TCartData } from "./cart.interface";
 import { Cart } from "./cart.model";
 
 const getCartFromDB = async (
   user: TOptionalAuthGuardPayload
 ): Promise<TCart | null> => {
-  const query = CartHelper.findCartQuery(user);
+  const query = optionalAuthUserQuery(user);
   const result = await Cart.findOne(query, { cartItems: 1 }).populate(
     "cartItems.item"
   );
@@ -22,7 +23,27 @@ const addToCartIntoDB = async (
   user: TOptionalAuthGuardPayload,
   payload: TCartItemData
 ): Promise<void> => {
-  const query = CartHelper.findCartQuery(user);
+  const query = optionalAuthUserQuery(user);
+
+  const product = await ProductModel.findOne(
+    { _id: payload.product },
+    { isDeleted: 1 }
+  );
+
+  if (!product || product.isDeleted) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Failed to add to cart. No product available"
+    );
+  }
+
+  const isAlreadyAddedIntoCart = await CartItem.findOne({ ...query, product });
+  if (isAlreadyAddedIntoCart) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Dear customer, this product is already added into your cart."
+    );
+  }
 
   const session = await mongoose.startSession();
   try {
@@ -80,7 +101,7 @@ const updateQuantityIntoDB = async (
   user: TOptionalAuthGuardPayload,
   payload: Partial<TCartItem>
 ) => {
-  let query: Record<string, unknown> = CartHelper.findCartQuery(user);
+  let query: Record<string, unknown> = optionalAuthUserQuery(user);
 
   query = { ...query, _id: payload._id };
   const cartItem = await CartItem.findOne(query);
@@ -107,7 +128,7 @@ const deleteFromCartFromDB = async (
   user: TOptionalAuthGuardPayload,
   payload: { itemId: mongoose.Types.ObjectId }
 ) => {
-  const query = CartHelper.findCartQuery(user);
+  const query = optionalAuthUserQuery(user);
 
   const session = await mongoose.startSession();
   try {

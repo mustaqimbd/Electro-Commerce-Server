@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { genericPhoneNumberZodSchema } from "../../userManagement/user/user.validation";
-import { paymentMethodEnum } from "./payment.const";
+import { paymentMethodEnum } from "./orderPayment.const";
 
 export const paymentZodSchema = z
   .object({

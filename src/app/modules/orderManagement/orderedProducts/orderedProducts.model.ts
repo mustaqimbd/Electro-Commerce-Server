@@ -1,5 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
-import { TOrderedProducts, TProductDetails } from "./orderedProduct.interface";
+import { TOrderedProducts, TProductDetails } from "./orderedProducts.interface";
 
 const productDetails = new Schema<TProductDetails>({
   product: {
@@ -7,16 +7,6 @@ const productDetails = new Schema<TProductDetails>({
     required: true,
     ref: "Product",
   },
-  attributes: [
-    {
-      name: {
-        type: String,
-      },
-      value: {
-        type: String,
-      },
-    },
-  ],
   unitPrice: {
     type: Number,
     require: true,
@@ -29,6 +19,16 @@ const productDetails = new Schema<TProductDetails>({
     type: Number,
     required: true,
   },
+  attributes: [
+    {
+      name: {
+        type: String,
+      },
+      value: {
+        type: String,
+      },
+    },
+  ],
 });
 
 const OrderedProductSchema = new Schema<TOrderedProducts>({
@@ -40,7 +40,7 @@ const OrderedProductSchema = new Schema<TOrderedProducts>({
   productDetails: [productDetails],
 });
 
-export const OrdersProduct = model<TOrderedProducts>(
+export const OrderedProducts = model<TOrderedProducts>(
   "OrderedProduct",
   OrderedProductSchema
 );

@@ -1,6 +1,6 @@
 import { Schema, model } from "mongoose";
-import { paymentMethodEnum } from "./payment.const";
-import { TPayment } from "./payment.interface";
+import { paymentMethodEnum } from "./orderPayment.const";
+import { TPayment } from "./orderPayment.interface";
 
 const PaymentSchema = new Schema<TPayment>({
   orderId: {
@@ -22,4 +22,4 @@ const PaymentSchema = new Schema<TPayment>({
   },
 });
 
-export const Payment = model<TPayment>("Payment", PaymentSchema);
+export const OrderPayment = model<TPayment>("OrderPayment", PaymentSchema);

@@ -1,10 +1,11 @@
 import { Document } from "mongoose";
 
 export type TPermissionNames =
-  | "create permission"
-  | "create admin or staff"
-  | "create coupon"
-  | "read permissions";
+  | "manage permission"
+  | "manage admin or staff"
+  | "manage coupon"
+  | "manage shipping charges"
+  | "manage orders";
 
 export type TPermissionData = {
   name: TPermissionNames;
