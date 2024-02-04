@@ -1,6 +1,6 @@
 import express from "express";
-import authGuard from "../../middlewares/authGuard";
-import limitRequest from "../../middlewares/requestLimitHandler";
+import authGuard from "../../../middlewares/authGuard";
+import limitRequest from "../../../middlewares/requestLimitHandler";
 import { AuthControllers } from "./auth.controller";
 
 const route = express.Router();
@@ -13,6 +13,18 @@ route.post(
     requiredRoles: ["admin", "customer", "staff"],
   }),
   AuthControllers.changePassword
+);
+
+route.post(
+  "/logout",
+  authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  AuthControllers.logoutUser
+);
+
+route.get(
+  "/logged-in-devices",
+  authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  AuthControllers.getLoggedInDevices
 );
 
 export const AuthRouters = route;

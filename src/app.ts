@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import cors, { CorsOptions } from "cors";
 import express, { Application } from "express";
 import session, { SessionOptions } from "express-session";
+import userAgent from "express-useragent";
 import helmet from "helmet";
 import mongoose from "mongoose";
 import morgan from "morgan";
@@ -40,6 +41,7 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(helmet());
 app.use(cookieParser());
+app.use(userAgent.express());
 if (config.env === "development") {
   app.use(morgan("dev"));
 }

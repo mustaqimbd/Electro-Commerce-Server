@@ -49,7 +49,6 @@ const UserSchema = new Schema<TUser, TUserModel>(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
       ref: "User",
     },
     permissions: [
@@ -68,9 +67,6 @@ const UserSchema = new Schema<TUser, TUserModel>(
 
   {
     timestamps: true,
-    toJSON: {
-      virtuals: true,
-    },
   }
 );
 

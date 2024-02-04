@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TAddressData } from "../../../types/address";
 import { Address } from "../../addressManagement/address/address.model";
@@ -130,7 +130,39 @@ const createAdminOrStaffIntoDB = async (
   return newUser;
 };
 
+const geUserProfileFromDB = async (
+  id: Types.ObjectId
+): Promise<TUser | null> => {
+  const propsForAdminANdStaff = "fullName profilePicture -_id";
+  const result = await User.findById(id, {
+    role: 1,
+    phoneNumber: 1,
+    email: 1,
+    permissions: 1,
+    status: 1,
+    customer: 1,
+    admin: 1,
+    staff: 1,
+  }).populate([
+    { path: "customer" },
+    {
+      path: "staff",
+      select: propsForAdminANdStaff,
+    },
+    {
+      path: "admin",
+      select: propsForAdminANdStaff,
+    },
+    {
+      path: "permissions",
+      select: "name -_id",
+    },
+  ]);
+  return result;
+};
+
 export const UserServices = {
   createCustomerIntoDB,
   createAdminOrStaffIntoDB,
+  geUserProfileFromDB,
 };

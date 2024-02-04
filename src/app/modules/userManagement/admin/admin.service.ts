@@ -1,4 +1,4 @@
-import { TJwtPayload } from "../../auth/auth.interface";
+import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { TAdmin } from "./admin.interface";
 import { Admin } from "./admin.model";
 

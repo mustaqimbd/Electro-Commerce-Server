@@ -1,4 +1,5 @@
 import express from "express";
+import authGuard from "../../../middlewares/authGuard";
 import validateRequest from "../../../middlewares/validateRequest";
 import { UserControllers } from "./user.controller";
 import { UserValidation } from "./user.validation";
@@ -18,6 +19,12 @@ router.post(
   //   requiredPermission: "create admin or staff",
   // }),
   UserControllers.createAdminOrStaff
+);
+
+router.get(
+  "/profile",
+  authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  UserControllers.getUserProfile
 );
 
 export const UserRoutes = router;

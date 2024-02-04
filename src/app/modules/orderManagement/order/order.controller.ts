@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
-import { TJwtPayload } from "../../auth/auth.interface";
+import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";

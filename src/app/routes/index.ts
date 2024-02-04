@@ -1,5 +1,5 @@
 import express from "express";
-import { AuthRouters } from "../modules/auth/auth.routes";
+import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/rder.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
