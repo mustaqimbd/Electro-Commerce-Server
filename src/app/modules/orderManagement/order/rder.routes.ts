@@ -15,19 +15,27 @@ router.post(
   OrderController.createOrder
 );
 
-router.get("/:orderId", OrderController.getOrderInfoByOrderId);
+router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
+
+router.get("/admin/:id", OrderController.getOrderInfoByOrderIdAdmin);
 
 router.get(
-  "/",
+  "/customer",
+  optionalAuthGuard,
+  OrderController.getAllOrderCustomers
+);
+
+router.get(
+  "/admin",
   authGuard({
     requiredRoles: ["admin", "staff"],
     requiredPermission: "manage orders",
   }),
-  OrderController.getAllOrders
+  OrderController.getAllOrdersAdmin
 );
 
 router.patch(
-  "/update-status/:orderId",
+  "/update-status/:id",
   validateRequest(OrderValidation.updateOrderStatus),
   authGuard({
     requiredRoles: ["admin", "staff"],

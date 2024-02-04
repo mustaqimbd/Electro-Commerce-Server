@@ -49,9 +49,13 @@ const OrderSchema = new Schema<TOrder>(
       ref: "Payment",
       required: true,
     },
-    status: {
+    statusHistory: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "OrderStatusHistory",
+      required: true,
+    },
+    status: {
+      type: String,
       required: true,
     },
     shipping: {

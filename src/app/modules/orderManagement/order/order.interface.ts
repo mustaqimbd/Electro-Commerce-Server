@@ -22,7 +22,8 @@ export type TOrderData = {
   discount?: number;
   total: number;
   payment: mongoose.Types.ObjectId;
-  status: mongoose.Types.ObjectId | TOrderStatusHistory;
+  status: TOrderStatus;
+  statusHistory: mongoose.Types.ObjectId | TOrderStatusHistory;
   shipping: mongoose.Types.ObjectId;
 };
 

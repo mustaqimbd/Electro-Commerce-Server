@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
@@ -25,36 +26,12 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getAllOrders = catchAsync(async (req: Request, res: Response) => {
-  const result = await OrderServices.getAllOrdersFromDB();
-
-  successResponse<TOrder[]>(res, {
-    statusCode: httpStatus.CREATED,
-    message: "All orders retrieved successfully",
-    data: result,
-  });
-});
-const updateStatus = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user;
-  const { orderId } = req.params;
-
-  await OrderServices.updateOrderStatusIntoDB(
-    user as TJwtPayload,
-    orderId as string,
-    req.body
-  );
-
-  successResponse<TOrderStatusHistory>(res, {
-    statusCode: httpStatus.CREATED,
-    message: "Status updated successfully",
-  });
-});
-
-const getOrderInfoByOrderId = catchAsync(
+const getOrderInfoByOrderIdCustomer = catchAsync(
   async (req: Request, res: Response) => {
     const { orderId } = req.params;
 
-    const result = await OrderServices.getOrderInfoByOrderIdFromDB(orderId);
+    const result =
+      await OrderServices.getOrderInfoByOrderIdCustomerFromDB(orderId);
 
     successResponse<TOrder>(res, {
       statusCode: httpStatus.OK,
@@ -63,6 +40,60 @@ const getOrderInfoByOrderId = catchAsync(
     });
   }
 );
+
+const getOrderInfoByOrderIdAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const result = await OrderServices.getOrderInfoByOrderIdAdminFromDB(
+      id as unknown as mongoose.Types.ObjectId
+    );
+
+    successResponse<TOrder>(res, {
+      statusCode: httpStatus.OK,
+      message: "Order info retrieved successfully",
+      data: result,
+    });
+  }
+);
+
+const getAllOrderCustomers = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.getAllOrderCustomersFromDB(
+    req.user as TOptionalAuthGuardPayload
+  );
+
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Order info retrieved successfully",
+    data: result,
+  });
+});
+
+const getAllOrdersAdmin = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.getAllOrdersAdminFromDB(req.query);
+
+  successResponse(res, {
+    statusCode: httpStatus.CREATED,
+    message: "All orders retrieved successfully",
+    data: result,
+  });
+});
+
+const updateStatus = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const { id } = req.params;
+
+  await OrderServices.updateOrderStatusIntoDB(
+    user as TJwtPayload,
+    id as unknown as mongoose.Types.ObjectId,
+    req.body
+  );
+
+  successResponse<TOrderStatusHistory>(res, {
+    statusCode: httpStatus.CREATED,
+    message: "Status updated successfully",
+  });
+});
 
 const seed = catchAsync(async (req: Request, res: Response) => {
   await OrderServices.orderSeed();
@@ -74,8 +105,10 @@ const seed = catchAsync(async (req: Request, res: Response) => {
 
 export const OrderController = {
   createOrder,
-  getOrderInfoByOrderId,
+  getOrderInfoByOrderIdCustomer,
+  getOrderInfoByOrderIdAdmin,
+  getAllOrderCustomers,
   updateStatus,
-  getAllOrders,
+  getAllOrdersAdmin,
   seed,
 };

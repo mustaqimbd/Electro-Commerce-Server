@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
-import ProductModel from "../../productManagement/product/product.mode";
+import ProductModel from "../../productManagement/product/product.model";
 import { TCartItem, TCartItemData } from "../cartItem/cartItem.interface";
 import { CartItem } from "../cartItem/cartItem.model";
 import { TCart, TCartData } from "./cart.interface";
