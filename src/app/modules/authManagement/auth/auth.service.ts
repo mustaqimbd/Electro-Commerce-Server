@@ -1,12 +1,14 @@
+import { Request } from "express";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
 import { Types } from "mongoose";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { jwtHelper } from "../../../helper/jwt.helper";
+import { errorLogger } from "../../../utilities/logger";
 import { User } from "../../userManagement/user/user.model";
-import { TRefreshTokenData } from "../refreshToken/refreshToken.interface";
 import { RefreshToken } from "../refreshToken/refreshToken.model";
+import { authHelpers } from "./auth.helper";
 import {
   TChangePasswordPayload,
   TJwtPayload,
@@ -16,81 +18,39 @@ import {
 } from "./auth.interface";
 
 const login = async (
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  useragent: any,
+  req: Request,
   payload: TLogin
 ): Promise<TLoginResponse> => {
   const { phoneNumber, password } = payload;
 
-  const isExist = await User.isUserExist({ phoneNumber });
+  const user = await User.isUserExist({ phoneNumber });
 
-  if (!(await User.isPasswordMatch(password, isExist?.password as string))) {
+  if (!(await User.isPasswordMatch(password, user?.password as string))) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Password did not matched");
   }
 
-  const customerRfExpires = config.token_data
-    .customer_refresh_token_expires as string;
-  const adminOrStaffRefExpires = config.token_data
-    .admin_staff_refresh_token_expires as string;
-
-  const refreshToken = jwtHelper.createToken(
-    {
-      id: isExist?._id,
-      role: isExist?.role as string,
-      uid: isExist?.uid as string,
-    },
-    config.token_data.refresh_token_secret as Secret,
-    isExist?.role === "customer" ? customerRfExpires : adminOrStaffRefExpires
-  );
-  const accessToken = jwtHelper.createToken(
-    {
-      id: isExist?._id,
-      role: isExist?.role as string,
-      uid: isExist?.uid as string,
-    },
-    config.token_data.access_token_secret as Secret,
-    config.token_data.access_token_expires as string
-  );
-
-  const refreshTokenData: TRefreshTokenData = {
-    userId: isExist?._id,
-    token: refreshToken,
-    deviceData: {
-      isMobile: useragent.isMobile,
-      name: useragent.browser,
-      version: useragent.version,
-      os: useragent.os,
-    },
-    expireAt: new Date(
-      +new Date() +
-        parseInt(
-          isExist?.role === "customer"
-            ? customerRfExpires
-            : adminOrStaffRefExpires
-        ) *
-          24 *
-          60 *
-          60 *
-          1000
-    ),
-  };
-  if (isExist?.role !== "customer") {
-    await RefreshToken.deleteMany({ userId: isExist?._id });
-  }
-  await RefreshToken.create(refreshTokenData);
-
-  return {
-    refreshToken,
-    accessToken,
-  };
+  return await authHelpers.loginUser(req, user);
 };
 
-const refreshToken = async (token: string): Promise<TRefreshTokenResponse> => {
+const refreshToken = async (
+  ip: string,
+  sessionId: string,
+  token: string
+): Promise<TRefreshTokenResponse> => {
   let verifiedToken = null;
   const isTokenExist = await RefreshToken.findOne({ token });
   if (!isTokenExist) {
     throw new ApiError(httpStatus.UNAUTHORIZED, "Un authorized request");
   }
+
+  if (sessionId !== isTokenExist.sessionId || isTokenExist.ip !== ip) {
+    await RefreshToken.deleteOne({ token });
+    errorLogger.error(
+      `Tried to access ${isTokenExist._id} this account, from ${ip} this ip.`
+    );
+    throw new ApiError(httpStatus.BAD_REQUEST, "Un authorized request");
+  }
+
   try {
     verifiedToken = jwtHelper.verifyToken<TJwtPayload>(
       token,

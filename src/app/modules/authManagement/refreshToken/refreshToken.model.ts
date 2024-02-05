@@ -11,6 +11,14 @@ const RefreshTokenSchema = new Schema<TRefreshToken>(
       type: String,
       required: true,
     },
+    sessionId: {
+      type: String,
+      required: true,
+    },
+    ip: {
+      type: String,
+      required: true,
+    },
     deviceData: {
       isMobile: {
         type: Boolean,

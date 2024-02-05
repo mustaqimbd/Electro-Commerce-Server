@@ -12,7 +12,7 @@ import { AuthServices } from "./auth.service";
 
 const login = catchAsync(async (req: Request, res: Response) => {
   const { ...payload } = req.body;
-  const result = await AuthServices.login(req.useragent, payload);
+  const result = await AuthServices.login(req, payload);
   const { refreshToken, ...others } = result;
 
   const cookieOption: CookieOptions = {
@@ -29,7 +29,11 @@ const login = catchAsync(async (req: Request, res: Response) => {
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
-  const result = await AuthServices.refreshToken(refreshToken);
+  const result = await AuthServices.refreshToken(
+    req.clientIp as string,
+    req.sessionID,
+    refreshToken
+  );
   successResponse<TRefreshTokenResponse>(res, {
     statusCode: httpStatus.OK,
     data: result,
