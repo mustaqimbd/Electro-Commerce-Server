@@ -25,11 +25,7 @@ const OrderStatusHistorySchema = new Schema<TOrderStatusHistory>({
     required: true,
     immutable: true,
   },
-  status: {
-    type: String,
-    enum: orderStatus,
-    required: true,
-  },
+
   message: {
     type: String,
   },

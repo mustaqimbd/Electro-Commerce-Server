@@ -4,16 +4,17 @@ import cookieParser from "cookie-parser";
 import cors, { CorsOptions } from "cors";
 import express, { Application } from "express";
 import session, { SessionOptions } from "express-session";
+import userAgent from "express-useragent";
 import helmet from "helmet";
 import mongoose from "mongoose";
 import morgan from "morgan";
 import path from "path";
+import requestIp from "request-ip";
 import config from "./app/config/config";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import router from "./app/routes";
 import successResponse from "./app/utilities/successResponse";
-
 const app: Application = express();
 
 const corsOptions: CorsOptions = {
@@ -40,6 +41,8 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(helmet());
 app.use(cookieParser());
+app.use(userAgent.express());
+app.use(requestIp.mw());
 if (config.env === "development") {
   app.use(morgan("dev"));
 }

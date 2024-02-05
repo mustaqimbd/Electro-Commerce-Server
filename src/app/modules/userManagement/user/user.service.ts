@@ -1,8 +1,10 @@
+import { Request } from "express";
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TAddressData } from "../../../types/address";
 import { Address } from "../../addressManagement/address/address.model";
+import { authHelpers } from "../../authManagement/auth/auth.helper";
 import { TAdmin } from "../admin/admin.interface";
 import { Admin } from "../admin/admin.model";
 import { TCustomer } from "../customer/customer.interface";
@@ -17,8 +19,9 @@ import { createCustomerId } from "./user.util";
 const createCustomerIntoDB = async (
   personalInfo: TCustomer,
   addressData: TAddressData,
-  userInfo: TUser
-): Promise<TUser | null> => {
+  userInfo: TUser,
+  req: Request
+) => {
   // check that the phone number is already registered
   const isExist = await User.findOne({ phoneNumber: userInfo.phoneNumber });
   if (isExist) {
@@ -68,12 +71,15 @@ const createCustomerIntoDB = async (
     throw error;
   }
   if (newUser) {
-    newUser = await User.findOne({ _id: newUser._id }).populate([
-      { path: "customer", select: "-createdAt -updatedAt -__v" },
-      { path: "address", select: "-createdAt -updatedAt -__v" },
-    ]);
+    newUser = await User.findOne(
+      { _id: newUser._id },
+      { uid: 1, role: 1, phoneNumber: 1, email: 1, customer: 1 }
+    ).populate([{ path: "customer", select: "fullName -_id" }]);
   }
-  return newUser;
+
+  const authData = await authHelpers.loginUser(req, newUser);
+
+  return { newUser, authData };
 };
 
 const createAdminOrStaffIntoDB = async (
@@ -130,7 +136,39 @@ const createAdminOrStaffIntoDB = async (
   return newUser;
 };
 
+const geUserProfileFromDB = async (
+  id: Types.ObjectId
+): Promise<TUser | null> => {
+  const propsForAdminANdStaff = "fullName profilePicture -_id";
+  const result = await User.findById(id, {
+    role: 1,
+    phoneNumber: 1,
+    email: 1,
+    permissions: 1,
+    status: 1,
+    customer: 1,
+    admin: 1,
+    staff: 1,
+  }).populate([
+    { path: "customer" },
+    {
+      path: "staff",
+      select: propsForAdminANdStaff,
+    },
+    {
+      path: "admin",
+      select: propsForAdminANdStaff,
+    },
+    {
+      path: "permissions",
+      select: "name -_id",
+    },
+  ]);
+  return result;
+};
+
 export const UserServices = {
   createCustomerIntoDB,
   createAdminOrStaffIntoDB,
+  geUserProfileFromDB,
 };

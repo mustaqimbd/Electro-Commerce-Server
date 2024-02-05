@@ -2,7 +2,7 @@ import { RequestHandler } from "express";
 import { Secret } from "jsonwebtoken";
 import config from "../config/config";
 import { jwtHelper } from "../helper/jwt.helper";
-import { TJwtPayload } from "../modules/auth/auth.interface";
+import { TJwtPayload } from "../modules/authManagement/auth/auth.interface";
 import { User } from "../modules/userManagement/user/user.model";
 
 const optionalAuthGuard: RequestHandler = async (req, res, next) => {
