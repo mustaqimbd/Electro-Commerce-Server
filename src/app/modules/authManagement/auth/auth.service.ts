@@ -69,6 +69,7 @@ const refreshToken = async (
       id: isExist?._id,
       role: isExist?.role as string,
       uid: isExist?.uid as string,
+      sessionId: isTokenExist.sessionId,
     },
     config.token_data.access_token_secret as Secret,
     isExist?.role === "customer"

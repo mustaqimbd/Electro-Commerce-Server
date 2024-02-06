@@ -52,6 +52,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   await AuthServices.logoutUser(refreshToken);
+  req.session.destroy(() => {});
   res.cookie("refreshToken", "", { expires: new Date(0) });
   successResponse(res, {
     statusCode: httpStatus.OK,

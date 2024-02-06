@@ -14,11 +14,9 @@ const CartItemSchema = new Schema<TCartItem>(
   {
     userId: {
       type: mongoose.Schema.ObjectId,
-      immutable: true,
     },
     sessionId: {
       type: String,
-      immutable: true,
     },
     product: {
       type: mongoose.Schema.ObjectId,
