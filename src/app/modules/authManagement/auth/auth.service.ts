@@ -117,9 +117,9 @@ const forgetPassword = async (req: Request): Promise<void> => {
   const { phoneNumber } = req.body;
   const user = await User.isUserExist({ phoneNumber });
 
-  // if (user?.role !== "customer") {
-  //   throw new ApiError(httpStatus.BAD_REQUEST, "No User found");
-  // }
+  if (user?.role !== "customer") {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No User found");
+  }
 
   const client: twilio.Twilio = twilio(
     config.twilio.sid,
