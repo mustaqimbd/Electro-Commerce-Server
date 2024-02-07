@@ -23,4 +23,9 @@ export default {
   cart_item_expires: env.CART_ITEM_EXPIRES,
   upload_image_size: env.UPLOAD_IMAGE_SIZE,
   upload_image_format: env.UPLOAD_IMAGE_FORMAT,
+  twilio: {
+    sid: env.TWILIO_ACCOUNT_SID,
+    auth_token: env.TWILIO_AUTH_TOKEN,
+    phone_number: env.TWILIO_PHONE_NUMBER,
+  },
 };

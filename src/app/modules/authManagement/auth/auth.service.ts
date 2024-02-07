@@ -2,11 +2,15 @@ import { Request } from "express";
 import httpStatus from "http-status";
 import { Secret } from "jsonwebtoken";
 import { Types } from "mongoose";
+import otpGenerator from "otp-generator";
+import twilio from "twilio";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { jwtHelper } from "../../../helper/jwt.helper";
 import { errorLogger } from "../../../utilities/logger";
 import { User } from "../../userManagement/user/user.model";
+import { TPasswordResetOtpData } from "../passwordResetOtp/passwordResetOtp.interface";
+import { PasswordResetOtp } from "../passwordResetOtp/passwordResetOtp.model";
 import { RefreshToken } from "../refreshToken/refreshToken.model";
 import { authHelpers } from "./auth.helper";
 import {
@@ -109,10 +113,83 @@ const getLoggedInDevicesFromDB = async (userId: Types.ObjectId) => {
   return result;
 };
 
+const forgetPassword = async (req: Request): Promise<void> => {
+  const { phoneNumber } = req.body;
+  const user = await User.isUserExist({ phoneNumber });
+
+  // if (user?.role !== "customer") {
+  //   throw new ApiError(httpStatus.BAD_REQUEST, "No User found");
+  // }
+
+  const client: twilio.Twilio = twilio(
+    config.twilio.sid,
+    config.twilio.auth_token
+  );
+  const otp = otpGenerator.generate(6, {
+    upperCaseAlphabets: true,
+    lowerCaseAlphabets: false,
+    specialChars: false,
+  });
+
+  try {
+    await client.messages.create({
+      body: `Please don't share this code with anyone,Your Oneself password reset code is ${otp} , This otp is only validate for 10 minutes.`,
+      from: config.twilio.phone_number,
+      to: `+88${phoneNumber}`,
+    });
+    await PasswordResetOtp.deleteMany({ phoneNumber });
+  } catch (error) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to send SMS");
+  }
+  const otpData: TPasswordResetOtpData = {
+    userId: user?._id,
+    phoneNumber,
+    requestedIP: req.clientIp as string,
+    requestedSession: req.sessionID,
+    otp,
+  };
+  const storeOtp = await PasswordResetOtp.create(otpData);
+  if (!storeOtp) {
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "PLase try again later."
+    );
+  }
+};
+
+const resetPassword = async (
+  sessionID: string,
+  payload: {
+    phoneNumber: string;
+    otp: string;
+    newPassword: string;
+  }
+) => {
+  const findRequest = await PasswordResetOtp.findOne({
+    phoneNumber: payload.phoneNumber,
+  });
+  if (findRequest?.requestedSession !== sessionID) {
+    throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
+  }
+  if (findRequest?.otp !== payload.otp) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Otp did not matched");
+  }
+
+  const user = await User.findOne({ phoneNumber: findRequest.phoneNumber });
+  if (user) {
+    user.password = payload.newPassword;
+    await user.save();
+  } else {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No user found");
+  }
+};
+
 export const AuthServices = {
   login,
   refreshToken,
   changePassword,
   logoutUser,
   getLoggedInDevicesFromDB,
+  forgetPassword,
+  resetPassword,
 };

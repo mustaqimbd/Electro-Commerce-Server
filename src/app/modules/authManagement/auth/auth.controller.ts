@@ -45,7 +45,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
   await AuthServices.changePassword(passwordData, req.user as TJwtPayload);
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Password changed successfully.",
+    message: "The password was changed successfully.",
   });
 });
 
@@ -65,8 +65,24 @@ const getLoggedInDevices = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthServices.getLoggedInDevicesFromDB(id);
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Logged in devices retrieved successfully.",
+    message: "Logged-in devices were retrieved successfully.",
     data: result,
+  });
+});
+
+const forgetPassword = catchAsync(async (req: Request, res: Response) => {
+  await AuthServices.forgetPassword(req);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Password reset SMS sent successfully.",
+  });
+});
+
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  await AuthServices.resetPassword(req.sessionID, req.body);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "The password was reset successfully..",
   });
 });
 
@@ -76,4 +92,6 @@ export const AuthControllers = {
   changePassword,
   logoutUser,
   getLoggedInDevices,
+  forgetPassword,
+  resetPassword,
 };
