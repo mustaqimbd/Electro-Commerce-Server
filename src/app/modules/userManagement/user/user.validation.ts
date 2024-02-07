@@ -19,7 +19,7 @@ export const genericPhoneNumberZodSchema = (isOptional: boolean = false) =>
             "Please provide a valid mobile number starting with 01 and with a total of 11 digits.",
         });
 
-const passwordZodSchema = z
+export const passwordZodSchema = z
   .string({ required_error: "Password is required" })
   .refine((password) => passwordValidatorRegex.test(password), {
     message:
