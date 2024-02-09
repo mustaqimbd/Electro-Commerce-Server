@@ -8,6 +8,14 @@ export type TPublishedStatusSchema = {
   visibility: TVisibilityStatus;
   date: string;
 };
+export type TProductImage = {
+  thumbnail: Types.ObjectId;
+  gallery: Types.ObjectId[];
+};
+export type TCategorySchema = {
+  _id: Types.ObjectId;
+  subCategory?: Types.ObjectId[];
+};
 
 export type TProduct = {
   id: string;
@@ -21,12 +29,11 @@ export type TProduct = {
   featured?: boolean;
   review?: boolean;
   price: Types.ObjectId;
-  image: Types.ObjectId; //| TProductImage
+  image: TProductImage; //| TProductImage
   inventory: Types.ObjectId; //| TInventory
   attribute: Partial<TAttribute>[];
   brand: Types.ObjectId[];
-  category: Types.ObjectId[];
-  subCategory: Types.ObjectId[];
+  category: TCategorySchema;
   tag: Types.ObjectId[];
   seoData: Types.ObjectId; // | TSeoData
   publishedStatus: TPublishedStatusSchema;

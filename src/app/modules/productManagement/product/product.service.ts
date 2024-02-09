@@ -1,7 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import { InventoryModel } from "../inventory/inventory.model";
 import PriceModel from "../price/price.model";
-import { ProductImageModel } from "../productImage/productImage.model";
 import { SeoDataModel } from "../seoData/seoData.model";
 import { TProduct } from "./product.interface";
 import ApiError from "../../../errorHandlers/ApiError";
@@ -24,9 +23,6 @@ const createProductIntoDB = async (
     payload.id = generatedProductId;
     payload.price = (
       await PriceModel.create([payload.price], { session })
-    )[0]._id;
-    payload.image = (
-      await ProductImageModel.create([payload.image], { session })
     )[0]._id;
     payload.inventory = (
       await InventoryModel.create([payload.inventory], { session })
@@ -57,11 +53,13 @@ const getAProductCustomerFromDB = async (id: string) => {
     "publishedStatus.visibility": visibilityStatusQuery.Public,
   }).populate([
     { path: "price", select: "-createdAt -updatedAt" },
-    { path: "image", select: "-createdAt -updatedAt" },
+    { path: "image.thumbnail", select: "src alt" },
+    { path: "image.gallery", select: "src alt" },
     { path: "inventory", select: "-createdAt -updatedAt" },
     { path: "seoData", select: "-createdAt -updatedAt" },
     { path: "brand", select: "name" },
-    { path: "category", select: "name" },
+    { path: "category._id", select: "name" },
+    { path: "category.subCategory", select: "name" },
     { path: "tag", select: "name" },
   ]);
   if (!result) {
@@ -75,11 +73,13 @@ const getAProductAdminFromDB = async (id: string) => {
     _id: id,
   }).populate([
     { path: "price", select: "-createdAt -updatedAt" },
-    { path: "image", select: "-createdAt -updatedAt" },
+    { path: "image.thumbnail", select: "src alt" },
+    { path: "image.gallery", select: "src alt" },
     { path: "inventory", select: "-createdAt -updatedAt" },
     { path: "seoData", select: "-createdAt -updatedAt" },
     { path: "brand", select: "name" },
-    { path: "category", select: "name" },
+    { path: "category._id", select: "name" },
+    { path: "category.subCategory", select: "name" },
     { path: "tag", select: "name" },
   ]);
   if (!result) {
@@ -95,11 +95,19 @@ const getAProductAdminFromDB = async (id: string) => {
 const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
   if (query.category) {
-    filterQuery.category = {
-      $elemMatch: {
-        _id: new mongoose.Types.ObjectId(query.category as string),
-      },
-    };
+    filterQuery["category._id"] = new mongoose.Types.ObjectId(
+      query.category as string
+    );
+  }
+  if (query.subCategory) {
+    filterQuery["subcategory._id"] = new mongoose.Types.ObjectId(
+      query.subCategory as string
+    );
+  }
+  if (query.brand) {
+    filterQuery["brand._id"] = new mongoose.Types.ObjectId(
+      query.brand as string
+    );
   }
   const pipeline = [
     {
@@ -123,14 +131,14 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     },
     {
       $lookup: {
-        from: "productimages",
-        localField: "image",
+        from: "images",
+        localField: "image.thumbnail",
         foreignField: "_id",
-        as: "image",
+        as: "thumbnail",
       },
     },
     {
-      $unwind: "$image",
+      $unwind: "$thumbnail",
     },
     {
       $lookup: {
@@ -143,7 +151,23 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     {
       $unwind: "$inventory",
     },
-
+    {
+      $lookup: {
+        from: "subcategories",
+        localField: "category.subCategory",
+        foreignField: "_id",
+        as: "subcategory",
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category._id",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
     {
       $lookup: {
         from: "brands",
@@ -153,53 +177,56 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
       },
     },
     {
-      $unwind: "$brand",
-    },
-    {
       $lookup: {
-        from: "categories",
-        localField: "category",
-        foreignField: "_id",
-        as: "category",
+        from: "reviews",
+        localField: "_id",
+        foreignField: "product",
+        as: "review",
       },
     },
+    { $match: filterQuery },
     {
       $project: {
         _id: 1,
         title: 1,
         slug: 1,
         shortDescription: 1,
-        regularPrice: "$price.regularPrice",
+        price: "$price.regularPrice",
         salePrice: "$price.salePrice",
         discountPercent: "$price.discountPercent",
         stock: "$inventory.stockStatus",
         stockAvailable: "$inventory.stockAvailable",
+        totalReview: { $size: "$review" },
+        averageRating: { $avg: "$review.rating" },
+        image: {
+          _id: "$thumbnail._id",
+          src: "$thumbnail.src",
+          alt: "$thumbnail.alt",
+        },
         category: {
+          _id: "$category._id",
+          name: "$category.name",
+        },
+        brand: {
           $map: {
-            input: "$category",
-            as: "cat",
+            input: "$brand",
+            as: "b",
             in: {
-              _id: "$$cat._id",
-              name: "$$cat.name",
+              _id: "$$b._id",
+              name: "$$b.name",
             },
           },
         },
-        brand: {
-          _id: "$brand._id",
-          name: "$brand.name",
-        },
-        image: "$image.thumbnail",
       },
-    },
-    {
-      $match: filterQuery,
     },
   ];
 
   const productQuery = new AggregateQueryHelper(
     ProductModel.aggregate(pipeline),
     query
-  ).paginate();
+  )
+    .sort()
+    .paginate();
 
   const data = await productQuery.model;
   const total = (await ProductModel.aggregate(pipeline)).length;
@@ -240,14 +267,14 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     },
     {
       $lookup: {
-        from: "productimages",
-        localField: "image",
+        from: "images",
+        localField: "image.thumbnail",
         foreignField: "_id",
-        as: "image",
+        as: "thumbnail",
       },
     },
     {
-      $unwind: "$image",
+      $unwind: "$thumbnail",
     },
     {
       $lookup: {
@@ -262,21 +289,21 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     },
     {
       $lookup: {
+        from: "subcategories",
+        localField: "category.subCategory",
+        foreignField: "_id",
+        as: "subcategory",
+      },
+    },
+    {
+      $lookup: {
         from: "categories",
-        localField: "category",
+        localField: "category._id",
         foreignField: "_id",
         as: "category",
       },
     },
     { $unwind: "$category" },
-    {
-      $lookup: {
-        from: "subcategories",
-        localField: "subCategory",
-        foreignField: "_id",
-        as: "subcategory",
-      },
-    },
     {
       $lookup: {
         from: "reviews",
@@ -295,22 +322,26 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
         stockAvailable: "$inventory.stockAvailable",
         totalReview: { $size: "$review" },
         averageRating: { $avg: "$review.rating" },
+        image: {
+          _id: "$thumbnail._id",
+          src: "$thumbnail.src",
+          alt: "$thumbnail.alt",
+        },
         category: {
           _id: "$category._id",
           name: "$category.name",
         },
-        subCategory: {
-          $map: {
-            input: "$subcategory",
-            as: "sub",
-            in: {
-              _id: "$$sub._id",
-              name: "$$sub.name",
-            },
-          },
-        },
+        // subCategory: {
+        //   $map: {
+        //     input: "$subcategory",
+        //     as: "sub",
+        //     in: {
+        //       _id: "$$sub._id",
+        //       name: "$$sub.name",
+        //     },
+        //   },
+        // },
         published: "$publishedStatus.date",
-        image: "$image.thumbnail",
       },
     },
   ];
@@ -352,14 +383,31 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
     },
     {
       $lookup: {
-        from: "productimages",
-        localField: "image",
+        from: "images",
+        localField: "image.thumbnail",
         foreignField: "_id",
-        as: "image",
+        as: "thumbnail",
       },
     },
     {
-      $unwind: "$image",
+      $unwind: "$thumbnail",
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category._id",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
+    {
+      $lookup: {
+        from: "reviews",
+        localField: "_id",
+        foreignField: "product",
+        as: "review",
+      },
     },
     // Project specific fields
     {
@@ -369,7 +417,17 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
         regularPrice: "$price.regularPrice",
         salePrice: "$price.salePrice",
         discountPercent: "$price.discountPercent",
-        image: "$image.thumbnail",
+        totalReview: { $size: "$review" },
+        averageRating: { $avg: "$review.rating" },
+        image: {
+          _id: "$thumbnail._id",
+          src: "$thumbnail.src",
+          alt: "$thumbnail.alt",
+        },
+        category: {
+          _id: "$category._id",
+          name: "$category.name",
+        },
       },
     },
   ];
@@ -433,13 +491,6 @@ const updateProductIntoDB = async (
       );
     }
 
-    if (image && Object.keys(image).length) {
-      await ProductImageModel.findByIdAndUpdate(
-        isProductExist.image,
-        { $set: { ...image, updatedBy } },
-        { session }
-      );
-    }
     if (inventory && Object.keys(inventory).length) {
       await InventoryModel.findByIdAndUpdate(
         isProductExist.inventory,
@@ -454,7 +505,18 @@ const updateProductIntoDB = async (
         { session }
       );
     }
-
+    const updateImage: Record<string, unknown> = {};
+    if (image && Object.keys(image).length) {
+      for (const [key, value] of Object.entries(image)) {
+        updateImage[`image.${key}`] = value;
+      }
+    }
+    const updateCategory: Record<string, unknown> = {};
+    if (category && Object.keys(category).length) {
+      for (const [key, value] of Object.entries(category)) {
+        updateCategory[`category.${key}`] = value;
+      }
+    }
     const updatePublishedStatus: Record<string, unknown> = {};
     if (publishedStatus && Object.keys(publishedStatus).length) {
       for (const [key, value] of Object.entries(publishedStatus)) {
@@ -462,15 +524,12 @@ const updateProductIntoDB = async (
       }
     }
 
-    let updateAttribute, updateBrand, updateCategory, updateTag;
+    let updateAttribute, updateBrand, updateTag;
     if (attribute?.length) {
       updateAttribute = attribute;
     }
     if (brand?.length) {
       updateBrand = brand;
-    }
-    if (category?.length) {
-      updateCategory = category;
     }
     if (tag?.length) {
       updateTag = tag;
@@ -480,9 +539,10 @@ const updateProductIntoDB = async (
       isProductExist._id,
       {
         $set: {
+          ...updateImage,
           attribute: updateAttribute,
           brand: updateBrand,
-          category: updateCategory,
+          ...updateCategory,
           tag: updateTag,
           ...remainingUpdateData,
           ...updatePublishedStatus,

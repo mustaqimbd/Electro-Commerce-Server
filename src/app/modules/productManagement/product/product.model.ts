@@ -1,11 +1,25 @@
 import { Schema, model } from "mongoose";
-import { TProduct, TPublishedStatusSchema } from "./product.interface";
+import {
+  TCategorySchema,
+  TProduct,
+  TProductImage,
+  TPublishedStatusSchema,
+} from "./product.interface";
 import { TAttribute } from "../attribute/attribute.interface";
 import { publishedStatus, visibilityStatus } from "./product.const";
 
+const productImageSchema = new Schema<TProductImage>(
+  {
+    thumbnail: { type: Schema.Types.ObjectId, required: true, ref: "Image" },
+    gallery: {
+      type: [{ type: Schema.Types.ObjectId, required: true, ref: "Image" }],
+      required: true,
+    },
+  },
+  { _id: false }
+);
 const productAttributeSchema = new Schema<TAttribute>(
   {
-    _id: { type: Schema.Types.ObjectId },
     name: { type: String, required: true },
     values: { type: [String], required: true },
   },
@@ -16,6 +30,21 @@ const publishedStatusSchema = new Schema<TPublishedStatusSchema>(
     status: { type: String, enum: publishedStatus, required: true },
     visibility: { type: String, enum: visibilityStatus, required: true },
     date: { type: String, required: true },
+  },
+  { _id: false }
+);
+const categorySchema = new Schema<TCategorySchema>(
+  {
+    _id: { type: Schema.Types.ObjectId, required: true, ref: "Category" },
+    subCategory: {
+      type: [
+        {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "SubCategory",
+        },
+      ],
+    },
   },
   { _id: false }
 );
@@ -38,9 +67,8 @@ const productSchema = new Schema<TProduct>(
       ref: "Price",
     },
     image: {
-      type: Schema.Types.ObjectId,
+      type: productImageSchema,
       required: true,
-      ref: "ProductImage",
     },
     inventory: {
       type: Schema.Types.ObjectId,
@@ -54,15 +82,9 @@ const productSchema = new Schema<TProduct>(
     brand: {
       type: [{ type: Schema.Types.ObjectId, ref: "Brand" }],
     },
-    category: {
-      type: [{ type: Schema.Types.ObjectId, ref: "Category" }],
-      required: true,
-    },
-    subCategory: {
-      type: [{ type: Schema.Types.ObjectId, ref: "SubCategory" }],
-    },
+    category: categorySchema,
     tag: {
-      type: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
+      type: [{ type: Schema.Types.ObjectId, required: true, ref: "Tag" }],
     },
     publishedStatus: {
       type: publishedStatusSchema,

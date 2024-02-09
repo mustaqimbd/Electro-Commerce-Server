@@ -59,7 +59,7 @@ app.use("/uploads/public", express.static(uploadsPath));
 //fake user id for testing
 app.use("/api/v1", (req, res, next) => {
   req.user = {};
-  req.user.id = new mongoose.Types.ObjectId("5f8f4cb272e4b01d9c23cd57");
+  req.user.id = new mongoose.Types.ObjectId("5f8f4cb272e4b01d9c23cd58");
   next();
 });
 

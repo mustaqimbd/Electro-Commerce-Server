@@ -23,6 +23,12 @@ const updateProductAttribute = z.object({
     .array(z.string().min(1, { message: "Attribute value is required!" }))
     .optional(),
 });
+const category = z.object({
+  _id: z.string().min(1, { message: "Category is required!" }),
+  subCategory: z
+    .array(z.string().min(1, { message: "Sub category is required!" }))
+    .optional(),
+});
 
 const product = z.object({
   body: z.object({
@@ -40,10 +46,7 @@ const product = z.object({
     inventory: InventoryValidation.inventory,
     attribute: z.array(productAttribute),
     brand: z.array(z.string()).optional(),
-    category: z.string().min(1, { message: "Category is required!" }),
-    subCategory: z
-      .array(z.string().min(1, { message: "Category is required!" }))
-      .optional(),
+    category: category,
     tag: z.array(z.string()).optional(),
     seoData: SeoDataValidation.seoData,
     publishedStatus: z.object({
@@ -73,13 +76,7 @@ const updateProduct = z.object({
     inventory: InventoryValidation.updateInventory.optional(),
     attribute: z.array(updateProductAttribute).optional(),
     brand: z.array(z.string()).optional(),
-    category: z
-      .string()
-      .min(1, { message: "Category is required!" })
-      .optional(),
-    subCategory: z
-      .array(z.string().min(1, { message: "Category is required!" }))
-      .optional(),
+    category: category.optional(),
     tag: z.array(z.string()).optional(),
     seoData: SeoDataValidation.updatesSeoData.optional(),
     publishedStatus: z
