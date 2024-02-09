@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import { JwtPayload, Secret } from "jsonwebtoken";
+import { Secret } from "jsonwebtoken";
 import config from "../config/config";
 import ApiError from "../errorHandlers/ApiError";
 import { jwtHelper } from "../helper/jwt.helper";
+import { TJwtPayload } from "../modules/authManagement/auth/auth.interface";
 import {
   TPermission,
   TPermissionNames,
@@ -21,17 +22,25 @@ const authGuard =
   }) =>
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const token = req.headers.authorization;
+      let token = req.headers.authorization;
+      token = token?.split(" ")[1];
       if (!token) {
         throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
       }
 
-      const verifiedUser = jwtHelper.verifyToken<JwtPayload>(
+      const verifiedUser = jwtHelper.verifyToken<TJwtPayload>(
         token,
         config.token_data.access_token_secret as Secret
       );
 
-      if (requiredRoles.length && !requiredRoles.includes(verifiedUser?.role)) {
+      if (verifiedUser.sessionId !== req.sessionID) {
+        throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
+      }
+
+      if (
+        requiredRoles.length &&
+        !requiredRoles.includes(verifiedUser?.role as TRoles)
+      ) {
         throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
       }
 

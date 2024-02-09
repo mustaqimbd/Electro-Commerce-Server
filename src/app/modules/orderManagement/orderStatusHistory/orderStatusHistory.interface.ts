@@ -9,7 +9,6 @@ export type TStatusHistory = {
 
 export type TOrderStatusHistoryData = {
   orderId: string;
-  status: TOrderStatus;
   message?: string;
   refunded?: boolean;
   history: [TStatusHistory];
