@@ -1,15 +1,15 @@
+import httpStatus from "http-status";
 import mongoose, { Types } from "mongoose";
+import ApiError from "../../../errorHandlers/ApiError";
+import { AggregateQueryHelper } from "../../../helper/query.helper";
+import generateProductId from "../../../utilities/generateProductId";
 import { InventoryModel } from "../inventory/inventory.model";
 import PriceModel from "../price/price.model";
 import { ProductImageModel } from "../productImage/productImage.model";
 import { SeoDataModel } from "../seoData/seoData.model";
-import { TProduct } from "./product.interface";
-import ApiError from "../../../errorHandlers/ApiError";
-import httpStatus from "http-status";
-import ProductModel from "./product.model";
-import generateProductId from "../../../utilities/generateProductId";
-import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { publishedStatusQuery, visibilityStatusQuery } from "./product.const";
+import { TProduct } from "./product.interface";
+import ProductModel from "./product.model";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
