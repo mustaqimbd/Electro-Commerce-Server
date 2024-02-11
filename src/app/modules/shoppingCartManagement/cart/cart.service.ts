@@ -13,9 +13,26 @@ const getCartFromDB = async (
   user: TOptionalAuthGuardPayload
 ): Promise<TCart | null> => {
   const query = optionalAuthUserQuery(user);
-  const result = await Cart.findOne(query, { cartItems: 1 }).populate(
-    "cartItems.item"
-  );
+  const result = await Cart.findOne(query, { cartItems: 1 }).populate([
+    {
+      path: "cartItems.item",
+      select: "quantity product attributes",
+      populate: {
+        path: "product",
+        select: "title slug price image.thumbnail",
+        populate: [
+          {
+            path: "price",
+            select: "salePrice regularPrice",
+          },
+          {
+            path: "image.thumbnail",
+            select: "src alt",
+          },
+        ],
+      },
+    },
+  ]);
   return result;
 };
 
