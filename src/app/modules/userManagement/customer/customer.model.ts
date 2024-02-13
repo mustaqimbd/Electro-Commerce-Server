@@ -12,9 +12,6 @@ const CustomerSchema = new Schema<TCustomer>(
     fullName: {
       type: String,
     },
-    fullAddress: {
-      type: String,
-    },
   },
   {
     timestamps: true,
