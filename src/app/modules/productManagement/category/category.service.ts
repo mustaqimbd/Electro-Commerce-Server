@@ -28,7 +28,34 @@ const createCategoryIntoDB = async (
 };
 
 const getAllCategoriesFromDB = async () => {
-  const result = await CategoryModel.find({ isDeleted: false }, "name");
+  const pipeline = [
+    { $match: { isDeleted: false } },
+    {
+      $lookup: {
+        from: "subcategories",
+        localField: "_id",
+        foreignField: "category",
+        as: "subCategory",
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        subcategories: {
+          $map: {
+            input: "$subCategory",
+            as: "sub",
+            in: {
+              _id: "$$sub._id",
+              name: "$$sub.name",
+            },
+          },
+        },
+      },
+    },
+  ];
+  const result = await CategoryModel.aggregate(pipeline);
   return result;
 };
 
