@@ -42,8 +42,8 @@ const updateCategory = catchAsync(async (req, res) => {
 
 const deleteCategory = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
-  const categoryId = req.params.id;
-  await CategoryServices.deleteCategoryFromDB(createdBy, categoryId);
+  const { categoryIds } = req.body;
+  await CategoryServices.deleteCategoryFromDB(createdBy, categoryIds);
 
   successResponse(res, {
     statusCode: httpStatus.OK,

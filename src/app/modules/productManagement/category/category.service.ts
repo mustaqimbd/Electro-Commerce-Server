@@ -95,23 +95,30 @@ const updateCategoryIntoDB = async (
   }
 };
 
-const deleteCategoryFromDB = async (createdBy: Types.ObjectId, id: string) => {
-  const isCategoryExist = await CategoryModel.findById(id);
-  if (!isCategoryExist) {
-    throw new ApiError(httpStatus.NOT_FOUND, "The category was not found!");
-  }
+const deleteCategoryFromDB = async (
+  createdBy: Types.ObjectId,
+  categoryIds: string[]
+) => {
+  // const isCategoryExist = await CategoryModel.findById(id);
+  // if (!isCategoryExist) {
+  //   throw new ApiError(httpStatus.NOT_FOUND, "The category was not found!");
+  // }
 
-  if (isCategoryExist.isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "The category is already deleted!"
-    );
-  }
-
-  const result = await CategoryModel.findByIdAndUpdate(id, {
-    createdBy,
-    isDeleted: true,
-  });
+  // if (isCategoryExist.isDeleted) {
+  //   throw new ApiError(
+  //     httpStatus.BAD_REQUEST,
+  //     "The category is already deleted!"
+  //   );
+  // }
+  const result = await CategoryModel.updateMany(
+    { _id: { $in: categoryIds } },
+    {
+      $set: {
+        createdBy: createdBy,
+        isDeleted: true,
+      },
+    }
+  );
 
   return result;
 };

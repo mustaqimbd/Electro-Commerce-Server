@@ -23,7 +23,7 @@ router.patch(
 );
 
 router.delete(
-  "/:id",
+  "/",
   // authGuard(ENUM_USER_ROLE.ADMIN),
   CategoryControllers.deleteCategory
 );

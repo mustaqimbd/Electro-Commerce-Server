@@ -24,8 +24,8 @@ const storage = multer.diskStorage({
 const getUploadFolder = () => {
   // Create a unique folder name using a timestamp
   const timestamp = Date.now();
-  // const uploadFolder = path.join("uploads/public", String(timestamp));
-  const uploadFolder = process.cwd() + "/uploads/public/" + String(timestamp);
+  const uploadFolder = path.join("uploads/public", String(timestamp));
+  // const uploadFolder = process.cwd() + "/uploads/public/" + String(timestamp);
 
   // Create the folder if it doesn't exist
   if (!fs.existsSync(uploadFolder)) {
