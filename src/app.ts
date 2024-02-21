@@ -11,6 +11,7 @@ import morgan from "morgan";
 import path from "path";
 import requestIp from "request-ip";
 import config from "./app/config/config";
+import enableCrossOriginResourcePolicy from "./app/middlewares/enableCrossOriginResourcePolicy";
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import router from "./app/routes";
@@ -20,6 +21,8 @@ const app: Application = express();
 const corsOptions: CorsOptions = {
   origin: config.clientSideURL?.split(","),
   credentials: true,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: "Content-Type, Authorization",
 };
 
 const sessionOptions: SessionOptions = {
@@ -57,7 +60,11 @@ app.get("/api/v1", (req, res) => {
 
 // static files
 const uploadsPath = path.join(__dirname, "..", "uploads/public");
-app.use("/uploads/public", express.static(uploadsPath));
+app.use(
+  "/uploads/public",
+  enableCrossOriginResourcePolicy,
+  express.static(uploadsPath)
+);
 
 //fake user id for testing
 app.use("/api/v1", (req, res, next) => {
