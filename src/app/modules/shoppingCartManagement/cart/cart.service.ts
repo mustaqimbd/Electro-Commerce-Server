@@ -54,13 +54,13 @@ const addToCartIntoDB = async (
     );
   }
 
-  const isAlreadyAddedIntoCart = await CartItem.findOne({ ...query, product });
-  if (isAlreadyAddedIntoCart) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Dear customer, this product is already added into your cart."
-    );
-  }
+  // const isAlreadyAddedIntoCart = await CartItem.findOne({ ...query, product });
+  // if (isAlreadyAddedIntoCart) {
+  //   throw new ApiError(
+  //     httpStatus.BAD_REQUEST,
+  //     "Dear customer, this product is already added into your cart."
+  //   );
+  // }
 
   const session = await mongoose.startSession();
   try {
