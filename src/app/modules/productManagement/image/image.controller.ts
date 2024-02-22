@@ -10,7 +10,7 @@ const createImage = catchAsync(async (req, res) => {
   const images = files?.map(({ path, originalname }: Express.Multer.File) => {
     return { src: path, alt: originalname, uploadedBy };
   });
-  const result = await ImageServices.createImageIntoDb(images);
+  const result = await ImageServices.createImageIntoDB(images);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Image created successfully!",
@@ -19,10 +19,21 @@ const createImage = catchAsync(async (req, res) => {
 });
 
 const getAllImages = catchAsync(async (req, res) => {
-  const result = await ImageServices.getAllImagesFromDb();
+  const result = await ImageServices.getAllImagesFromDB(req.query);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All images retrieved successfully!",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+const getAnImage = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await ImageServices.getAnImageFromDB(id);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "An image retrieved successfully!",
     data: result,
   });
 });
@@ -39,6 +50,7 @@ const deleteImages = catchAsync(async (req, res) => {
 
 export const ImageControllers = {
   createImage,
+  getAnImage,
   getAllImages,
   deleteImages,
 };

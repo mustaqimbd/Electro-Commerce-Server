@@ -1,6 +1,6 @@
-import { FilterQuery, Query, Aggregate, Document } from "mongoose";
+import { FilterQuery, Query, Aggregate } from "mongoose";
 
-export class QueryHelper<T extends Document> {
+export class QueryHelper<T> {
   model: Query<T[], T>;
   query: Record<string, unknown>;
 
@@ -53,7 +53,7 @@ export class QueryHelper<T extends Document> {
     }
     return this;
   }
-  async countTotal(): Promise<{
+  async metaData(): Promise<{
     page: number;
     limit: number;
     total: number;

@@ -12,10 +12,17 @@ router.post(
 );
 
 router.get(
+  "/:id",
+  // authGuard('admin'),
+  ImageControllers.getAnImage
+);
+
+router.get(
   "/",
   // authGuard('admin'),
   ImageControllers.getAllImages
 );
+
 router.delete(
   "/",
   // authGuard('admin'),
