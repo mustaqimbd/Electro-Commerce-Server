@@ -19,12 +19,12 @@ const createImage = catchAsync(async (req, res) => {
 });
 
 const getAllImages = catchAsync(async (req, res) => {
-  const result = await ImageServices.getAllImagesFromDB(req.query);
+  const { meta, data } = await ImageServices.getAllImagesFromDB(req.query);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All images retrieved successfully!",
-    meta: result.meta,
-    data: result.data,
+    meta: meta,
+    data: data,
   });
 });
 

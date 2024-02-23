@@ -37,29 +37,38 @@ const getAProductAdmin = catchAsync(async (req, res) => {
 });
 
 const getAllProductsCustomer = catchAsync(async (req, res) => {
-  const result = await ProductServices.getAllProductsCustomerFromDB(req.query);
+  const { meta, data } = await ProductServices.getAllProductsCustomerFromDB(
+    req.query
+  );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Products retrieved successfully",
-    data: result,
+    meta: meta,
+    data: data,
   });
 });
 
 const getAllProductsAdmin = catchAsync(async (req, res) => {
-  const result = await ProductServices.getAllProductsAdminFromDB(req.query);
+  const { meta, data } = await ProductServices.getAllProductsAdminFromDB(
+    req.query
+  );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Products retrieved successfully",
-    data: result,
+    meta: meta,
+    data: data,
   });
 });
 
 const getFeaturedProducts = catchAsync(async (req, res) => {
-  const result = await ProductServices.getFeaturedProductsFromDB(req.query);
+  const { meta, data } = await ProductServices.getFeaturedProductsFromDB(
+    req.query
+  );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Featured Products retrieved successfully",
-    data: result,
+    meta: meta,
+    data: data,
   });
 });
 
