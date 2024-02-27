@@ -5,9 +5,6 @@ const ShippingSchema = new Schema<TShippingData>(
   {
     orderId: {
       type: String,
-      required: true,
-      unique: true,
-      immutable: true,
     },
     fullName: {
       type: String,

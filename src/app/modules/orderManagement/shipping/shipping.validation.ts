@@ -9,6 +9,8 @@ export const shippingValidationZodSchema = (
         fullName: z.string({ required_error: "Name is required" }),
         phoneNumber: genericPhoneNumberZodSchema(),
         fullAddress: z.string({ required_error: "Full address is required" }),
+        email: z.string().email().optional(),
+        notes: z.string().optional(),
         city: z.string().optional(),
         state: z.string().optional(),
         country: z.string().optional(),

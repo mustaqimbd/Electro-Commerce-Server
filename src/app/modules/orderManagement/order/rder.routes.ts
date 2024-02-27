@@ -15,7 +15,7 @@ router.post(
   OrderController.createOrder
 );
 
-router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
+router.get("/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
 
 router.get("/admin/:id", OrderController.getOrderInfoByOrderIdAdmin);
 

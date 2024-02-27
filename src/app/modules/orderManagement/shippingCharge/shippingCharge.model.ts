@@ -5,8 +5,6 @@ const shippingChargeSchema = new Schema<TShippingCharge>(
   {
     name: {
       type: String,
-      required: true,
-      unique: true,
     },
     description: {
       type: String,

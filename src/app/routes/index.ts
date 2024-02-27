@@ -2,9 +2,11 @@ import express from "express";
 import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/rder.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
+import { paymentMethodRoutes } from "../modules/paymentMethod/paymentMethod.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";
 import { BrandRoutes } from "../modules/productManagement/brand/brand.routes";
 import { CategoryRoutes } from "../modules/productManagement/category/category.routes";
+import { ImageRoutes } from "../modules/productManagement/image/image.routes";
 import { ProductRoutes } from "../modules/productManagement/product/product.routes";
 import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
@@ -14,7 +16,6 @@ import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
 import { UserRoutes } from "../modules/userManagement/user/user.routes";
-import { ImageRoutes } from "../modules/productManagement/image/image.routes";
 
 const router = express();
 const moduleRoutes = [
@@ -81,6 +82,10 @@ const moduleRoutes = [
   {
     path: "/shipping-charges",
     route: ShippingChargeRoutes,
+  },
+  {
+    path: "/payment-method",
+    route: paymentMethodRoutes,
   },
 ];
 

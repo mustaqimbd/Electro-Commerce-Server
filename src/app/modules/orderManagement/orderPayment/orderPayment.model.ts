@@ -1,18 +1,14 @@
 import { Schema, model } from "mongoose";
-import { paymentMethodEnum } from "./orderPayment.const";
 import { TPayment } from "./orderPayment.interface";
 
 const PaymentSchema = new Schema<TPayment>({
   orderId: {
     type: String,
-    required: true,
-    immutable: true,
-    unique: true,
   },
   paymentMethod: {
-    type: String,
-    enum: paymentMethodEnum,
+    type: Schema.Types.ObjectId,
     required: true,
+    ref: "PaymentMethod",
   },
   phoneNumber: {
     type: String,
