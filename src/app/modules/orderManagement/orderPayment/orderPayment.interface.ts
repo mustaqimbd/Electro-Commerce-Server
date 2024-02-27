@@ -1,10 +1,9 @@
-import { Document } from "mongoose";
-
-export type TPaymentMethods = "cod" | "Nagad" | "Rocket" | "Bkash";
+import { Document, Types } from "mongoose";
+import { TPaymentMethod } from "../../paymentMethod/paymentMethod.interface";
 
 export type TPaymentData = {
   orderId: string;
-  paymentMethod: TPaymentMethods;
+  paymentMethod: Types.ObjectId | TPaymentMethod;
   phoneNumber?: string;
   transactionId?: string;
 };

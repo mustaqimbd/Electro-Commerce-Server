@@ -8,6 +8,7 @@ import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
+import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import ProductModel from "../../productManagement/product/product.model";
 import { Cart } from "../../shoppingCartManagement/cart/cart.model";
@@ -120,6 +121,17 @@ const createOrderIntoDB = async (
       await OrderedProducts.create([orderedProductsData], { session })
     )[0]._id;
     // create payment document
+    const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
+    if (!paymentMethod) {
+      {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No payment found");
+      }
+    }
+    if (paymentMethod?.isPaymentDetailsNeeded) {
+      if (!payment.phoneNumber || !payment.transactionId) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request.");
+      }
+    }
     payment.orderId = orderId;
     orderData.payment = (
       await OrderPayment.create([payment], { session })
@@ -226,6 +238,9 @@ const getOrderInfoByOrderIdCustomerFromDB = async (
       status: 1,
       orderedProductsDetails: 1,
       _id: 0,
+      createdAt: 1,
+      payment: 1,
+      shipping: 1,
     }
   ).populate([
     { path: "shippingCharge", select: "amount name -_id" },
@@ -240,6 +255,20 @@ const getOrderInfoByOrderIdCustomerFromDB = async (
           select: "thumbnail",
         },
       },
+    },
+    {
+      path: "payment",
+      populate: {
+        path: "paymentMethod",
+        select: "name image",
+        populate: {
+          path: "image",
+          select: "src alt",
+        },
+      },
+    },
+    {
+      path: "shipping",
     },
   ]);
   if (!result) {

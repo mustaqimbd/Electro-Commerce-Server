@@ -22,10 +22,7 @@ const historySchema = new Schema<TStatusHistory>(
 const OrderStatusHistorySchema = new Schema<TOrderStatusHistory>({
   orderId: {
     type: String,
-    required: true,
-    immutable: true,
   },
-
   message: {
     type: String,
   },

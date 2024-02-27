@@ -46,7 +46,7 @@ const OrderSchema = new Schema<TOrder>(
     },
     payment: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Payment",
+      ref: "OrderPayment",
       required: true,
     },
     statusHistory: {
