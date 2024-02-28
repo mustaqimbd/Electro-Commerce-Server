@@ -35,7 +35,7 @@ const getOrderInfoByOrderIdCustomer = catchAsync(
 
     successResponse<TOrder>(res, {
       statusCode: httpStatus.OK,
-      message: "Order info retrieved successfully",
+      message: "Customers order info retrieved successfully",
       data: result,
     });
   }
@@ -51,7 +51,7 @@ const getOrderInfoByOrderIdAdmin = catchAsync(
 
     successResponse<TOrder>(res, {
       statusCode: httpStatus.OK,
-      message: "Order info retrieved successfully",
+      message: "Single order for admin retrieved successfully",
       data: result,
     });
   }
@@ -64,7 +64,7 @@ const getAllOrderCustomers = catchAsync(async (req: Request, res: Response) => {
 
   successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Order info retrieved successfully",
+    message: "Customers orders info retrieved successfully",
     data: result,
   });
 });
