@@ -15,9 +15,9 @@ router.post(
   OrderController.createOrder
 );
 
-router.get("/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
+router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
 
-router.get("/admin/:id", OrderController.getOrderInfoByOrderIdAdmin);
+router.get("/admin/order-id/:id", OrderController.getOrderInfoByOrderIdAdmin);
 
 router.get(
   "/customer",
@@ -26,7 +26,7 @@ router.get(
 );
 
 router.get(
-  "/admin",
+  "/admin/all-orders",
   authGuard({
     requiredRoles: ["admin", "staff"],
     requiredPermission: "manage orders",
