@@ -49,7 +49,7 @@ const createOrderIntoDB = async (
           populate: [
             {
               path: "price",
-              select: "salePrice -_id",
+              select: "salePrice regularPrice -_id",
             },
             {
               path: "inventory",
@@ -92,19 +92,23 @@ const createOrderIntoDB = async (
         productInventoryId: productItem.product.inventory._id,
         quantity: productItem.quantity,
       });
+
       const result = {
         product: productItem?.product?._id,
-        unitPrice: productItem?.product?.price?.salePrice,
+        unitPrice:
+          productItem?.product?.price?.salePrice ||
+          productItem?.product?.price?.regularPrice,
         quantity: productItem?.quantity,
         total: Math.round(
-          productItem?.quantity * productItem?.product?.price?.salePrice
+          productItem?.quantity * productItem?.product?.price?.salePrice ||
+            productItem?.product?.price?.regularPrice
         ),
         attributes: productItem?.attributes,
       };
       onlyProductsCosts += result.total;
       return result;
     });
-    // calculation ends here costs
+    //  [costs] calculation ends here
     // decrease the quantity
     for (const item of quantityUpdateData) {
       await InventoryModel.updateOne(
