@@ -201,6 +201,39 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
       $unwind: "$shippingData",
     },
     {
+      $lookup: {
+        from: "orderpayments",
+        localField: "payment",
+        foreignField: "_id",
+        as: "paymentInfo",
+      },
+    },
+    {
+      $unwind: "$paymentInfo",
+    },
+    {
+      $lookup: {
+        from: "paymentmethods",
+        localField: "paymentInfo.paymentMethod",
+        foreignField: "_id",
+        as: "paymentMethod",
+      },
+    },
+    {
+      $unwind: "$paymentMethod",
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "paymentMethod.image",
+        foreignField: "_id",
+        as: "paymentMethodThumb",
+      },
+    },
+    {
+      $unwind: "$paymentMethodThumb",
+    },
+    {
       $project: {
         _id: 1,
         orderId: 1,
@@ -209,6 +242,19 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
         shipping: {
           customerName: "$shippingData.fullName",
           phoneNumber: "$shippingData.phoneNumber",
+          fullAddress: "$shippingData.fullAddress",
+        },
+        createdAt: 1,
+        payment: {
+          method: {
+            name: "$paymentMethod.name",
+            image: {
+              src: "$paymentMethodThumb.src",
+              alt: "$paymentMethodThumb.alt",
+            },
+          },
+          transactionId: "$paymentInfo.transactionId",
+          phoneNumber: "$paymentInfo.phoneNumber",
         },
       },
     },
@@ -310,9 +356,21 @@ const getAllOrderCustomersFromDB = async (user: TOptionalAuthGuardPayload) => {
 const getOrderInfoByOrderIdAdminFromDB = async (
   id: mongoose.Types.ObjectId
 ): Promise<TOrder | null> => {
-  const result = await Order.findOne({ id }).populate([
-    { path: "statusHistory" },
-    { path: "shippingCharge" },
+  const result = await Order.findOne({ _id: id }).populate([
+    { path: "statusHistory", select: "refunded history -_id" },
+    { path: "shippingCharge", select: "name amount -_id" },
+    {
+      path: "payment",
+      select: "phoneNumber transactionId paymentMethod -_id",
+      populate: {
+        path: "paymentMethod",
+        select: "name image -_id",
+        populate: {
+          path: "image",
+          select: "src alt -_id",
+        },
+      },
+    },
     {
       path: "orderedProductsDetails",
       select: "productDetails -_id",
@@ -321,11 +379,17 @@ const getOrderInfoByOrderIdAdminFromDB = async (
         select: "title image id  -_id",
         populate: {
           path: "image",
-          select: "thumbnail",
+          select: "thumbnail -_id",
         },
       },
     },
   ]);
+  if (!result) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "No order was found with this ID."
+    );
+  }
   return result;
 };
 
