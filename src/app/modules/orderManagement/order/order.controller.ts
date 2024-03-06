@@ -73,7 +73,7 @@ const getAllOrdersAdmin = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderServices.getAllOrdersAdminFromDB(req.query);
 
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "All orders retrieved successfully",
     data: result,
   });
