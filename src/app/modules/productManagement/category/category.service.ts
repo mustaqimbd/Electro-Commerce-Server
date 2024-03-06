@@ -32,6 +32,15 @@ const getAllCategoriesFromDB = async () => {
     { $match: { isDeleted: false } },
     {
       $lookup: {
+        from: "images",
+        localField: "image",
+        foreignField: "_id",
+        as: "image",
+      },
+    },
+    { $unwind: "$image" },
+    {
+      $lookup: {
         from: "subcategories",
         localField: "_id",
         foreignField: "category",
@@ -42,6 +51,13 @@ const getAllCategoriesFromDB = async () => {
       $project: {
         _id: 1,
         name: 1,
+        image: {
+          _id: "$image._id",
+          src: "$image.src",
+          alt: "$image.alt",
+          uploadedBy: "$image.uploadedBy",
+        },
+        description: 1,
         subcategories: {
           $map: {
             input: "$subCategory",
