@@ -9,7 +9,9 @@ import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
+import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
+import { TPrice } from "../../productManagement/price/price.interface";
 import ProductModel from "../../productManagement/product/product.model";
 import { Cart } from "../../shoppingCartManagement/cart/cart.model";
 import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
@@ -28,7 +30,8 @@ const createOrderIntoDB = async (
   payment: TPaymentData,
   shipping: TShippingData,
   shippingChargeId: mongoose.Types.ObjectId,
-  user: TOptionalAuthGuardPayload
+  user: TOptionalAuthGuardPayload,
+  orderFrom: string
 ): Promise<TOrder> => {
   const userQuery = optionalAuthUserQuery(user);
   let response;
@@ -103,7 +106,7 @@ const createOrderIntoDB = async (
           productItem?.quantity * productItem?.product?.price?.salePrice ||
             productItem?.product?.price?.regularPrice
         ),
-        attributes: productItem?.attributes,
+        // attributes: productItem?.attributes,
       };
       onlyProductsCosts += result.total;
       return result;
@@ -166,6 +169,147 @@ const createOrderIntoDB = async (
     orderData.shippingCharge = shippingCharges?._id;
     orderData.total = onlyProductsCosts + Number(shippingCharges?.amount);
     orderData.status = "pending";
+    orderData.orderFrom = orderFrom;
+    const [orderRes] = await Order.create([orderData], { session });
+    if (!orderRes) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
+    }
+    if (user.id) {
+      await Address.updateOne({ uid: user.uid }, shipping).session(session);
+    }
+    // clear cart and cart items
+    await Cart.deleteOne(userQuery).session(session);
+    await CartItem.deleteMany(userQuery).session(session);
+    response = orderRes;
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+  return response;
+};
+
+const createOrderFromSalesPageIntoDB = async (
+  payment: TPaymentData,
+  shipping: TShippingData,
+  shippingChargeId: mongoose.Types.ObjectId,
+  user: TOptionalAuthGuardPayload,
+  orderFrom: string,
+  productId: mongoose.Types.ObjectId,
+  quantity: number
+): Promise<TOrder> => {
+  if (typeof quantity !== "number" || !quantity) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Quantity must be numeric and greater than 1."
+    );
+  }
+  if (typeof productId !== "string" || !productId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Product ID must be given.");
+  }
+
+  const userQuery = optionalAuthUserQuery(user);
+  let response;
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const orderData: Partial<TOrder> = {};
+    const orderId = createOrderId();
+
+    const findOrderedProduct = await ProductModel.findOne(
+      {
+        _id: productId,
+      },
+      { inventory: 1, price: 1 }
+    ).populate([{ path: "inventory" }, { path: "price" }]);
+    if (
+      (findOrderedProduct?.inventory as TInventory)?.stockQuantity < quantity
+    ) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Lack of stock quantity.");
+    }
+    if (!findOrderedProduct) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "No products found.");
+    }
+
+    const orderedProductData = {
+      product: findOrderedProduct?._id,
+      unitPrice:
+        (findOrderedProduct?.price as TPrice)?.salePrice ||
+        (findOrderedProduct?.price as TPrice)?.regularPrice,
+      quantity,
+      total: Math.round(
+        quantity *
+          ((findOrderedProduct?.price as TPrice)?.salePrice ??
+            (findOrderedProduct?.price as TPrice)?.regularPrice ??
+            0)
+      ),
+    };
+
+    // decrease the quantity
+    const quantityUpdate = await InventoryModel.updateOne(
+      { _id: findOrderedProduct?.inventory },
+      { $inc: { stockQuantity: -quantity } }
+    ).session(session);
+    if (!quantityUpdate.modifiedCount) {
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        "Something went wrong"
+      );
+    }
+    // create ordered products document
+    const orderedProductsData = {
+      orderId,
+      productDetails: [orderedProductData],
+    };
+    orderData.orderedProductsDetails = (
+      await OrderedProducts.create([orderedProductsData], { session })
+    )[0]._id;
+    // create payment document
+    const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
+    if (!paymentMethod) {
+      {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No payment method found");
+      }
+    }
+    if (paymentMethod?.isPaymentDetailsNeeded) {
+      if (!payment.phoneNumber || !payment.transactionId) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request.");
+      }
+    }
+    payment.orderId = orderId;
+    orderData.payment = (
+      await OrderPayment.create([payment], { session })
+    )[0]._id;
+    // Create Shipping data
+    shipping.orderId = orderId;
+    orderData.shipping = (
+      await Shipping.create([shipping], { session })
+    )[0]._id;
+    // create status document
+    orderData.statusHistory = (
+      await OrderStatusHistory.create([{ orderId, history: [{}] }], {
+        session,
+      })
+    )[0]._id;
+    // get shipping charge
+    const shippingCharges = await ShippingCharge.findById(shippingChargeId);
+    if (!shippingCharges) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Failed to find shipping charges"
+      );
+    }
+    orderData.orderId = orderId;
+    orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
+    orderData.sessionId = userQuery.sessionId as string;
+    orderData.subtotal = orderedProductData?.total;
+    orderData.shippingCharge = shippingCharges?._id;
+    orderData.total =
+      orderedProductData?.total + Number(shippingCharges?.amount);
+    orderData.status = "pending";
+    orderData.orderFrom = orderFrom;
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -497,6 +641,7 @@ const orderSeed = async () => {
 
 export const OrderServices = {
   createOrderIntoDB,
+  createOrderFromSalesPageIntoDB,
   updateOrderStatusIntoDB,
   getAllOrderCustomersFromDB,
   getOrderInfoByOrderIdCustomerFromDB,

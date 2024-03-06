@@ -10,6 +10,7 @@ const createOrderValidation = z.object({
       required_error: "Shipping charge id is required",
     }),
     shipping: shippingValidationZodSchema(true),
+    orderFrom: z.string({ required_error: "Order from is required." }),
   }),
 });
 

@@ -63,6 +63,10 @@ const OrderSchema = new Schema<TOrder>(
       ref: "Shipping",
       required: true,
     },
+    orderFrom: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,
