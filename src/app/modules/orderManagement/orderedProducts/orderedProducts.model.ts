@@ -19,16 +19,16 @@ const productDetails = new Schema<TProductDetails>({
     type: Number,
     required: true,
   },
-  attributes: [
-    {
-      name: {
-        type: String,
-      },
-      value: {
-        type: String,
-      },
-    },
-  ],
+  // attributes: [
+  //   {
+  //     name: {
+  //       type: String,
+  //     },
+  //     value: {
+  //       type: String,
+  //     },
+  //   },
+  // ],
 });
 
 const OrderedProductSchema = new Schema<TOrderedProducts>({

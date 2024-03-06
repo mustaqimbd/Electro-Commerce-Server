@@ -14,6 +14,12 @@ router.post(
   optionalAuthGuard,
   OrderController.createOrder
 );
+router.post(
+  "/landing-page",
+  validateRequest(OrderValidation.createOrderValidation),
+  optionalAuthGuard,
+  OrderController.createOrderFromSalesPage
+);
 
 router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
 

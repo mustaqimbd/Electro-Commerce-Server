@@ -15,7 +15,6 @@ const globalErrorhandler: ErrorRequestHandler = (err, req, res, next) => {
   let message =
     "Something went wrong. Please try again later or contact to the support";
   let errorMessages: TErrorMessages[] = [{ path: "", message }];
-
   if (err.name === "ValidationError") {
     const modifiedError: TIErrorResponse = handleMongooseValidationError(err);
     message = modifiedError.message;
