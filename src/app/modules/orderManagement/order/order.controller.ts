@@ -10,13 +10,14 @@ import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const { payment, shipping, shippingChargeId } = req.body;
+  const { payment, shipping, shippingChargeId, orderFrom } = req.body;
   const user = req.user;
   const result = await OrderServices.createOrderIntoDB(
     payment,
     shipping,
     shippingChargeId,
-    user as TOptionalAuthGuardPayload
+    user as TOptionalAuthGuardPayload,
+    orderFrom
   );
 
   successResponse<TOrder>(res, {
@@ -25,6 +26,34 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const createOrderFromSalesPage = catchAsync(
+  async (req: Request, res: Response) => {
+    const {
+      payment,
+      shipping,
+      shippingChargeId,
+      orderFrom,
+      productId,
+      quantity,
+    } = req.body;
+    const user = req.user;
+    const result = await OrderServices.createOrderFromSalesPageIntoDB(
+      payment,
+      shipping,
+      shippingChargeId,
+      user as TOptionalAuthGuardPayload,
+      orderFrom,
+      productId,
+      quantity
+    );
+    successResponse<TOrder>(res, {
+      statusCode: httpStatus.CREATED,
+      message: "Order created successfully",
+      data: result,
+    });
+  }
+);
 
 const getOrderInfoByOrderIdCustomer = catchAsync(
   async (req: Request, res: Response) => {
@@ -111,4 +140,5 @@ export const OrderController = {
   updateStatus,
   getAllOrdersAdmin,
   seed,
+  createOrderFromSalesPage,
 };

@@ -1,5 +1,7 @@
 import { Types } from "mongoose";
 import { TAttribute } from "../attribute/attribute.interface";
+import { TInventory } from "../inventory/inventory.interface";
+import { TPrice } from "../price/price.interface";
 
 export type TPublishedStatus = "Draft" | "Published";
 export type TVisibilityStatus = "Public" | "Private" | "Password protected";
@@ -28,9 +30,9 @@ export type TProduct = {
   downloadable?: boolean;
   featured?: boolean;
   review?: boolean;
-  price: Types.ObjectId;
+  price: Types.ObjectId | TPrice;
   image: TProductImage; //| TProductImage
-  inventory: Types.ObjectId; //| TInventory
+  inventory: Types.ObjectId | TInventory;
   attribute: Partial<TAttribute>[];
   brand: Types.ObjectId[];
   category: TCategorySchema;

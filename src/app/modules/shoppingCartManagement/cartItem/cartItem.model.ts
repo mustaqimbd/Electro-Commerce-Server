@@ -1,14 +1,14 @@
 import mongoose, { Schema, model } from "mongoose";
-import { TCartItem, TSelectedAttributesOnCart } from "./cartItem.interface";
+import { TCartItem } from "./cartItem.interface";
 
-const selectedAttributesOnCartSchema = new Schema<TSelectedAttributesOnCart>({
-  name: {
-    type: String,
-  },
-  value: {
-    type: String,
-  },
-});
+// const selectedAttributesOnCartSchema = new Schema<TSelectedAttributesOnCart>({
+//   name: {
+//     type: String,
+//   },
+//   value: {
+//     type: String,
+//   },
+// });
 
 const CartItemSchema = new Schema<TCartItem>(
   {
@@ -23,7 +23,7 @@ const CartItemSchema = new Schema<TCartItem>(
       immutable: true,
       ref: "Product",
     },
-    attributes: [selectedAttributesOnCartSchema],
+    // attributes: [selectedAttributesOnCartSchema],
     quantity: {
       type: Number,
     },
