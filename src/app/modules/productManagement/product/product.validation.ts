@@ -5,13 +5,13 @@ import { InventoryValidation } from "../inventory/inventory.validation";
 import { SeoDataValidation } from "../seoData/seoData.validation";
 import { publishedStatus, visibilityStatus } from "./product.const";
 
-const productAttribute = z.object({
-  _id: z.string().min(1, { message: "Attribute Id is required!" }).optional(),
-  name: z.string().min(1, { message: "Attribute name is required!" }),
-  values: z.array(
-    z.string().min(1, { message: "Attribute value is required!" })
-  ),
-});
+// const productAttribute = z.object({
+//   _id: z.string().min(1, { message: "Attribute Id is required!" }).optional(),
+//   name: z.string().min(1, { message: "Attribute name is required!" }),
+//   values: z.array(
+//     z.string().min(1, { message: "Attribute value is required!" })
+//   ),
+// });
 
 const updateProductAttribute = z.object({
   _id: z.string().min(1, { message: "Attribute Id is required!" }).optional(),
@@ -44,11 +44,11 @@ const product = z.object({
     price: PriceValidation.price,
     image: ProductImageValidation.productImage,
     inventory: InventoryValidation.inventory,
-    attribute: z.array(productAttribute),
+    attribute: z.array(updateProductAttribute).optional(),
     brand: z.array(z.string()).optional(),
     category: category,
     tag: z.array(z.string()).optional(),
-    seoData: SeoDataValidation.seoData,
+    seoData: SeoDataValidation.updatesSeoData.optional(),
     publishedStatus: z.object({
       status: z.enum([...publishedStatus] as [string, ...string[]]),
       visibility: z.enum([...visibilityStatus] as [string, ...string[]]),

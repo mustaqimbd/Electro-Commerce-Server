@@ -16,10 +16,7 @@ const updatesSeoData = z.object({
     .string()
     .min(1, { message: "Focus Keyphrase is required!" })
     .optional(),
-  metaTitle: z
-    .string()
-    .min(1, { message: "Meta Titleis required!" })
-    .optional(),
+  metaTitle: z.string().min(1, { message: "Meta Title required!" }).optional(),
   slug: z.string().min(1, { message: "Slug is required!" }).optional(),
   metaDescription: z
     .string()

@@ -3,10 +3,10 @@ import { TSeoData } from "./seoData.interface";
 
 const SeoDataSchema = new Schema<TSeoData>(
   {
-    focusKeyphrase: { type: String, required: true },
-    metaTitle: { type: String, required: true },
-    slug: { type: String, required: true },
-    metaDescription: { type: String, required: true },
+    focusKeyphrase: { type: String },
+    metaTitle: { type: String },
+    slug: { type: String },
+    metaDescription: { type: String },
   },
   {
     timestamps: true,

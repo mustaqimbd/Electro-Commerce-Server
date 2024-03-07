@@ -6,7 +6,7 @@ import express, { Application } from "express";
 import session, { SessionOptions } from "express-session";
 import userAgent from "express-useragent";
 import helmet from "helmet";
-// import mongoose from "mongoose";
+import mongoose from "mongoose";
 import morgan from "morgan";
 import path from "path";
 import requestIp from "request-ip";
@@ -66,12 +66,12 @@ app.use(
   express.static(uploadsPath)
 );
 
-//fake user id for testing
-// app.use("/api/v1", (req, res, next) => {
-//   req.user = {};
-//   req.user.id = new mongoose.Types.ObjectId("5f8f4cb272e4b01d9c23cd58");
-//   next();
-// });
+// fake user id for testing
+app.use("/api/v1", (req, res, next) => {
+  req.user = {};
+  req.user.id = new mongoose.Types.ObjectId("5f8f4cb272e4b01d9c23cd58");
+  next();
+});
 
 app.use("/api/v1", router);
 

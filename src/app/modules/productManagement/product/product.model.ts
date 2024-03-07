@@ -77,7 +77,6 @@ const productSchema = new Schema<TProduct>(
     },
     attribute: {
       type: [productAttributeSchema],
-      required: true,
     },
     brand: {
       type: [{ type: Schema.Types.ObjectId, ref: "Brand" }],

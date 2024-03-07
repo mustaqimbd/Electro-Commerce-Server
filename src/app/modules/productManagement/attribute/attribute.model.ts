@@ -3,8 +3,8 @@ import { TAttribute } from "./attribute.interface";
 
 const attributeSchema = new Schema<TAttribute>(
   {
-    name: { type: String, required: true, unique: true },
-    values: { type: [String], required: true },
+    name: { type: String, unique: true, sparse: true },
+    values: { type: [String] },
     createdBy: {
       type: Schema.Types.ObjectId,
       required: true,

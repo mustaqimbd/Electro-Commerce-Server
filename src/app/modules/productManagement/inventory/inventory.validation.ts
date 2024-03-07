@@ -4,7 +4,7 @@ import { stockStatus } from "./inventory.const";
 const inventory = z.object({
   sku: z.string().min(1, { message: "SKU is required!" }).optional(),
   stockStatus: z.enum([...stockStatus] as [string, ...string[]]),
-  stockQuantity: z.number().min(0),
+  stockQuantity: z.number().min(0).optional(),
   lowStockWarning: z.number().min(0).optional(),
   manageStock: z.boolean().optional(),
   productCode: z.string().optional(),
