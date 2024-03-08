@@ -14,20 +14,14 @@ import { publishedStatus, visibilityStatus } from "./product.const";
 // });
 
 const updateProductAttribute = z.object({
-  _id: z.string().min(1, { message: "Attribute Id is required!" }).optional(),
-  name: z
-    .string()
-    .min(1, { message: "Attribute name is required!" })
-    .optional(),
-  values: z
-    .array(z.string().min(1, { message: "Attribute value is required!" }))
-    .optional(),
+  _id: z.string().optional(),
+  name: z.string().optional(),
+  values: z.array(z.string()).optional(),
 });
+
 const category = z.object({
   _id: z.string().min(1, { message: "Category is required!" }),
-  subCategory: z
-    .array(z.string().min(1, { message: "Sub category is required!" }))
-    .optional(),
+  subCategory: z.array(z.string()).optional(),
 });
 
 const product = z.object({
@@ -36,7 +30,7 @@ const product = z.object({
     permalink: z.string().optional(),
     type: z.string().optional(),
     slug: z.string().optional(),
-    description: z.string().min(1, { message: "Description is required!" }),
+    description: z.string().optional(),
     shortDescription: z.string().optional(),
     downloadable: z.boolean().optional(),
     featured: z.boolean().optional(),
@@ -73,7 +67,7 @@ const updateProduct = z.object({
     review: z.boolean().optional(),
     price: PriceValidation.updatePrice.optional(),
     image: ProductImageValidation.updateProductImage.optional(),
-    inventory: InventoryValidation.updateInventory.optional(),
+    inventory: InventoryValidation.inventory.optional(),
     attribute: z.array(updateProductAttribute).optional(),
     brand: z.array(z.string()).optional(),
     category: category.optional(),

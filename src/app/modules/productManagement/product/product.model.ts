@@ -20,8 +20,8 @@ const productImageSchema = new Schema<TProductImage>(
 );
 const productAttributeSchema = new Schema<TAttribute>(
   {
-    name: { type: String, required: true },
-    values: { type: [String], required: true },
+    name: { type: String },
+    values: { type: [String] },
   },
   { _id: false }
 );
@@ -40,7 +40,6 @@ const categorySchema = new Schema<TCategorySchema>(
       type: [
         {
           type: Schema.Types.ObjectId,
-          required: true,
           ref: "SubCategory",
         },
       ],
@@ -51,12 +50,12 @@ const categorySchema = new Schema<TCategorySchema>(
 
 const productSchema = new Schema<TProduct>(
   {
-    id: { type: String, require: true, unique: true },
+    id: { type: String, required: true, unique: true },
     title: { type: String, required: true, unique: true },
     permalink: { type: String, unique: true, sparse: true },
     type: { type: String },
     slug: { type: String, unique: true, sparse: true },
-    description: { type: String, required: true },
+    description: { type: String },
     shortDescription: { type: String },
     downloadable: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
@@ -83,7 +82,7 @@ const productSchema = new Schema<TProduct>(
     },
     category: categorySchema,
     tag: {
-      type: [{ type: Schema.Types.ObjectId, required: true, ref: "Tag" }],
+      type: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
     },
     publishedStatus: {
       type: publishedStatusSchema,
@@ -100,10 +99,12 @@ const productSchema = new Schema<TProduct>(
     },
     updatedBy: {
       type: Schema.Types.ObjectId,
+      required: true,
       ref: "User",
     },
     deletedBy: {
       type: Schema.Types.ObjectId,
+      required: true,
       ref: "User",
     },
     isDeleted: { type: Boolean, default: false },

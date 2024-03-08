@@ -6,15 +6,15 @@ const inventorySchema = new Schema<TInventory>(
   {
     sku: { type: String, unique: true, sparse: true },
     stockStatus: { type: String, enum: [...stockStatus], required: true },
-    stockQuantity: { type: Number, required: true },
+    stockQuantity: { type: Number },
     stockAvailable: {
       type: Number,
       default: function (this: TInventory) {
         return this.stockQuantity;
       },
     },
-    lowStockWarning: { type: Number },
     manageStock: { type: Boolean, default: false },
+    lowStockWarning: { type: Number },
     productCode: { type: String },
     showStockQuantity: { type: Boolean, default: false },
     showStockWithText: { type: Boolean, default: false },
