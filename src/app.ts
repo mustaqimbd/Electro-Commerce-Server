@@ -37,6 +37,8 @@ const sessionOptions: SessionOptions = {
   },
 };
 
+app.set("trust proxy", 1);
+
 // Middlewares
 app.use(cors(corsOptions));
 app.use(helmet());
