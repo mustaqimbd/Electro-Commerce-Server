@@ -357,6 +357,17 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
     },
     {
       $lookup: {
+        from: "orderedproducts",
+        localField: "orderedProductsDetails",
+        foreignField: "_id",
+        as: "orderedProducts",
+      },
+    },
+    {
+      $unwind: "$orderedProducts",
+    },
+    {
+      $lookup: {
         from: "paymentmethods",
         localField: "paymentInfo.paymentMethod",
         foreignField: "_id",
@@ -400,6 +411,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
           transactionId: "$paymentInfo.transactionId",
           phoneNumber: "$paymentInfo.phoneNumber",
         },
+        orderedProducts: 1,
       },
     },
   ];

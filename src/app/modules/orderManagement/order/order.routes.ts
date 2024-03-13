@@ -33,10 +33,10 @@ router.get(
 
 router.get(
   "/admin/all-orders",
-  authGuard({
-    requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage orders",
-  }),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   requiredPermission: "manage orders",
+  // }),
   OrderController.getAllOrdersAdmin
 );
 

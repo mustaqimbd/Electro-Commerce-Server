@@ -10,8 +10,9 @@ import { User } from "../modules/userManagement/user/user.model";
 
 const optionalAuthGuard: RequestHandler = async (req, res, next) => {
   try {
-    const token = req.headers.authorization;
+    let token = req.headers.authorization;
     let userInfo = undefined;
+    token = token?.split(" ")[1];
     if (token) {
       const verifiedUser = jwtHelper.verifyToken<TJwtPayload>(
         token,
