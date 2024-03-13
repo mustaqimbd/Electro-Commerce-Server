@@ -414,8 +414,9 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
     query
   ).paginate();
   const data = await orderQuery.model;
-  const total = (await ProductModel.aggregate(pipeline)).length;
+  const total = (await Order.aggregate(pipeline)).length;
   const meta = orderQuery.metaData(total);
+
   return { meta, data };
 };
 
@@ -503,6 +504,7 @@ const getOrderInfoByOrderIdAdminFromDB = async (
   const result = await Order.findOne({ _id: id }).populate([
     { path: "statusHistory", select: "refunded history -_id" },
     { path: "shippingCharge", select: "name amount -_id" },
+    { path: "shipping", select: "fullName phoneNumber fullAddress -_id" },
     {
       path: "payment",
       select: "phoneNumber transactionId paymentMethod -_id",
@@ -520,20 +522,142 @@ const getOrderInfoByOrderIdAdminFromDB = async (
       select: "productDetails -_id",
       populate: {
         path: "productDetails.product",
-        select: "title image id  -_id",
+        select: "title image id  _id",
         populate: {
-          path: "image",
-          select: "thumbnail -_id",
+          path: "image.thumbnail",
+          select: "src alt -_id",
         },
       },
     },
   ]);
+
   if (!result) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       "No order was found with this ID."
     );
   }
+
+  // const pipeline = [
+  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  //   {
+  //     $lookup: {
+  //       from: "orderedproducts",
+  //       localField: "orderedProductsDetails",
+  //       foreignField: "_id",
+  //       as: "orderedproducts"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$orderedproducts"
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "products",
+  //       localField: "orderedproducts.productDetails.product",
+  //       foreignField: "_id",
+  //       as: "products"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$products"
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "images",
+  //       localField: "products.image.thumbnail",
+  //       foreignField: "_id",
+  //       as: "image"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$image"
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "orderstatushistories",
+  //       localField: "statusHistory",
+  //       foreignField: "_id",
+  //       as: "statusHistory"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$statusHistory"
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "shippings",
+  //       localField: "shipping",
+  //       foreignField: "_id",
+  //       as: "shipping"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$shipping"
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "shippingcharges",
+  //       localField: "shippingCharge",
+  //       foreignField: "_id",
+  //       as: "shippingCharge"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$shippingCharge"
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "orderpayments",
+  //       localField: "payment",
+  //       foreignField: "_id",
+  //       as: "payment"
+  //     }
+  //   },
+  //   {
+  //     $unwind: "$payment"
+  //   },
+  //   {
+  //     $group: {
+  //       _id: "$_id",
+  //       shippingCharge: { $first: "$shippingCharge" },
+  //       total: { $first: "$total" },
+  //       payment: { $first: "$payment" },
+  //       statusHistory: { $first: "$statusHistory" },
+  //       status: { $first: "$status" },
+  //       shipping: { $first: "$shipping" },
+  //       products: {
+  //         $push: {
+  //           title: "$products.title",
+  //           image: {
+  //             src: "$image.src",
+  //             alt: "$image.alt"
+  //           },
+  //           unitPrice: "$orderedproducts.productDetails.unitPrice"
+  //         }
+  //       } // Group products into an array
+  //     }
+  //   },
+  //   {
+  //     $project: {
+  //       _id: 1,
+  //       statusHistory: { refunded: 1, history: 1 },
+  //       shippingCharge: { name: 1, amount: 1 },
+  //       payment: 1,
+  //       products: 1,
+  //       shipping: {
+  //         fullName: 1,
+  //         phoneNumber: 1,
+  //         fullAddress: 1,
+  //       },
+  //       status: 1,
+  //       total: 1,
+  //     }
+  //   }
+  // ];
+
+  // const result = await Order.aggregate(pipeline)
+
   return result;
 };
 

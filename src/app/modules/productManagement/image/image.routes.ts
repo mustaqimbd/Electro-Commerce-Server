@@ -1,13 +1,17 @@
 import { Router } from "express";
 import { ImageControllers } from "./image.controller";
 import imgUploader from "../../../utilities/imgUploader";
+import config from "../../../config/config";
+import authGuard from "../../../middlewares/authGuard";
 
 const router = Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
-  imgUploader.array("images", 10),
+  authGuard({
+    requiredRoles: ["admin", "customer", "staff"],
+  }),
+  imgUploader.array("images", Number(config.upload_image_maxCount)),
   ImageControllers.createImage
 );
 

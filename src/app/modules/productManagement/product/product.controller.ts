@@ -5,10 +5,14 @@ import { ProductServices } from "./product.service";
 import updatedPriceData from "./utils";
 
 const createProduct = catchAsync(async (req, res) => {
+  const { title, slug } = req.body;
+  req.body.title = title.replace(/\s+/g, " ").trim();
+  req.body.slug = slug
+    ? slug.replace(/\s+/g, " ").trim().toLowerCase().split(" ").join("-")
+    : title.replace(/\s+/g, " ").trim().toLowerCase().split(" ").join("-");
   updatedPriceData(req);
   const createdBy = req.user.id;
   const result = await ProductServices.createProductIntoDB(createdBy, req.body);
-
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Product created successfully",
@@ -43,8 +47,8 @@ const getAllProductsCustomer = catchAsync(async (req, res) => {
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Products retrieved successfully",
-    meta: meta,
-    data: data,
+    meta,
+    data,
   });
 });
 
@@ -55,8 +59,8 @@ const getAllProductsAdmin = catchAsync(async (req, res) => {
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Products retrieved successfully",
-    meta: meta,
-    data: data,
+    meta,
+    data,
   });
 });
 

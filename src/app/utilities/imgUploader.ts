@@ -45,7 +45,7 @@ const imgUploader = multer({
       return cb(
         new ApiError(
           httpStatus.BAD_REQUEST,
-          "Only jpg, png, jpeg format is allowed"
+          `Only ${allowedExts} format is allowed`
         )
       );
     }

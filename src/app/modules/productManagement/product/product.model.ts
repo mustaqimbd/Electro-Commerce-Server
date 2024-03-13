@@ -54,7 +54,7 @@ const productSchema = new Schema<TProduct>(
     title: { type: String, required: true, unique: true },
     permalink: { type: String, unique: true, sparse: true },
     type: { type: String },
-    slug: { type: String, unique: true, sparse: true },
+    slug: { type: String, required: true, unique: true },
     description: { type: String },
     shortDescription: { type: String },
     downloadable: { type: Boolean, default: false },

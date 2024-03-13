@@ -1,6 +1,6 @@
 import express from "express";
 import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
-import { OrderRoutes } from "../modules/orderManagement/order/rder.routes";
+import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { paymentMethodRoutes } from "../modules/paymentMethod/paymentMethod.routes";
 import { AttributeRoutes } from "../modules/productManagement/attribute/attribute.routes";

@@ -6,7 +6,7 @@ import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
 export type TOrderStatus =
   | "pending"
   | "processing"
-  | "picked by courier"
+  | "On courier"
   | "completed"
   | "canceled";
 
