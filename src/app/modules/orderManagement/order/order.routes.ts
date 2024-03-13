@@ -45,7 +45,7 @@ router.patch(
   validateRequest(OrderValidation.updateOrderStatus),
   authGuard({
     requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage orders",
+    // requiredPermission: "manage orders",
   }),
   OrderController.updateStatus
 );
