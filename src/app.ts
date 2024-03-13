@@ -38,11 +38,11 @@ const sessionOptions: SessionOptions = {
 };
 
 // Middlewares
+app.use(cors(corsOptions));
+app.use(helmet());
 app.use(session(sessionOptions));
 app.use(express.json());
-app.use(cors(corsOptions));
 app.use(compression());
-app.use(helmet());
 app.use(cookieParser());
 app.use(userAgent.express());
 app.use(requestIp.mw());
