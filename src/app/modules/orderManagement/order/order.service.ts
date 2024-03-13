@@ -421,9 +421,11 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
     });
   }
 
-  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
-    .sort()
-    .paginate();
+  const orderQuery = new AggregateQueryHelper(
+    Order.aggregate(pipeline),
+    query
+  ).sort();
+  // .paginate();
   const data = await orderQuery.model;
   const total = (await Order.aggregate(pipeline)).length;
   const meta = orderQuery.metaData(total);
