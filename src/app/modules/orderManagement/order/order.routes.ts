@@ -1,5 +1,4 @@
 import { Router } from "express";
-import config from "../../../config/config";
 import authGuard from "../../../middlewares/authGuard";
 import optionalAuthGuard from "../../../middlewares/optionalAuthGuard";
 import validateRequest from "../../../middlewares/validateRequest";
@@ -50,8 +49,10 @@ router.patch(
   OrderController.updateStatus
 );
 
-if (config.env === "development") {
-  router.delete("/seed", OrderController.seed); // TODO: delete this on production
-}
+router.patch(
+  "/update-order/:id",
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  OrderController.updateOrderDetails
+);
 
 export const OrderRoutes = router;

@@ -15,20 +15,19 @@ const createOrderValidation = z.object({
 });
 
 const updateOrderStatus = z.object({
-  body: z
-    .object({
-      status: z.enum([...orderStatus] as [string, ...string[]]),
-      message: z.string().optional(),
-    })
-    .refine((data) => {
-      let res = true;
-      if (data.status === "canceled") {
-        if (!data.message) {
-          res = false;
-        }
-      }
-      return res;
-    }, "Please provide the message"),
+  body: z.object({
+    status: z.enum([...orderStatus] as [string, ...string[]]),
+    message: z.string().optional(),
+  }),
+  // .refine((data) => {
+  //   let res = true;
+  //   if (data.status === "canceled") {
+  //     if (!data.message) {
+  //       res = false;
+  //     }
+  //   }
+  //   return res;
+  // }, "Please provide the message"),
 });
 
 export const OrderValidation = {
