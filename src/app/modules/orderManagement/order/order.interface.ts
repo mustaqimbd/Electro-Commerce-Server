@@ -2,6 +2,8 @@ import mongoose, { Document } from "mongoose";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
+import { TShipping } from "../shipping/shipping.interface";
+import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 
 export type TOrderStatus =
   | "pending"
@@ -18,13 +20,13 @@ export type TOrderData = {
   couponDetails?: mongoose.Types.ObjectId;
   subtotal?: number;
   tax?: number;
-  shippingCharge: mongoose.Types.ObjectId;
+  shippingCharge: mongoose.Types.ObjectId | TShippingCharge;
   discount?: number;
   total: number;
   payment: mongoose.Types.ObjectId;
   status: TOrderStatus;
   statusHistory: mongoose.Types.ObjectId | TOrderStatusHistory;
-  shipping: mongoose.Types.ObjectId;
+  shipping: mongoose.Types.ObjectId | TShipping;
   orderFrom: string;
 };
 

@@ -125,11 +125,15 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const seed = catchAsync(async (req: Request, res: Response) => {
-  await OrderServices.orderSeed();
+const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
+  await OrderServices.updateOrderDetailsByAdminIntoDB(
+    req.params.id as unknown as mongoose.Types.ObjectId,
+    req.body
+  );
+
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
-    message: "Order deleted successfully",
+    statusCode: httpStatus.OK,
+    message: "Order details updated successfully.",
   });
 });
 
@@ -140,6 +144,6 @@ export const OrderController = {
   getAllOrderCustomers,
   updateStatus,
   getAllOrdersAdmin,
-  seed,
+  updateOrderDetails,
   createOrderFromSalesPage,
 };
