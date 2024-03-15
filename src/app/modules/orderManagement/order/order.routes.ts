@@ -1,6 +1,6 @@
 import { Router } from "express";
 import config from "../../../config/config";
-import authGuard from "../../../middlewares/authGuard";
+// import authGuard from "../../../middlewares/authGuard";
 import optionalAuthGuard from "../../../middlewares/optionalAuthGuard";
 import validateRequest from "../../../middlewares/validateRequest";
 import { OrderController } from "./order.controller";
@@ -43,10 +43,10 @@ router.get(
 router.patch(
   "/update-status/:id",
   validateRequest(OrderValidation.updateOrderStatus),
-  authGuard({
-    requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage orders",
-  }),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   requiredPermission: "manage orders",
+  // }),
   OrderController.updateStatus
 );
 

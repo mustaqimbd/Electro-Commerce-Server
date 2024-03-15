@@ -5,7 +5,7 @@ import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import {
   TJwtPayload,
-  TLoginResponse,
+  // TLoginResponse,
   TRefreshTokenResponse,
 } from "./auth.interface";
 import { AuthServices } from "./auth.service";
@@ -13,30 +13,40 @@ import { AuthServices } from "./auth.service";
 const login = catchAsync(async (req: Request, res: Response) => {
   const { ...payload } = req.body;
   const result = await AuthServices.login(req, payload);
-  const { refreshToken, ...others } = result;
+  const { refreshToken, accessToken } = result;
 
   const cookieOption: CookieOptions = {
     secure: config.env === "production",
     httpOnly: true,
+    sameSite: "strict", // Restrict cookie to same-site requests
+    // maxAge: 24 * 60 * 60 * 1000,// Cookie expires in 1 day
   };
   res.cookie("refreshToken", refreshToken, cookieOption);
-  successResponse<TLoginResponse>(res, {
+  res.cookie("accessToken", refreshToken, cookieOption);
+  successResponse(res, {
     statusCode: httpStatus.OK,
-    message: "Logged in successfully",
-    data: others,
+    message: "Logged in successfully!",
+    data: { accessToken },
   });
 });
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
-  const result = await AuthServices.refreshToken(
+  const { accessToken } = await AuthServices.refreshToken(
     req.clientIp as string,
     req.sessionID,
     refreshToken
   );
+  const cookieOption: CookieOptions = {
+    secure: config.env === "production",
+    httpOnly: true,
+    sameSite: "strict", // Restrict cookie to same-site requests
+    // maxAge: 24 * 60 * 60 * 1000,// Cookie expires in 1 day
+  };
+  res.cookie("accessToken", refreshToken, cookieOption);
   successResponse<TRefreshTokenResponse>(res, {
     statusCode: httpStatus.OK,
-    data: result,
+    data: { accessToken },
   });
 });
 

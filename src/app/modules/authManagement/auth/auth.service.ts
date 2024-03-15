@@ -30,7 +30,10 @@ const login = async (
   const user = await User.isUserExist({ phoneNumber });
 
   if (!(await User.isPasswordMatch(password, user?.password as string))) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Password did not matched");
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Invalid phone number or password!"
+    );
   }
 
   return await authHelpers.loginUser(req, user);
@@ -44,7 +47,7 @@ const refreshToken = async (
   let verifiedToken = null;
   const isTokenExist = await RefreshToken.findOne({ token });
   if (!isTokenExist) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Un authorized request");
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
   }
 
   if (sessionId !== isTokenExist.sessionId || isTokenExist.ip !== ip) {
@@ -95,7 +98,7 @@ const changePassword = async (
   ) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Previous password didn't not matched"
+      "The previous password did not match!"
     );
   }
   if (user?.password) {

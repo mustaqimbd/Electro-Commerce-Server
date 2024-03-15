@@ -23,7 +23,11 @@ const authGuard =
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       let token = req.headers.authorization;
-      token = token?.split(" ")[1];
+      if (token) {
+        token = token?.split(" ")[1];
+      } else {
+        token = req.cookies("accessToken");
+      }
       if (!token) {
         throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
       }
