@@ -18,6 +18,7 @@ import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
+import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
 import { OrderedProducts } from "../orderedProducts/orderedProducts.model";
 import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
@@ -811,6 +812,56 @@ const updateOrderDetailsByAdminIntoDB = async (
   }
 };
 
+const deleteOrderByIdFromBD = async (id: string) => {
+  const session = await mongoose.startSession();
+
+  const order = await Order.findOne({ _id: id }).populate([
+    { path: "orderedProductsDetails", select: "productDetails" },
+  ]);
+  if (!order) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
+  }
+  order.orderedProductsDetails =
+    order.orderedProductsDetails as TOrderedProducts;
+
+  try {
+    session.startTransaction();
+    await OrderedProducts.findOneAndDelete({
+      _id: order?.orderedProductsDetails?._id,
+    }).session(session);
+
+    await OrderPayment.findOneAndDelete({ _id: order.payment }).session(
+      session
+    );
+
+    await Shipping.findOneAndDelete({ _id: order.shipping }).session(session);
+
+    await OrderStatusHistory.findOneAndDelete({
+      _id: order.statusHistory,
+    }).session(session);
+
+    await Order.findOneAndDelete({ _id: order._id }).session(session);
+
+    // update quantity
+    for (const item of order.orderedProductsDetails.productDetails) {
+      const product = await ProductModel.findById(item.product, {
+        inventory: 1,
+        title: 1,
+      }).lean();
+      await InventoryModel.updateOne(
+        { _id: product?.inventory },
+        { $inc: { stockQuantity: item.quantity } }
+      ).session(session);
+    }
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+};
+
 export const OrderServices = {
   createOrderIntoDB,
   createOrderFromSalesPageIntoDB,
@@ -820,4 +871,5 @@ export const OrderServices = {
   getOrderInfoByOrderIdAdminFromDB,
   getAllOrdersAdminFromDB,
   updateOrderDetailsByAdminIntoDB,
+  deleteOrderByIdFromBD,
 };

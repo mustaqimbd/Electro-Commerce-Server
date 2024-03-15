@@ -52,7 +52,12 @@ router.patch(
 router.patch(
   "/update-order/:id",
   // authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   OrderController.updateOrderDetails
 );
+
+router.delete("/:id", OrderController.deleteOrderById);
+
+// router.patch("/update-quantity/:id");
 
 export const OrderRoutes = router;

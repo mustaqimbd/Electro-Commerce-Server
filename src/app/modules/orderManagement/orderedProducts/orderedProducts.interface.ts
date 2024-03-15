@@ -10,9 +10,9 @@ export type TProductDetails = {
   total: number;
 };
 
-type TOrderedProductsData = {
+export type TOrderedProductsData = {
   orderId: string;
   productDetails: TProductDetails[];
 };
 
-export type TOrderedProducts = TOrderedProductsData | Document;
+export type TOrderedProducts = TOrderedProductsData & Document;
