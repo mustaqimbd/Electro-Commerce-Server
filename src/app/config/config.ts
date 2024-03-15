@@ -10,6 +10,7 @@ export default {
   port: env.PORT,
   DBUrl: env.DB_URL,
   clientSideURL: env.CLIENT_SIDE_URL,
+  main_domain: env.MAIN_DOMAIN,
   bcrypt_salt_round: env.BCRYPT_SALT_ROUND,
   token_data: {
     access_token_secret: env.ACCESS_TOKEN_SECRET,

@@ -19,7 +19,10 @@ import successResponse from "./app/utilities/successResponse";
 const app: Application = express();
 
 const corsOptions: CorsOptions = {
-  origin: config.clientSideURL?.split(","),
+  origin:
+    config.env === "production"
+      ? config.clientSideURL?.split(",")
+      : "localhost",
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: "Content-Type, Authorization",
@@ -34,10 +37,14 @@ const sessionOptions: SessionOptions = {
     maxAge: 1000 * 60 * 60 * 24 * Number(config.session_expires),
     httpOnly: true,
     secure: config.env === "production",
+    domain:
+      config.env === "production" ? `.${config.main_domain}` : "localhost",
   },
 };
 
-// app.set("trust proxy", 1);
+if (config.env === "production") {
+  app.set("trust proxy", 1);
+}
 
 // Middlewares
 app.use(session(sessionOptions));
@@ -75,6 +82,7 @@ app.use("/api/v1", (req, res, next) => {
   next();
 });
 
+// api endpoints
 app.use("/api/v1", router);
 
 // Global error handler
