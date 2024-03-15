@@ -72,6 +72,9 @@ const OrderSchema = new Schema<TOrder>(
       type: String,
       required: true,
     },
+    orderNotes: {
+      type: String,
+    },
     officialNotes: {
       type: String,
     },
