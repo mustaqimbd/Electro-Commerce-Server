@@ -19,8 +19,9 @@ import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
 import { OrderedProducts } from "../orderedProducts/orderedProducts.model";
-import { TShippingData } from "../shipping/shipping.interface";
+import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
+import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { TOrder, TOrderStatus } from "./order.interface";
 import { Order } from "./order.model";
@@ -424,7 +425,8 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
   const orderQuery = new AggregateQueryHelper(
     Order.aggregate(pipeline),
     query
-  ).paginate();
+  ).sort();
+  // .paginate();
   const data = await orderQuery.model;
   const total = (await Order.aggregate(pipeline)).length;
   const meta = orderQuery.metaData(total);
@@ -694,7 +696,7 @@ const updateOrderStatusIntoDB = async (
       throw new ApiError(httpStatus.BAD_REQUEST, "This order is canceled.");
     }
     isOrderAvailable.status = payload.status;
-    await isOrderAvailable.save();
+    await isOrderAvailable.save({ session });
 
     const orderStatusHistory = await OrderStatusHistory.findOne({
       orderId: isOrderAvailable?.orderId,
@@ -767,12 +769,46 @@ const updateOrderStatusIntoDB = async (
   }
 };
 
-const orderSeed = async () => {
-  await OrderedProducts.deleteMany();
-  await OrderPayment.deleteMany();
-  await Shipping.deleteMany();
-  await OrderStatusHistory.deleteMany();
-  await Order.deleteMany();
+const updateOrderDetailsByAdminIntoDB = async (
+  id: mongoose.Types.ObjectId,
+  payload: Partial<TOrder>
+) => {
+  const { subtotal, shipping } = payload;
+  const findOrder = await Order.findOne({ _id: id }).populate([
+    { path: "shippingCharge", select: "amount -_id" },
+  ]);
+  if (!findOrder) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    if (Object.keys((shipping as TShipping) || {}).length) {
+      await Shipping.findOneAndUpdate(
+        { _id: findOrder.shipping },
+        shipping
+      ).session(session);
+    }
+    if (subtotal) {
+      const subtotalInNumber = Number(subtotal || 0);
+      const updatedDoc = {
+        subtotal: subtotalInNumber,
+        total:
+          subtotalInNumber +
+          (findOrder.shippingCharge as TShippingCharge).amount,
+      };
+      await Order.findOneAndUpdate({ _id: id }, updatedDoc).session(session);
+    }
+
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
 };
 
 export const OrderServices = {
@@ -783,5 +819,5 @@ export const OrderServices = {
   getOrderInfoByOrderIdCustomerFromDB,
   getOrderInfoByOrderIdAdminFromDB,
   getAllOrdersAdminFromDB,
-  orderSeed,
+  updateOrderDetailsByAdminIntoDB,
 };

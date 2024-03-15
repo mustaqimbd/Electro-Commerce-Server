@@ -37,12 +37,14 @@ const sessionOptions: SessionOptions = {
   },
 };
 
+// app.set("trust proxy", 1);
+
 // Middlewares
 app.use(session(sessionOptions));
-app.use(express.json());
 app.use(cors(corsOptions));
-app.use(compression());
 app.use(helmet());
+app.use(express.json());
+app.use(compression());
 app.use(cookieParser());
 app.use(userAgent.express());
 app.use(requestIp.mw());

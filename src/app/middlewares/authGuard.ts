@@ -37,9 +37,9 @@ const authGuard =
         config.token_data.access_token_secret as Secret
       );
 
-      if (verifiedUser.sessionId !== req.sessionID) {
-        throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
-      }
+      // if (verifiedUser.sessionId !== req.sessionID) {
+      //   throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
+      // }
 
       if (
         requiredRoles.length &&
