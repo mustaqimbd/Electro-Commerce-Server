@@ -7,7 +7,6 @@ import twilio from "twilio";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { jwtHelper } from "../../../helper/jwt.helper";
-import { errorLogger } from "../../../utilities/logger";
 import { User } from "../../userManagement/user/user.model";
 import { TPasswordResetOtpData } from "../passwordResetOtp/passwordResetOtp.interface";
 import { PasswordResetOtp } from "../passwordResetOtp/passwordResetOtp.model";
@@ -47,13 +46,13 @@ const refreshToken = async (
     throw new ApiError(httpStatus.UNAUTHORIZED, "Un authorized request");
   }
 
-  if (sessionId !== isTokenExist.sessionId || isTokenExist.ip !== ip) {
-    await RefreshToken.deleteOne({ token });
-    errorLogger.error(
-      `Tried to access ${isTokenExist._id} this account, from ${ip} this ip.`
-    );
-    throw new ApiError(httpStatus.BAD_REQUEST, "Un authorized request");
-  }
+  // if (sessionId !== isTokenExist.sessionId || isTokenExist.ip !== ip) {
+  //   await RefreshToken.deleteOne({ token });
+  //   errorLogger.error(
+  //     `Tried to access ${isTokenExist._id} this account, from ${ip} this ip.`
+  //   );
+  //   throw new ApiError(httpStatus.BAD_REQUEST, "Un authorized request");
+  // }
 
   try {
     verifiedToken = jwtHelper.verifyToken<TJwtPayload>(
