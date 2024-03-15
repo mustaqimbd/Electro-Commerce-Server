@@ -137,6 +137,14 @@ const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const deleteOrderById = catchAsync(async (req: Request, res: Response) => {
+  await OrderServices.deleteOrderByIdFromBD(req.params.id);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Order deleted successfully.",
+  });
+});
+
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -146,4 +154,5 @@ export const OrderController = {
   getAllOrdersAdmin,
   updateOrderDetails,
   createOrderFromSalesPage,
+  deleteOrderById,
 };

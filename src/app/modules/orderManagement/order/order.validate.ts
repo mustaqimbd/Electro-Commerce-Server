@@ -30,7 +30,21 @@ const updateOrderStatus = z.object({
   // }, "Please provide the message"),
 });
 
+const updateOrderDetailsByAdmin = z.object({
+  body: z.object({
+    subtotal: z.number().optional(),
+    shipping: z
+      .object({
+        fullName: z.string().optional(),
+        phoneNumber: z.string().optional(),
+        fullAddress: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
+
 export const OrderValidation = {
   createOrderValidation,
   updateOrderStatus,
+  updateOrderDetailsByAdmin,
 };
