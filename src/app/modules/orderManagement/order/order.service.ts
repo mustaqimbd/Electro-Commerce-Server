@@ -33,7 +33,8 @@ const createOrderIntoDB = async (
   shipping: TShippingData,
   shippingChargeId: mongoose.Types.ObjectId,
   user: TOptionalAuthGuardPayload,
-  orderFrom: string
+  orderFrom: string,
+  orderNotes?: string
 ): Promise<TOrder> => {
   const userQuery = optionalAuthUserQuery(user);
   let response;
@@ -172,6 +173,7 @@ const createOrderIntoDB = async (
     orderData.total = onlyProductsCosts + Number(shippingCharges?.amount);
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
+    orderData.orderNotes = orderNotes;
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -200,7 +202,8 @@ const createOrderFromSalesPageIntoDB = async (
   user: TOptionalAuthGuardPayload,
   orderFrom: string,
   productId: mongoose.Types.ObjectId,
-  quantity: number
+  quantity: number,
+  orderNotes: string
 ): Promise<TOrder> => {
   if (typeof quantity !== "number" || !quantity) {
     throw new ApiError(
@@ -312,6 +315,7 @@ const createOrderFromSalesPageIntoDB = async (
       orderedProductData?.total + Number(shippingCharges?.amount);
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
+    orderData.orderNotes = orderNotes;
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -334,7 +338,18 @@ const createOrderFromSalesPageIntoDB = async (
 };
 
 const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
+  const matchQuery: { isDeleted: Record<string, unknown>; status?: string } = {
+    isDeleted: { $ne: true },
+  };
+
+  if (query.status) {
+    matchQuery.status = query?.status as string;
+  }
+
   const pipeline: PipelineStage[] = [
+    {
+      $match: matchQuery,
+    },
     {
       $lookup: {
         from: "shippings",
@@ -417,11 +432,6 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
       },
     },
   ];
-  if (query.status) {
-    pipeline.unshift({
-      $match: { status: query?.status },
-    });
-  }
 
   const orderQuery = new AggregateQueryHelper(
     Order.aggregate(pipeline),
@@ -812,46 +822,31 @@ const updateOrderDetailsByAdminIntoDB = async (
   }
 };
 
-const deleteOrderByIdFromBD = async (id: string) => {
+const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
   const session = await mongoose.startSession();
-
-  const order = await Order.findOne({ _id: id }).populate([
-    { path: "orderedProductsDetails", select: "productDetails" },
-  ]);
-  if (!order) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
-  }
-  order.orderedProductsDetails =
-    order.orderedProductsDetails as TOrderedProducts;
-
   try {
     session.startTransaction();
-    await OrderedProducts.findOneAndDelete({
-      _id: order?.orderedProductsDetails?._id,
-    }).session(session);
-
-    await OrderPayment.findOneAndDelete({ _id: order.payment }).session(
-      session
-    );
-
-    await Shipping.findOneAndDelete({ _id: order.shipping }).session(session);
-
-    await OrderStatusHistory.findOneAndDelete({
-      _id: order.statusHistory,
-    }).session(session);
-
-    await Order.findOneAndDelete({ _id: order._id }).session(session);
-
-    // update quantity
-    for (const item of order.orderedProductsDetails.productDetails) {
-      const product = await ProductModel.findById(item.product, {
-        inventory: 1,
-        title: 1,
-      }).lean();
-      await InventoryModel.updateOne(
-        { _id: product?.inventory },
-        { $inc: { stockQuantity: item.quantity } }
-      ).session(session);
+    for (const orderId of orderIds) {
+      const order = await Order.findOne({ _id: orderId }).populate([
+        { path: "orderedProductsDetails", select: "productDetails" },
+      ]);
+      if (order) {
+        order.orderedProductsDetails =
+          order.orderedProductsDetails as TOrderedProducts;
+        // update quantity
+        for (const item of order.orderedProductsDetails.productDetails) {
+          const product = await ProductModel.findById(item.product, {
+            inventory: 1,
+            title: 1,
+          }).lean();
+          await InventoryModel.updateOne(
+            { _id: product?.inventory },
+            { $inc: { stockQuantity: item.quantity } }
+          ).session(session);
+        }
+        order.isDeleted = true;
+        await order.save({ session });
+      }
     }
     await session.commitTransaction();
     await session.endSession();
@@ -862,6 +857,57 @@ const deleteOrderByIdFromBD = async (id: string) => {
   }
 };
 
+// this will need later
+// const deleteOrderByIdFromBD = async (id: string) => {
+//   const session = await mongoose.startSession();
+
+//   const order = await Order.findOne({ _id: id }).populate([
+//     { path: "orderedProductsDetails", select: "productDetails" },
+//   ]);
+//   if (!order) {
+//     throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
+//   }
+//   order.orderedProductsDetails =
+//     order.orderedProductsDetails as TOrderedProducts;
+
+//   try {
+//     session.startTransaction();
+//     await OrderedProducts.findOneAndDelete({
+//       _id: order?.orderedProductsDetails?._id,
+//     }).session(session);
+
+//     await OrderPayment.findOneAndDelete({ _id: order.payment }).session(
+//       session
+//     );
+
+//     await Shipping.findOneAndDelete({ _id: order.shipping }).session(session);
+
+//     await OrderStatusHistory.findOneAndDelete({
+//       _id: order.statusHistory,
+//     }).session(session);
+
+//     await Order.findOneAndDelete({ _id: order._id }).session(session);
+
+//     // update quantity
+//     for (const item of order.orderedProductsDetails.productDetails) {
+//       const product = await ProductModel.findById(item.product, {
+//         inventory: 1,
+//         title: 1,
+//       }).lean();
+//       await InventoryModel.updateOne(
+//         { _id: product?.inventory },
+//         { $inc: { stockQuantity: item.quantity } }
+//       ).session(session);
+//     }
+//     await session.commitTransaction();
+//     await session.endSession();
+//   } catch (error) {
+//     await session.abortTransaction();
+//     await session.endSession();
+//     throw error;
+//   }
+// };
+
 export const OrderServices = {
   createOrderIntoDB,
   createOrderFromSalesPageIntoDB,
@@ -871,5 +917,5 @@ export const OrderServices = {
   getOrderInfoByOrderIdAdminFromDB,
   getAllOrdersAdminFromDB,
   updateOrderDetailsByAdminIntoDB,
-  deleteOrderByIdFromBD,
+  deleteOrdersByIdFromBD,
 };

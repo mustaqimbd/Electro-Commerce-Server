@@ -56,7 +56,12 @@ router.patch(
   OrderController.updateOrderDetails
 );
 
-router.delete("/:id", OrderController.deleteOrderById);
+router.delete(
+  "/delete-many",
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.deleteOrders),
+  OrderController.deleteOrdersById
+);
 
 // router.patch("/update-quantity/:id");
 

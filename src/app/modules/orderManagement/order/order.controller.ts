@@ -10,14 +10,16 @@ import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const { payment, shipping, shippingChargeId, orderFrom } = req.body;
+  const { payment, shipping, shippingChargeId, orderFrom, orderNotes } =
+    req.body;
   const user = req.user;
   const result = await OrderServices.createOrderIntoDB(
     payment,
     shipping,
     shippingChargeId,
     user as TOptionalAuthGuardPayload,
-    orderFrom
+    orderFrom,
+    orderNotes
   );
 
   successResponse<TOrder>(res, {
@@ -36,6 +38,7 @@ const createOrderFromSalesPage = catchAsync(
       orderFrom,
       productId,
       quantity,
+      orderNotes,
     } = req.body;
     const user = req.user;
     const result = await OrderServices.createOrderFromSalesPageIntoDB(
@@ -45,7 +48,8 @@ const createOrderFromSalesPage = catchAsync(
       user as TOptionalAuthGuardPayload,
       orderFrom,
       productId,
-      quantity
+      quantity,
+      orderNotes
     );
     successResponse<TOrder>(res, {
       statusCode: httpStatus.CREATED,
@@ -137,8 +141,9 @@ const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const deleteOrderById = catchAsync(async (req: Request, res: Response) => {
-  await OrderServices.deleteOrderByIdFromBD(req.params.id);
+const deleteOrdersById = catchAsync(async (req: Request, res: Response) => {
+  const { orderIds } = req.body;
+  await OrderServices.deleteOrdersByIdFromBD(orderIds);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Order deleted successfully.",
@@ -154,5 +159,5 @@ export const OrderController = {
   getAllOrdersAdmin,
   updateOrderDetails,
   createOrderFromSalesPage,
-  deleteOrderById,
+  deleteOrdersById,
 };

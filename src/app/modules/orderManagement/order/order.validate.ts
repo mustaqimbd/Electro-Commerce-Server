@@ -33,6 +33,7 @@ const updateOrderStatus = z.object({
 const updateOrderDetailsByAdmin = z.object({
   body: z.object({
     subtotal: z.number().optional(),
+    officialNotes: z.string().optional(),
     shipping: z
       .object({
         fullName: z.string().optional(),
@@ -43,8 +44,15 @@ const updateOrderDetailsByAdmin = z.object({
   }),
 });
 
+const deleteOrders = z.object({
+  body: z.object({
+    orderIds: z.string().array().nonempty({ message: "Can't be empty" }),
+  }),
+});
+
 export const OrderValidation = {
   createOrderValidation,
   updateOrderStatus,
   updateOrderDetailsByAdmin,
+  deleteOrders,
 };
