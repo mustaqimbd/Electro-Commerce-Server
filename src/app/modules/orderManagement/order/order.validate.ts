@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { genericPhoneNumberZodSchema } from "../../userManagement/user/user.validation";
 import { paymentZodSchema } from "../orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../shipping/shipping.validation";
 import { orderStatus } from "./order.const";
@@ -10,6 +11,7 @@ const createOrderValidation = z.object({
       required_error: "Shipping charge id is required",
     }),
     shipping: shippingValidationZodSchema(true),
+    orderNotes: z.string().optional(),
     orderFrom: z.string({ required_error: "Order from is required." }),
   }),
 });
@@ -33,13 +35,21 @@ const updateOrderStatus = z.object({
 const updateOrderDetailsByAdmin = z.object({
   body: z.object({
     subtotal: z.number().optional(),
+    officialNotes: z.string().optional(),
+    invoiceNotes: z.string().optional(),
     shipping: z
       .object({
         fullName: z.string().optional(),
-        phoneNumber: z.string().optional(),
+        phoneNumber: genericPhoneNumberZodSchema(true),
         fullAddress: z.string().optional(),
       })
       .optional(),
+  }),
+});
+
+const deleteOrders = z.object({
+  body: z.object({
+    orderIds: z.string().array().nonempty({ message: "Can't be empty" }),
   }),
 });
 
@@ -47,4 +57,5 @@ export const OrderValidation = {
   createOrderValidation,
   updateOrderStatus,
   updateOrderDetailsByAdmin,
+  deleteOrders,
 };

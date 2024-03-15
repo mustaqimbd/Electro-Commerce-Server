@@ -63,9 +63,23 @@ const OrderSchema = new Schema<TOrder>(
       ref: "Shipping",
       required: true,
     },
+    isDeleted: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
     orderFrom: {
       type: String,
       required: true,
+    },
+    orderNotes: {
+      type: String,
+    },
+    officialNotes: {
+      type: String,
+    },
+    invoiceNotes: {
+      type: String,
     },
   },
   {
