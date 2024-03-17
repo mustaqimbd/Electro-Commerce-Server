@@ -141,6 +141,22 @@ const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateOrderedProductQuantityByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { orderedItemId, quantity } = req.body;
+    await OrderServices.updateOrderedProductQuantityByAdmin(
+      req.params.id,
+      orderedItemId,
+      quantity
+    );
+
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order details updated successfully.",
+    });
+  }
+);
+
 const deleteOrdersById = catchAsync(async (req: Request, res: Response) => {
   const { orderIds } = req.body;
   await OrderServices.deleteOrdersByIdFromBD(orderIds);
@@ -160,4 +176,5 @@ export const OrderController = {
   updateOrderDetails,
   createOrderFromSalesPage,
   deleteOrdersById,
+  updateOrderedProductQuantityByAdmin,
 };
