@@ -147,12 +147,12 @@ const updateOrderedProductQuantityByAdmin = catchAsync(
     await OrderServices.updateOrderedProductQuantityByAdmin(
       req.params.id,
       orderedItemId,
-      quantity
+      Number(quantity)
     );
 
     successResponse(res, {
       statusCode: httpStatus.OK,
-      message: "Order details updated successfully.",
+      message: "Order quantity updated successfully.",
     });
   }
 );

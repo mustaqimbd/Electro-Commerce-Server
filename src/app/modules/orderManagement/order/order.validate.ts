@@ -53,9 +53,17 @@ const deleteOrders = z.object({
   }),
 });
 
+const updateQuantity = z.object({
+  body: z.object({
+    orderedItemId: z.string({ required_error: "Ordered item id is required." }),
+    quantity: z.number({ required_error: "New quantity is required." }),
+  }),
+});
+
 export const OrderValidation = {
   createOrderValidation,
   updateOrderStatus,
   updateOrderDetailsByAdmin,
   deleteOrders,
+  updateQuantity,
 };

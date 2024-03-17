@@ -66,6 +66,7 @@ router.delete(
 router.patch(
   "/update-quantity/:id",
   authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.updateQuantity),
   OrderController.updateOrderedProductQuantityByAdmin
 );
 
