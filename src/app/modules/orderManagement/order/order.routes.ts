@@ -51,18 +51,22 @@ router.patch(
 
 router.patch(
   "/update-order/:id",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   OrderController.updateOrderDetails
 );
 
 router.delete(
   "/delete-many",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.deleteOrders),
   OrderController.deleteOrdersById
 );
 
-// router.patch("/update-quantity/:id");
+router.patch(
+  "/update-quantity/:id",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
+  OrderController.updateOrderedProductQuantityByAdmin
+);
 
 export const OrderRoutes = router;
