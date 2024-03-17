@@ -1001,7 +1001,7 @@ const updateOrderedProductQuantityByAdmin = async (
       subtotalWithOutChangedItem + orderItem.unitPrice * quantity;
     const updatedTotal = updatedSubtotal + shippingCharge.amount;
 
-    await Order.updateOne(
+    const orderUpdateRes = await Order.updateOne(
       { _id: orderId },
       {
         $set: {
@@ -1009,7 +1009,14 @@ const updateOrderedProductQuantityByAdmin = async (
           total: updatedTotal,
         },
       }
-    );
+    ).session(session);
+
+    if (!orderUpdateRes.modifiedCount) {
+      throw new ApiError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        "Failed to update Order details."
+      );
+    }
 
     await session.commitTransaction();
     await session.endSession();
