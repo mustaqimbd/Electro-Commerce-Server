@@ -904,10 +904,12 @@ const updateOrderedProductQuantityByAdmin = async (
         _id: null,
         orderedProducts: 1,
         shippingCharge: 1,
+        discount: 1,
       },
     },
   ];
   const order = (await Order.aggregate([...findOrderAggregation]))[0];
+
   const orderedProducts = order?.orderedProducts;
   const shippingCharge = order?.shippingCharge;
 
@@ -1003,7 +1005,8 @@ const updateOrderedProductQuantityByAdmin = async (
 
     const updatedSubtotal =
       subtotalWithoutChangedItem + orderItem.unitPrice * quantity;
-    const updatedTotal = updatedSubtotal + shippingCharge.amount;
+    const updatedTotal =
+      updatedSubtotal + shippingCharge.amount - Number(order?.discount || 0);
 
     const orderUpdateRes = await Order.updateOne(
       { _id: orderId },
