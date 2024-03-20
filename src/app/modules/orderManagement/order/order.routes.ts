@@ -1,5 +1,5 @@
 import { Router } from "express";
-import authGuard from "../../../middlewares/authGuard";
+// import authGuard from "../../../middlewares/authGuard";
 import optionalAuthGuard from "../../../middlewares/optionalAuthGuard";
 import validateRequest from "../../../middlewares/validateRequest";
 import { OrderController } from "./order.controller";
@@ -32,40 +32,40 @@ router.get(
 
 router.get(
   "/admin/all-orders",
-  authGuard({
-    requiredRoles: ["admin", "staff"],
-    //   requiredPermission: "manage orders",
-  }),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   //   requiredPermission: "manage orders",
+  // }),
   OrderController.getAllOrdersAdmin
 );
 
 router.patch(
   "/update-status/:id",
   validateRequest(OrderValidation.updateOrderStatus),
-  authGuard({
-    requiredRoles: ["admin", "staff"],
-    // requiredPermission: "manage orders",
-  }),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   // requiredPermission: "manage orders",
+  // }),
   OrderController.updateStatus
 );
 
 router.patch(
   "/update-order/:id",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   OrderController.updateOrderDetails
 );
 
 router.delete(
   "/delete-many",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.deleteOrders),
   OrderController.deleteOrdersById
 );
 
 router.patch(
   "/update-quantity/:id",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateQuantity),
   OrderController.updateOrderedProductQuantityByAdmin
 );
