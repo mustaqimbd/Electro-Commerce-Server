@@ -13,16 +13,26 @@ import { AuthServices } from "./auth.service";
 const login = catchAsync(async (req: Request, res: Response) => {
   const { ...payload } = req.body;
   const result = await AuthServices.login(req, payload);
-  const { refreshToken, accessToken } = result;
+  const { user, accessToken, refreshToken } = result;
+
+  const customerRfExpires = config.token_data
+    .customer_refresh_token_expires as string;
+  const adminOrStaffRefExpires = config.token_data
+    .admin_staff_refresh_token_expires as string;
+  const refreshExpires =
+    user?.role === "customer" ? customerRfExpires : adminOrStaffRefExpires;
 
   const cookieOption: CookieOptions = {
     secure: config.env === "production",
     httpOnly: true,
-    sameSite: "strict", // Restrict cookie to same-site requests
-    // maxAge: 24 * 60 * 60 * 1000,// Cookie expires in 1 day
+    sameSite: "lax",
+    maxAge: Number(config.token_data.access_token_expires),
   };
+
+  res.cookie("accessToken", accessToken, cookieOption);
+  cookieOption.maxAge = Number(refreshExpires);
   res.cookie("refreshToken", refreshToken, cookieOption);
-  res.cookie("accessToken", refreshToken, cookieOption);
+
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Logged in successfully!",
@@ -31,7 +41,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
 });
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const { refreshToken } = req.cookies;
+  const refreshToken = req.headers.authorization || req.cookies.refreshToken;
   const { accessToken } = await AuthServices.refreshToken(
     req.clientIp as string,
     req.sessionID,
@@ -40,10 +50,11 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const cookieOption: CookieOptions = {
     secure: config.env === "production",
     httpOnly: true,
-    sameSite: "strict", // Restrict cookie to same-site requests
-    // maxAge: 24 * 60 * 60 * 1000,// Cookie expires in 1 day
+    sameSite: "lax",
+    maxAge: Number(config.token_data.access_token_expires),
   };
-  res.cookie("accessToken", refreshToken, cookieOption);
+  // console.log("accessToken", accessToken, Date.now())
+  res.cookie("accessToken", accessToken, cookieOption);
   successResponse<TRefreshTokenResponse>(res, {
     statusCode: httpStatus.OK,
     data: { accessToken },

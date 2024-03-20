@@ -145,6 +145,22 @@ const deleteOrderById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// const invoice = catchAsync(async (req: Request, res: Response) => {
+//   const invoiceNumber = 'INV12345';
+//   const date = new Date();
+//   const products = [
+//     { name: 'Product 1', quantity: 2, price: 10 },
+//     { name: 'Product 2', quantity: 1, price: 20 },
+//     { name: 'Product 3', quantity: 3, price: 15 }
+//   ];
+// const total = products.reduce((acc, product) => acc + (product.quantity * product.price), 0);
+// res.render('invoice', { invoiceNumber, date, products, total });
+// successResponse(res, {
+//   statusCode: httpStatus.OK,
+//   message: "Order deleted successfully.",
+// });
+// });
+
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -155,4 +171,5 @@ export const OrderController = {
   updateOrderDetails,
   createOrderFromSalesPage,
   deleteOrderById,
+  // invoice
 };

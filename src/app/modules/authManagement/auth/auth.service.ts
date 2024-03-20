@@ -7,7 +7,7 @@ import twilio from "twilio";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { jwtHelper } from "../../../helper/jwt.helper";
-import { errorLogger } from "../../../utilities/logger";
+// import { errorLogger } from "../../../utilities/logger";
 import { User } from "../../userManagement/user/user.model";
 import { TPasswordResetOtpData } from "../passwordResetOtp/passwordResetOtp.interface";
 import { PasswordResetOtp } from "../passwordResetOtp/passwordResetOtp.model";
@@ -17,14 +17,10 @@ import {
   TChangePasswordPayload,
   TJwtPayload,
   TLogin,
-  TLoginResponse,
   TRefreshTokenResponse,
 } from "./auth.interface";
 
-const login = async (
-  req: Request,
-  payload: TLogin
-): Promise<TLoginResponse> => {
+const login = async (req: Request, payload: TLogin) => {
   const { phoneNumber, password } = payload;
 
   const user = await User.isUserExist({ phoneNumber });
@@ -45,18 +41,18 @@ const refreshToken = async (
   token: string
 ): Promise<TRefreshTokenResponse> => {
   let verifiedToken = null;
-  const isTokenExist = await RefreshToken.findOne({ token });
-  if (!isTokenExist) {
-    throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
-  }
+  // const isTokenExist = await RefreshToken.findOne({ token });
+  // if (!isTokenExist) {
+  //   throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
+  // }
 
-  if (sessionId !== isTokenExist.sessionId || isTokenExist.ip !== ip) {
-    await RefreshToken.deleteOne({ token });
-    errorLogger.error(
-      `Tried to access ${isTokenExist._id} this account, from ${ip} this ip.`
-    );
-    throw new ApiError(httpStatus.BAD_REQUEST, "Un authorized request");
-  }
+  // if (sessionId !== isTokenExist.sessionId || isTokenExist.ip !== ip) {
+  //   await RefreshToken.deleteOne({ token });
+  //   errorLogger.error(
+  //     `Tried to access ${isTokenExist._id} this account, from ${ip} this ip.`
+  //   );
+  //   throw new ApiError(httpStatus.BAD_REQUEST, "Un authorized request");
+  // }
 
   try {
     verifiedToken = jwtHelper.verifyToken<TJwtPayload>(
@@ -76,12 +72,10 @@ const refreshToken = async (
       id: isExist?._id,
       role: isExist?.role as string,
       uid: isExist?.uid as string,
-      sessionId: isTokenExist.sessionId,
+      // sessionId: isTokenExist.sessionId,
     },
     config.token_data.access_token_secret as Secret,
-    isExist?.role === "customer"
-      ? (config.token_data.customer_refresh_token_expires as string)
-      : (config.token_data.admin_staff_refresh_token_expires as string)
+    config.token_data.access_token_expires as string
   );
   return { accessToken };
 };

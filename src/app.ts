@@ -22,7 +22,7 @@ const corsOptions: CorsOptions = {
   origin:
     config.env === "production"
       ? config.clientSideURL?.split(",")
-      : "localhost",
+      : "http://localhost:3000",
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: "Content-Type, Authorization",
@@ -38,7 +38,9 @@ const sessionOptions: SessionOptions = {
     httpOnly: true,
     secure: config.env === "production",
     domain:
-      config.env === "production" ? `.${config.main_domain}` : "localhost",
+      config.env === "production"
+        ? `.${config.main_domain}`
+        : "http://localhost:3000",
   },
 };
 

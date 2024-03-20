@@ -15,8 +15,7 @@ route.post(
 );
 route.post(
   "/access-token",
-  validateRequest(refreshTokenZodSchema),
-
+  // validateRequest(refreshTokenZodSchema),
   AuthControllers.refreshToken
 );
 route.post(

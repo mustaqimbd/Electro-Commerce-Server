@@ -60,4 +60,6 @@ router.delete("/:id", OrderController.deleteOrderById);
 
 // router.patch("/update-quantity/:id");
 
+// router.get("/invoice", OrderController.invoice)
+
 export const OrderRoutes = router;
