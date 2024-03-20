@@ -23,6 +23,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
     user?.role === "customer" ? customerRfExpires : adminOrStaffRefExpires;
 
   const cookieOption: CookieOptions = {
+    domain: `.${config.main_domain}`,
     secure: config.env === "production",
     httpOnly: true,
     sameSite: "lax",
@@ -48,6 +49,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     refreshToken
   );
   const cookieOption: CookieOptions = {
+    domain: `.${config.main_domain}`,
     secure: config.env === "production",
     httpOnly: true,
     sameSite: "lax",
