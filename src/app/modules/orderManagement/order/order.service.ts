@@ -807,13 +807,16 @@ const updateOrderDetailsByAdminIntoDB = async (
       ).session(session);
     }
     const updatedDoc: Record<string, unknown> = {};
-    if (discount) {
-      updatedDoc.discount = Number(discount || 0);
+    const discountInNumber = Number(discount || 0);
+
+    if (discountInNumber || discountInNumber === 0) {
+      updatedDoc.discount = discountInNumber;
       updatedDoc.total =
         Number(findOrder?.subtotal || 0) -
-        discount +
+        discountInNumber +
         Number((findOrder?.shippingCharge as TShippingCharge)?.amount || 0);
     }
+
     updatedDoc.invoiceNotes = invoiceNotes;
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
@@ -993,13 +996,13 @@ const updateOrderedProductQuantityByAdmin = async (
       );
     }
 
-    let subtotalWithOutChangedItem = 0;
+    let subtotalWithoutChangedItem = 0;
     (orderedProducts.productDetails as TProductDetails[])
       .filter((item) => item._id !== orderItem._id)
-      .forEach((item) => (subtotalWithOutChangedItem += item.total));
+      .forEach((item) => (subtotalWithoutChangedItem += item.total));
 
     const updatedSubtotal =
-      subtotalWithOutChangedItem + orderItem.unitPrice * quantity;
+      subtotalWithoutChangedItem + orderItem.unitPrice * quantity;
     const updatedTotal = updatedSubtotal + shippingCharge.amount;
 
     const orderUpdateRes = await Order.updateOne(
