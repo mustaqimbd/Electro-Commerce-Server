@@ -787,7 +787,8 @@ const updateOrderDetailsByAdminIntoDB = async (
   id: mongoose.Types.ObjectId,
   payload: Partial<TOrder>
 ) => {
-  const { subtotal, shipping, invoiceNotes, officialNotes } = payload;
+  const { subtotal, shipping, invoiceNotes, officialNotes, courierNotes } =
+    payload;
   const findOrder = await Order.findOne({ _id: id }).populate([
     { path: "shippingCharge", select: "amount -_id" },
   ]);
@@ -814,6 +815,7 @@ const updateOrderDetailsByAdminIntoDB = async (
           (findOrder.shippingCharge as TShippingCharge).amount,
         invoiceNotes,
         officialNotes,
+        courierNotes,
       };
       await Order.findOneAndUpdate({ _id: id }, updatedDoc).session(session);
     }

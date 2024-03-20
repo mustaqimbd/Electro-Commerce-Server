@@ -32,6 +32,7 @@ export type TOrderData = {
   orderNotes?: string;
   officialNotes?: string;
   invoiceNotes?: string;
+  courierNotes?: string;
 };
 
 export type TOrder = TOrderData & Document;

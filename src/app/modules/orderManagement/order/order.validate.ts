@@ -37,6 +37,7 @@ const updateOrderDetailsByAdmin = z.object({
     subtotal: z.number().optional(),
     officialNotes: z.string().optional(),
     invoiceNotes: z.string().optional(),
+    courierNotes: z.string().optional(),
     shipping: z
       .object({
         fullName: z.string().optional(),
