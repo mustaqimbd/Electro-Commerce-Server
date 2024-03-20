@@ -787,7 +787,8 @@ const updateOrderDetailsByAdminIntoDB = async (
   id: mongoose.Types.ObjectId,
   payload: Partial<TOrder>
 ) => {
-  const { subtotal, shipping, invoiceNotes, officialNotes } = payload;
+  const { discount, shipping, invoiceNotes, officialNotes, courierNotes } =
+    payload;
   const findOrder = await Order.findOne({ _id: id }).populate([
     { path: "shippingCharge", select: "amount -_id" },
   ]);
@@ -805,18 +806,21 @@ const updateOrderDetailsByAdminIntoDB = async (
         shipping
       ).session(session);
     }
-    if (subtotal) {
-      const subtotalInNumber = Number(subtotal || 0);
-      const updatedDoc = {
-        subtotal: subtotalInNumber,
-        total:
-          subtotalInNumber +
-          (findOrder.shippingCharge as TShippingCharge).amount,
-        invoiceNotes,
-        officialNotes,
-      };
-      await Order.findOneAndUpdate({ _id: id }, updatedDoc).session(session);
+    const updatedDoc: Record<string, unknown> = {};
+    const discountInNumber = Number(discount || 0);
+
+    if (discountInNumber || discountInNumber === 0) {
+      updatedDoc.discount = discountInNumber;
+      updatedDoc.total =
+        Number(findOrder?.subtotal || 0) -
+        discountInNumber +
+        Number((findOrder?.shippingCharge as TShippingCharge)?.amount || 0);
     }
+
+    updatedDoc.invoiceNotes = invoiceNotes;
+    updatedDoc.officialNotes = officialNotes;
+    updatedDoc.courierNotes = courierNotes;
+    await Order.findOneAndUpdate({ _id: id }, updatedDoc).session(session);
 
     await session.commitTransaction();
     await session.endSession();
@@ -900,10 +904,12 @@ const updateOrderedProductQuantityByAdmin = async (
         _id: null,
         orderedProducts: 1,
         shippingCharge: 1,
+        discount: 1,
       },
     },
   ];
   const order = (await Order.aggregate([...findOrderAggregation]))[0];
+
   const orderedProducts = order?.orderedProducts;
   const shippingCharge = order?.shippingCharge;
 
@@ -992,14 +998,15 @@ const updateOrderedProductQuantityByAdmin = async (
       );
     }
 
-    let subtotalWithOutChangedItem = 0;
+    let subtotalWithoutChangedItem = 0;
     (orderedProducts.productDetails as TProductDetails[])
       .filter((item) => item._id !== orderItem._id)
-      .forEach((item) => (subtotalWithOutChangedItem += item.total));
+      .forEach((item) => (subtotalWithoutChangedItem += item.total));
 
     const updatedSubtotal =
-      subtotalWithOutChangedItem + orderItem.unitPrice * quantity;
-    const updatedTotal = updatedSubtotal + shippingCharge.amount;
+      subtotalWithoutChangedItem + orderItem.unitPrice * quantity;
+    const updatedTotal =
+      updatedSubtotal + shippingCharge.amount - Number(order?.discount || 0);
 
     const orderUpdateRes = await Order.updateOne(
       { _id: orderId },

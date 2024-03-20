@@ -81,6 +81,9 @@ const OrderSchema = new Schema<TOrder>(
     invoiceNotes: {
       type: String,
     },
+    courierNotes: {
+      type: String,
+    },
   },
   {
     timestamps: true,
