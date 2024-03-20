@@ -27,7 +27,12 @@ export type TOrderData = {
   status: TOrderStatus;
   statusHistory: mongoose.Types.ObjectId | TOrderStatusHistory;
   shipping: mongoose.Types.ObjectId | TShipping;
+  isDeleted: boolean;
   orderFrom: string;
+  orderNotes?: string;
+  officialNotes?: string;
+  invoiceNotes?: string;
+  courierNotes?: string;
 };
 
 export type TOrder = TOrderData & Document;

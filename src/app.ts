@@ -22,7 +22,7 @@ const corsOptions: CorsOptions = {
   origin:
     config.env === "production"
       ? config.clientSideURL?.split(",")
-      : "http://localhost:3000",
+      : ["http://localhost:3000", "http://localhost:3001"],
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: "Content-Type, Authorization",
@@ -35,7 +35,7 @@ const sessionOptions: SessionOptions = {
   store: MongoStore.create({ mongoUrl: config.DBUrl }),
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * Number(config.session_expires),
-    httpOnly: true,
+    httpOnly: config.env === "production",
     secure: config.env === "production",
     domain:
       config.env === "production"
@@ -43,6 +43,9 @@ const sessionOptions: SessionOptions = {
         : "http://localhost:3000",
   },
 };
+
+// eslint-disable-next-line no-console
+console.log(sessionOptions.cookie?.domain);
 
 if (config.env === "production") {
   app.set("trust proxy", 1);

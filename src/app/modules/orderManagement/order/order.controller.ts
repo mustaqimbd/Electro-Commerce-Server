@@ -10,14 +10,16 @@ import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const { payment, shipping, shippingChargeId, orderFrom } = req.body;
+  const { payment, shipping, shippingChargeId, orderFrom, orderNotes } =
+    req.body;
   const user = req.user;
   const result = await OrderServices.createOrderIntoDB(
     payment,
     shipping,
     shippingChargeId,
     user as TOptionalAuthGuardPayload,
-    orderFrom
+    orderFrom,
+    orderNotes
   );
 
   successResponse<TOrder>(res, {
@@ -36,6 +38,7 @@ const createOrderFromSalesPage = catchAsync(
       orderFrom,
       productId,
       quantity,
+      orderNotes,
     } = req.body;
     const user = req.user;
     const result = await OrderServices.createOrderFromSalesPageIntoDB(
@@ -45,7 +48,8 @@ const createOrderFromSalesPage = catchAsync(
       user as TOptionalAuthGuardPayload,
       orderFrom,
       productId,
-      quantity
+      quantity,
+      orderNotes
     );
     successResponse<TOrder>(res, {
       statusCode: httpStatus.CREATED,
@@ -137,29 +141,30 @@ const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const deleteOrderById = catchAsync(async (req: Request, res: Response) => {
-  await OrderServices.deleteOrderByIdFromBD(req.params.id);
+const updateOrderedProductQuantityByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { orderedItemId, quantity } = req.body;
+    await OrderServices.updateOrderedProductQuantityByAdmin(
+      req.params.id,
+      orderedItemId,
+      Number(quantity)
+    );
+
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order quantity updated successfully.",
+    });
+  }
+);
+
+const deleteOrdersById = catchAsync(async (req: Request, res: Response) => {
+  const { orderIds } = req.body;
+  await OrderServices.deleteOrdersByIdFromBD(orderIds);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Order deleted successfully.",
   });
 });
-
-// const invoice = catchAsync(async (req: Request, res: Response) => {
-//   const invoiceNumber = 'INV12345';
-//   const date = new Date();
-//   const products = [
-//     { name: 'Product 1', quantity: 2, price: 10 },
-//     { name: 'Product 2', quantity: 1, price: 20 },
-//     { name: 'Product 3', quantity: 3, price: 15 }
-//   ];
-// const total = products.reduce((acc, product) => acc + (product.quantity * product.price), 0);
-// res.render('invoice', { invoiceNumber, date, products, total });
-// successResponse(res, {
-//   statusCode: httpStatus.OK,
-//   message: "Order deleted successfully.",
-// });
-// });
 
 export const OrderController = {
   createOrder,
@@ -170,6 +175,6 @@ export const OrderController = {
   getAllOrdersAdmin,
   updateOrderDetails,
   createOrderFromSalesPage,
-  deleteOrderById,
-  // invoice
+  deleteOrdersById,
+  updateOrderedProductQuantityByAdmin,
 };

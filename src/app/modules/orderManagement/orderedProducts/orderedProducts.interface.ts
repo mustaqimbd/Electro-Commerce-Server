@@ -8,7 +8,7 @@ export type TProductDetails = {
   unitPrice: number;
   quantity: number;
   total: number;
-};
+} & Document;
 
 export type TOrderedProductsData = {
   orderId: string;

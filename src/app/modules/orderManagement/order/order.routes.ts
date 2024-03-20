@@ -32,10 +32,10 @@ router.get(
 
 router.get(
   "/admin/all-orders",
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   requiredPermission: "manage orders",
-  // }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    //   requiredPermission: "manage orders",
+  }),
   OrderController.getAllOrdersAdmin
 );
 
@@ -51,15 +51,23 @@ router.patch(
 
 router.patch(
   "/update-order/:id",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   OrderController.updateOrderDetails
 );
 
-router.delete("/:id", OrderController.deleteOrderById);
+router.delete(
+  "/delete-many",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.deleteOrders),
+  OrderController.deleteOrdersById
+);
 
-// router.patch("/update-quantity/:id");
-
-// router.get("/invoice", OrderController.invoice)
+router.patch(
+  "/update-quantity/:id",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.updateQuantity),
+  OrderController.updateOrderedProductQuantityByAdmin
+);
 
 export const OrderRoutes = router;
