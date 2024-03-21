@@ -34,18 +34,14 @@ const sessionOptions: SessionOptions = {
   saveUninitialized: true,
   store: MongoStore.create({ mongoUrl: config.DBUrl }),
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * Number(config.session_expires),
+    domain:
+      config.env === "production" ? `.${config.main_domain}` : "localhost",
     httpOnly: config.env === "production",
     secure: config.env === "production",
-    domain:
-      config.env === "production"
-        ? `.${config.main_domain}`
-        : "http://localhost:3000",
+    sameSite: "lax",
+    maxAge: Number(config.session_expires),
   },
 };
-
-// eslint-disable-next-line no-console
-console.log(sessionOptions.cookie?.domain);
 
 if (config.env === "production") {
   app.set("trust proxy", 1);

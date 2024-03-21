@@ -15,19 +15,24 @@ const login = catchAsync(async (req: Request, res: Response) => {
   const result = await AuthServices.login(req, payload);
   const { user, accessToken, refreshToken } = result;
 
+  // const user = { role: "" }
+  // const accessToken = "testacesstoken"
+  // const refreshToken = "testrefreshToken"
+
   const customerRfExpires = config.token_data
-    .customer_refresh_token_expires as string;
+    .customer_refresh_token_cookie_expires as string;
   const adminOrStaffRefExpires = config.token_data
-    .admin_staff_refresh_token_expires as string;
+    .admin_staff_refresh_token_cookie_expires as string;
   const refreshExpires =
     user?.role === "customer" ? customerRfExpires : adminOrStaffRefExpires;
 
   const cookieOption: CookieOptions = {
-    domain: `.${config.main_domain}`,
+    domain:
+      config.env === "production" ? `.${config.main_domain}` : "localhost",
+    httpOnly: config.env === "production",
     secure: config.env === "production",
-    httpOnly: true,
     sameSite: "lax",
-    maxAge: Number(config.token_data.access_token_expires),
+    maxAge: Number(config.token_data.access_token_cookie_expires),
   };
 
   res.cookie("accessToken", accessToken, cookieOption);
@@ -48,17 +53,21 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     req.sessionID,
     refreshToken
   );
+  // const accessToken=refreshToken
   const cookieOption: CookieOptions = {
-    domain: `.${config.main_domain}`,
+    domain:
+      config.env === "production" ? `.${config.main_domain}` : "localhost",
+    httpOnly: config.env === "production",
     secure: config.env === "production",
-    httpOnly: true,
     sameSite: "lax",
-    maxAge: Number(config.token_data.access_token_expires),
+    maxAge: Number(config.token_data.access_token_cookie_expires),
   };
+  // res.cookie("accessToken", "", { expires: new Date(0) });
   // console.log("accessToken", accessToken, Date.now())
   res.cookie("accessToken", accessToken, cookieOption);
   successResponse<TRefreshTokenResponse>(res, {
     statusCode: httpStatus.OK,
+    message: "Access token retrieved successfully!",
     data: { accessToken },
   });
 });
