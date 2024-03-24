@@ -10,8 +10,15 @@ import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const { payment, shipping, shippingChargeId, orderFrom, orderNotes } =
-    req.body;
+  const {
+    payment,
+    shipping,
+    shippingChargeId,
+    orderFrom,
+    orderNotes,
+    eventId,
+    orderSource,
+  } = req.body;
   const user = req.user;
   const result = await OrderServices.createOrderIntoDB(
     payment,
@@ -19,7 +26,10 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
     shippingChargeId,
     user as TOptionalAuthGuardPayload,
     orderFrom,
-    orderNotes
+    orderNotes,
+    req as Request,
+    eventId,
+    orderSource
   );
 
   successResponse<TOrder>(res, {
@@ -39,6 +49,8 @@ const createOrderFromSalesPage = catchAsync(
       productId,
       quantity,
       orderNotes,
+      eventId,
+      orderSource,
     } = req.body;
     const user = req.user;
     const result = await OrderServices.createOrderFromSalesPageIntoDB(
@@ -49,7 +61,10 @@ const createOrderFromSalesPage = catchAsync(
       orderFrom,
       productId,
       quantity,
-      orderNotes
+      orderNotes,
+      req,
+      eventId,
+      orderSource
     );
     successResponse<TOrder>(res, {
       statusCode: httpStatus.CREATED,

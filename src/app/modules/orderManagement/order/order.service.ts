@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Request } from "express";
 import httpStatus from "http-status";
 import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
+import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TSelectedAttributes } from "../../../types/attribute";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
@@ -27,7 +29,7 @@ import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
-import { TOrder, TOrderStatus } from "./order.interface";
+import { TOrder, TOrderSource, TOrderStatus } from "./order.interface";
 import { Order } from "./order.model";
 import createOrderId from "./order.utils";
 
@@ -37,11 +39,19 @@ const createOrderIntoDB = async (
   shippingChargeId: mongoose.Types.ObjectId,
   user: TOptionalAuthGuardPayload,
   orderFrom: string,
-  orderNotes?: string
+  orderNotes: string,
+  req: Request,
+  eventId: string,
+  orderSource: TOrderSource
 ): Promise<TOrder> => {
   const userQuery = optionalAuthUserQuery(user);
   let response;
   const session = await mongoose.startSession();
+  let singleOrder: { product: string; quantity: number } = {
+    product: "",
+    quantity: 0,
+  };
+  let totalCost = 0;
   try {
     session.startTransaction();
     const orderData: Partial<TOrder> = {};
@@ -130,6 +140,8 @@ const createOrderIntoDB = async (
       orderId,
       productDetails: orderedProductData,
     };
+    singleOrder = orderedProductData[0];
+
     orderData.orderedProductsDetails = (
       await OrderedProducts.create([orderedProductsData], { session })
     )[0]._id;
@@ -168,15 +180,17 @@ const createOrderIntoDB = async (
         "Failed to find shipping charges"
       );
     }
+    totalCost = onlyProductsCosts + Number(shippingCharges?.amount);
     orderData.orderId = orderId;
     orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
     orderData.sessionId = userQuery.sessionId as string;
     orderData.subtotal = onlyProductsCosts;
     orderData.shippingCharge = shippingCharges?._id;
-    orderData.total = onlyProductsCosts + Number(shippingCharges?.amount);
+    orderData.total = totalCost;
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
     orderData.orderNotes = orderNotes;
+    orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -195,6 +209,19 @@ const createOrderIntoDB = async (
     await session.endSession();
     throw error;
   }
+
+  purchaseEventHelper(
+    shipping,
+    {
+      productId: singleOrder.product,
+      quantity: singleOrder.quantity,
+      totalCost,
+    },
+    orderSource,
+    req,
+    eventId
+  );
+
   return response;
 };
 
@@ -206,7 +233,10 @@ const createOrderFromSalesPageIntoDB = async (
   orderFrom: string,
   productId: mongoose.Types.ObjectId,
   quantity: number,
-  orderNotes: string
+  orderNotes: string,
+  req: Request,
+  eventId: string,
+  orderSource: TOrderSource
 ): Promise<TOrder> => {
   if (typeof quantity !== "number" || !quantity) {
     throw new ApiError(
@@ -218,6 +248,7 @@ const createOrderFromSalesPageIntoDB = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "Product ID must be given.");
   }
 
+  let totalCost = 0;
   const userQuery = optionalAuthUserQuery(user);
   let response;
   const session = await mongoose.startSession();
@@ -309,16 +340,18 @@ const createOrderFromSalesPageIntoDB = async (
         "Failed to find shipping charges"
       );
     }
+    totalCost = orderedProductData?.total + Number(shippingCharges?.amount);
     orderData.orderId = orderId;
     orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
     orderData.sessionId = userQuery.sessionId as string;
     orderData.subtotal = orderedProductData?.total;
     orderData.shippingCharge = shippingCharges?._id;
-    orderData.total =
-      orderedProductData?.total + Number(shippingCharges?.amount);
+    orderData.total = totalCost;
+
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
     orderData.orderNotes = orderNotes;
+    orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -337,6 +370,16 @@ const createOrderFromSalesPageIntoDB = async (
     await session.endSession();
     throw error;
   }
+
+  // track on facebook pixel
+  purchaseEventHelper(
+    shipping,
+    { productId, quantity, totalCost },
+    orderSource,
+    req,
+    eventId
+  );
+
   return response;
 };
 

@@ -35,4 +35,6 @@ export default {
     auth_token: env.TWILIO_AUTH_TOKEN,
     phone_number: env.TWILIO_PHONE_NUMBER,
   },
+  c_api_access_token: env.C_API_ACCESS_TOKEN,
+  pixel_id: env.PIXEL_ID,
 };
