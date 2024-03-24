@@ -1,4 +1,4 @@
-import { TOrderStatus } from "./order.interface";
+import { TOrderSourceName, TOrderStatus } from "./order.interface";
 
 export const orderStatus: TOrderStatus[] = [
   "pending",
@@ -6,4 +6,13 @@ export const orderStatus: TOrderStatus[] = [
   "On courier",
   "completed",
   "canceled",
+];
+
+export const orderSources: TOrderSourceName[] = [
+  "Website",
+  "Landing Page",
+  "App",
+  "Phone Call",
+  "Social Media",
+  "From Office",
 ];

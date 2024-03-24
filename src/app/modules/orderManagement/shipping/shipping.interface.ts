@@ -6,4 +6,4 @@ export type TShippingData = {
   phoneNumber: string;
 } & TAddressData;
 
-export type TShipping = TAddressData | Document;
+export type TShipping = TShippingData & Document;
