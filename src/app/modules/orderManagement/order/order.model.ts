@@ -88,7 +88,6 @@ const OrderSchema = new Schema<TOrder>(
       name: {
         type: String,
         enum: orderSources,
-        required: true,
       },
       url: {
         type: String,
