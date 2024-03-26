@@ -4,11 +4,12 @@ import * as bizSdk from "facebook-nodejs-business-sdk";
 import config from "../config/config";
 import { TOrderSource } from "../modules/orderManagement/order/order.interface";
 import { TShippingData } from "../modules/orderManagement/shipping/shipping.interface";
+import { CApiHash } from "../utilities/CApiHash";
 import { errorLogger } from "../utilities/logger";
 
 export const pixelEventHandler = (
   eventName: "Purchase" | "AddToCart" | "InitiateCheckout",
-  usesDataInput: { phone: string[]; email?: string },
+  usesDataInput: { phone: string; email?: string },
   productInfo: { productId: string; quantity: number },
   customDataInput: { value: number },
   sourceUrl: string,
@@ -30,9 +31,10 @@ export const pixelEventHandler = (
   const current_timestamp = Math.floor(
     (new Date() as unknown as number) / 1000
   );
+
   const userData = new UserData()
     .setEmails([...(usesDataInput.email as string)])
-    .setPhones([...usesDataInput.phone])
+    .setPhone(CApiHash(usesDataInput.phone))
     .setClientIpAddress(req.clientIp as string)
     .setClientUserAgent(req?.headers!["user-agent"] as string)
     .setFbp(req?.cookies?._fbp)
@@ -79,7 +81,7 @@ export const purchaseEventHelper = (
   if (config.c_api_access_token && config.pixel_id) {
     pixelEventHandler(
       "Purchase",
-      { phone: [shipping.phoneNumber], email: "" },
+      { phone: shipping.phoneNumber, email: "" },
       { productId: orderInfo.productId, quantity: orderInfo.quantity },
       { value: orderInfo.totalCost },
       `${orderSource.url}`,
