@@ -1,4 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
+import { orderSources } from "./order.const";
 import { TOrder } from "./order.interface";
 
 const OrderSchema = new Schema<TOrder>(
@@ -70,7 +71,6 @@ const OrderSchema = new Schema<TOrder>(
     },
     orderFrom: {
       type: String,
-      required: true,
     },
     orderNotes: {
       type: String,
@@ -83,6 +83,15 @@ const OrderSchema = new Schema<TOrder>(
     },
     courierNotes: {
       type: String,
+    },
+    orderSource: {
+      name: {
+        type: String,
+        enum: orderSources,
+      },
+      url: {
+        type: String,
+      },
     },
   },
   {

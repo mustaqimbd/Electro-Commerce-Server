@@ -12,6 +12,19 @@ export type TOrderStatus =
   | "completed"
   | "canceled";
 
+export type TOrderSourceName =
+  | "Website"
+  | "Landing Page"
+  | "App"
+  | "Phone Call"
+  | "Social Media"
+  | "From Office";
+
+export type TOrderSource = {
+  name: TOrderSourceName;
+  url?: string;
+};
+
 export type TOrderData = {
   orderId: string;
   userId: mongoose.Types.ObjectId | TUser;
@@ -33,6 +46,7 @@ export type TOrderData = {
   officialNotes?: string;
   invoiceNotes?: string;
   courierNotes?: string;
+  orderSource: TOrderSource;
 };
 
 export type TOrder = TOrderData & Document;

@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Request } from "express";
 import httpStatus from "http-status";
 import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
+import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TSelectedAttributes } from "../../../types/attribute";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import { convertIso } from "../../../utilities/ISOConverter";
 import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
@@ -27,7 +30,7 @@ import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
-import { TOrder, TOrderStatus } from "./order.interface";
+import { TOrder, TOrderSource, TOrderStatus } from "./order.interface";
 import { Order } from "./order.model";
 import createOrderId from "./order.utils";
 
@@ -37,11 +40,19 @@ const createOrderIntoDB = async (
   shippingChargeId: mongoose.Types.ObjectId,
   user: TOptionalAuthGuardPayload,
   orderFrom: string,
-  orderNotes?: string
+  orderNotes: string,
+  req: Request,
+  eventId: string,
+  orderSource: TOrderSource
 ): Promise<TOrder> => {
   const userQuery = optionalAuthUserQuery(user);
   let response;
   const session = await mongoose.startSession();
+  let singleOrder: { product: string; quantity: number } = {
+    product: "",
+    quantity: 0,
+  };
+  let totalCost = 0;
   try {
     session.startTransaction();
     const orderData: Partial<TOrder> = {};
@@ -130,6 +141,8 @@ const createOrderIntoDB = async (
       orderId,
       productDetails: orderedProductData,
     };
+    singleOrder = orderedProductData[0];
+
     orderData.orderedProductsDetails = (
       await OrderedProducts.create([orderedProductsData], { session })
     )[0]._id;
@@ -168,15 +181,17 @@ const createOrderIntoDB = async (
         "Failed to find shipping charges"
       );
     }
+    totalCost = onlyProductsCosts + Number(shippingCharges?.amount);
     orderData.orderId = orderId;
     orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
     orderData.sessionId = userQuery.sessionId as string;
     orderData.subtotal = onlyProductsCosts;
     orderData.shippingCharge = shippingCharges?._id;
-    orderData.total = onlyProductsCosts + Number(shippingCharges?.amount);
+    orderData.total = totalCost;
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
     orderData.orderNotes = orderNotes;
+    orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -195,6 +210,19 @@ const createOrderIntoDB = async (
     await session.endSession();
     throw error;
   }
+
+  purchaseEventHelper(
+    shipping,
+    {
+      productId: singleOrder.product,
+      quantity: singleOrder.quantity,
+      totalCost,
+    },
+    orderSource,
+    req,
+    eventId
+  );
+
   return response;
 };
 
@@ -206,7 +234,10 @@ const createOrderFromSalesPageIntoDB = async (
   orderFrom: string,
   productId: mongoose.Types.ObjectId,
   quantity: number,
-  orderNotes: string
+  orderNotes: string,
+  req: Request,
+  eventId: string,
+  orderSource: TOrderSource
 ): Promise<TOrder> => {
   if (typeof quantity !== "number" || !quantity) {
     throw new ApiError(
@@ -218,6 +249,7 @@ const createOrderFromSalesPageIntoDB = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "Product ID must be given.");
   }
 
+  let totalCost = 0;
   const userQuery = optionalAuthUserQuery(user);
   let response;
   const session = await mongoose.startSession();
@@ -309,16 +341,18 @@ const createOrderFromSalesPageIntoDB = async (
         "Failed to find shipping charges"
       );
     }
+    totalCost = orderedProductData?.total + Number(shippingCharges?.amount);
     orderData.orderId = orderId;
     orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
     orderData.sessionId = userQuery.sessionId as string;
     orderData.subtotal = orderedProductData?.total;
     orderData.shippingCharge = shippingCharges?._id;
-    orderData.total =
-      orderedProductData?.total + Number(shippingCharges?.amount);
+    orderData.total = totalCost;
+
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
     orderData.orderNotes = orderNotes;
+    orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -337,16 +371,42 @@ const createOrderFromSalesPageIntoDB = async (
     await session.endSession();
     throw error;
   }
+
+  // track on facebook pixel
+  purchaseEventHelper(
+    shipping,
+    { productId, quantity, totalCost },
+    orderSource,
+    req,
+    eventId
+  );
+
   return response;
 };
 
-const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
-  const matchQuery: { isDeleted: Record<string, unknown>; status?: string } = {
+const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
+  const matchQuery: Record<string, unknown> = {
     isDeleted: { $ne: true },
   };
 
   if (query.status) {
     matchQuery.status = query?.status as string;
+  }
+
+  if (query.startFrom) {
+    const startTime = convertIso(query.startFrom);
+    matchQuery.createdAt = {
+      ...(matchQuery.createdAt || {}),
+      $gte: startTime,
+    };
+  }
+
+  if (query.endAt) {
+    const endTime = convertIso(query.endAt, false);
+    matchQuery.createdAt = {
+      ...(matchQuery.createdAt || {}),
+      $lte: endTime,
+    };
   }
 
   const pipeline: PipelineStage[] = [
@@ -409,32 +469,77 @@ const getAllOrdersAdminFromDB = async (query: Record<string, unknown>) => {
       $unwind: "$paymentMethodThumb",
     },
     {
+      $unwind: "$orderedProducts.productDetails",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "orderedProducts.productDetails.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: "$productInfo",
+    },
+    {
+      $group: {
+        _id: "$_id",
+        orderId: { $first: "$orderId" },
+        total: { $first: "$total" },
+        discount: { $first: "$discount" },
+        status: { $first: "$status" },
+        shipping: { $first: "$shippingData" },
+        payment: { $first: "$payment" },
+        createdAt: { $first: "$createdAt" },
+        officialNotes: { $first: "$officialNotes" },
+        invoiceNotes: { $first: "$invoiceNotes" },
+        courierNotes: { $first: "$courierNotes" },
+        orderSource: { $first: "$orderSource" },
+        productDetails: {
+          $push: {
+            product: {
+              title: "$productInfo.title",
+            },
+            unitPrice: "$orderedProducts.productDetails.unitPrice",
+            quantity: "$orderedProducts.productDetails.quantity",
+            total: "$orderedProducts.productDetails.total",
+          },
+        },
+      },
+    },
+    {
       $project: {
         _id: 1,
         orderId: 1,
         total: 1,
+        discount: 1,
         status: 1,
         shipping: {
-          customerName: "$shippingData.fullName",
-          phoneNumber: "$shippingData.phoneNumber",
-          fullAddress: "$shippingData.fullAddress",
+          customerName: "$shipping.fullName",
+          phoneNumber: "$shipping.phoneNumber",
+          fullAddress: "$shipping.fullAddress",
         },
+        payment: 1,
+        productDetails: 1,
         createdAt: 1,
-        payment: {
-          method: {
-            name: "$paymentMethod.name",
-            image: {
-              src: "$paymentMethodThumb.src",
-              alt: "$paymentMethodThumb.alt",
-            },
-          },
-          transactionId: "$paymentInfo.transactionId",
-          phoneNumber: "$paymentInfo.phoneNumber",
-        },
-        orderedProducts: 1,
+        officialNotes: 1,
+        invoiceNotes: 1,
+        courierNotes: 1,
+        orderSource: 1,
       },
     },
   ];
+
+  if (query.phoneNumber) {
+    pipeline.push({
+      $match: {
+        $expr: {
+          $eq: ["$shipping.phoneNumber", query.phoneNumber],
+        },
+      },
+    });
+  }
 
   const orderQuery = new AggregateQueryHelper(
     Order.aggregate(pipeline),
@@ -573,33 +678,33 @@ const getOrderInfoByOrderIdAdminFromDB = async (
   //       from: "orderedproducts",
   //       localField: "orderedProductsDetails",
   //       foreignField: "_id",
-  //       as: "orderedproducts"
-  //     }
+  //       as: "orderedproducts",
+  //     },
   //   },
   //   {
-  //     $unwind: "$orderedproducts"
+  //     $unwind: "$orderedproducts",
   //   },
   //   {
   //     $lookup: {
   //       from: "products",
   //       localField: "orderedproducts.productDetails.product",
   //       foreignField: "_id",
-  //       as: "products"
-  //     }
+  //       as: "products",
+  //     },
   //   },
   //   {
-  //     $unwind: "$products"
+  //     $unwind: "$products",
   //   },
   //   {
   //     $lookup: {
   //       from: "images",
   //       localField: "products.image.thumbnail",
   //       foreignField: "_id",
-  //       as: "image"
-  //     }
+  //       as: "image",
+  //     },
   //   },
   //   {
-  //     $unwind: "$image"
+  //     $unwind: "$image",
   //   },
   //   {
   //     $lookup: {
@@ -672,19 +777,40 @@ const getOrderInfoByOrderIdAdminFromDB = async (
   //       statusHistory: { refunded: 1, history: 1 },
   //       shippingCharge: { name: 1, amount: 1 },
   //       payment: 1,
-  //       products: 1,
+  //       products: {
+  //         _id: 1,
+  //         title: 1,
+  //         image: {
+  //           src: "$image.src",
+  //           alt: "$image.alt",
+  //         },
+  //         unitPrice: 1,
+  //         quantity: 1,
+  //         total: 1,
+  //       },
   //       shipping: {
   //         fullName: 1,
   //         phoneNumber: 1,
   //         fullAddress: 1,
   //       },
+  //       productDetails: {
+  //         product: "$orderedProductsDetails.productDetails.product",
+  //         unitPrice: "$orderedProductsDetails.productDetails.unitPrice",
+  //       },
+  //       orderedproducts: 1,
   //       status: 1,
   //       total: 1,
-  //     }
-  //   }
+  //       courierNotes: 1,
+  //       invoiceNotes: 1,
+  //       officialNotes: 1,
+  //       discount: 1,
+  //     },
+  //   },
   // ];
 
-  // const result = await Order.aggregate(pipeline)
+  // const result2 = await Order.aggregate(pipeline);
+  // console.log(result2);
+  // console.log(result2[0].orderedproducts);
 
   return result;
 };

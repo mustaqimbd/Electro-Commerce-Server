@@ -2,7 +2,7 @@ import { z } from "zod";
 import { genericPhoneNumberZodSchema } from "../../userManagement/user/user.validation";
 import { paymentZodSchema } from "../orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../shipping/shipping.validation";
-import { orderStatus } from "./order.const";
+import { orderSources, orderStatus } from "./order.const";
 
 const createOrderValidation = z.object({
   body: z.object({
@@ -12,7 +12,16 @@ const createOrderValidation = z.object({
     }),
     shipping: shippingValidationZodSchema(true),
     orderNotes: z.string().optional(),
-    orderFrom: z.string({ required_error: "Order from is required." }),
+    eventId: z.string({ required_error: "Event id is required." }),
+    orderSource: z.object(
+      {
+        name: z.enum([...orderSources] as [string, ...string[]], {
+          required_error: "Source name is required.",
+        }),
+        url: z.string().optional(),
+      },
+      { required_error: "Some value from order source is required." }
+    ),
   }),
 });
 
