@@ -118,8 +118,9 @@ const getAllOrderCustomers = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllOrdersAdmin = catchAsync(async (req: Request, res: Response) => {
-  const { meta, data } = await OrderServices.getAllOrdersAdminFromDB(req.query);
-
+  const { meta, data } = await OrderServices.getAllOrdersAdminFromDB(
+    req.query as unknown as Record<string, string>
+  );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All orders retrieved successfully",
@@ -181,6 +182,15 @@ const deleteOrdersById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const orderCountsByStatus = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.orderCountsByStatusFromBD();
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Orders count by status",
+    data: result,
+  });
+});
+
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -192,4 +202,5 @@ export const OrderController = {
   createOrderFromSalesPage,
   deleteOrdersById,
   updateOrderedProductQuantityByAdmin,
+  orderCountsByStatus,
 };

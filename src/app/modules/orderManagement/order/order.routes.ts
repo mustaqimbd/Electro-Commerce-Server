@@ -70,4 +70,10 @@ router.patch(
   OrderController.updateOrderedProductQuantityByAdmin
 );
 
+router.get(
+  "/orders-count-by-status",
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  OrderController.orderCountsByStatus
+);
+
 export const OrderRoutes = router;

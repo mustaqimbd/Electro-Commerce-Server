@@ -10,7 +10,10 @@ export type TOrderStatus =
   | "processing"
   | "On courier"
   | "completed"
-  | "canceled";
+  | "canceled"
+  | "follow up"
+  | "returned"
+  | "deleted";
 
 export type TOrderSourceName =
   | "Website"
