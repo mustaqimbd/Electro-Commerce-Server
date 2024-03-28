@@ -6,6 +6,9 @@ export const orderStatus: TOrderStatus[] = [
   "On courier",
   "completed",
   "canceled",
+  "follow up",
+  "returned",
+  "deleted",
 ];
 
 export const orderSources: TOrderSourceName[] = [

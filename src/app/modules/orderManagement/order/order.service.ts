@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request } from "express";
 import httpStatus from "http-status";
 import mongoose, { PipelineStage } from "mongoose";
@@ -91,6 +90,7 @@ const createOrderIntoDB = async (
       const productItem = item as {
         quantity: number;
         attributes: TSelectedAttributes[];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         product: any;
       };
       if (productItem.product.isDeleted) {
@@ -873,6 +873,7 @@ const updateOrderStatusIntoDB = async (
         ])
         .session(session);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const orderedProductsIds = (order?.orderedProductsDetails as any)
         ?.productDetails;
       for (const item of orderedProductsIds) {
@@ -980,6 +981,7 @@ const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
           ).session(session);
         }
         order.isDeleted = true;
+        order.status = "deleted";
         await order.save({ session });
       }
     }
@@ -1160,6 +1162,26 @@ const updateOrderedProductQuantityByAdmin = async (
   }
 };
 
+const orderCountsByStatusFromBD = async () => {
+  const pipeline = [
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        name: "$_id",
+        total: 1,
+        _id: 0,
+      },
+    },
+  ];
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
 // this will need later
 // const deleteOrderByIdFromBD = async (id: string) => {
 //   const session = await mongoose.startSession();
@@ -1222,4 +1244,5 @@ export const OrderServices = {
   updateOrderDetailsByAdminIntoDB,
   deleteOrdersByIdFromBD,
   updateOrderedProductQuantityByAdmin,
+  orderCountsByStatusFromBD,
 };
