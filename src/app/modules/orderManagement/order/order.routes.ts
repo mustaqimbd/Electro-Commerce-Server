@@ -40,7 +40,7 @@ router.get(
 );
 
 router.patch(
-  "/update-status/:id",
+  "/update-status",
   validateRequest(OrderValidation.updateOrderStatus),
   // authGuard({
   //   requiredRoles: ["admin", "staff"],

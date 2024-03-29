@@ -131,13 +131,8 @@ const getAllOrdersAdmin = catchAsync(async (req: Request, res: Response) => {
 
 const updateStatus = catchAsync(async (req: Request, res: Response) => {
   const user = req.user;
-  const { id } = req.params;
 
-  await OrderServices.updateOrderStatusIntoDB(
-    user as TJwtPayload,
-    id as unknown as mongoose.Types.ObjectId,
-    req.body
-  );
+  await OrderServices.updateOrderStatusIntoDB(user as TJwtPayload, req.body);
 
   successResponse<TOrderStatusHistory>(res, {
     statusCode: httpStatus.CREATED,

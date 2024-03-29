@@ -29,6 +29,7 @@ const updateOrderStatus = z.object({
   body: z.object({
     status: z.enum([...orderStatus] as [string, ...string[]]),
     message: z.string().optional(),
+    orderIds: z.string({ required_error: "Order ids is required" }).array(),
   }),
   // .refine((data) => {
   //   let res = true;
