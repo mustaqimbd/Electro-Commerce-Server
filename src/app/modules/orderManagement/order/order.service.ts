@@ -812,91 +812,251 @@ const getOrderInfoByOrderIdAdminFromDB = async (
   // console.log(result2);
   // console.log(result2[0].orderedproducts);
 
+  // const pipeline = [
+  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  //   {
+  //     $lookup: {
+  //       from: "orderedproducts",
+  //       localField: "orderedProductsDetails",
+  //       foreignField: "_id",
+  //       as: "orderedProducts",
+  //     },
+  //   },
+  //   {
+  //     $unwind: "$orderedProducts",
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "products",
+  //       localField: "orderedProducts.productDetails.product",
+  //       foreignField: "_id",
+  //       as: "orderedProducts.productDetails.product",
+  //     },
+  //   },
+  //   {
+  //     $unwind: "$orderedProducts.productDetails.product",
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "images",
+  //       localField: "orderedProducts.productDetails.product.image.thumbnail",
+  //       foreignField: "_id",
+  //       as: "orderedProducts.productDetails.product.image.thumbnail",
+  //     },
+  //   },
+  //   {
+  //     $unwind: "$orderedProducts.productDetails.product.image.thumbnail",
+  //   },
+  //   {
+  //     $group: {
+  //       _id: "$_id",
+  //       orderId: { $first: "$orderId" },
+  //       userId: { $first: "$userId" },
+  //       // Add other fields from Order model as needed
+  //       orderedProducts: { $push: "$orderedProducts" },
+  //     },
+  //   },
+  //   {
+  //     $project: {
+  //       _id: 0, // Exclude _id field
+  //       orderId: 1,
+  //       userId: 1,
+  //       orderedProducts: {
+  //         $map: {
+  //           // orderItemID: "$$orderedProduct.productDetails._id",
+  //           input: "$orderedProducts",
+  //           as: "orderedProduct",
+  //           in: {
+  //             product: {
+  //               _id: "$$orderedProduct.productDetails.product._id",
+  //               title: "$$orderedProduct.productDetails.product.title",
+  //               // Include other fields you need
+  //               image: {
+  //                 url: "$$orderedProduct.productDetails.product.image.thumbnail.src",
+  //                 alt: "$$orderedProduct.productDetails.product.image.thumbnail.src",
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //       // Project other fields from Order model as needed
+  //     },
+  //   },
+  // ];
+
+  // const pipeline = [
+  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
+  //   {
+  //     $lookup: {
+  //       from: "orderedproducts",
+  //       localField: "orderedProductsDetails",
+  //       foreignField: "_id",
+  //       as: "orderedProducts",
+  //     },
+  //   },
+  //   {
+  //     $unwind: "$orderedProducts",
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "products",
+  //       localField: "orderedProducts.productDetails.product",
+  //       foreignField: "_id",
+  //       as: "orderedProducts.productDetails.product",
+  //     },
+  //   },
+  //   {
+  //     $unwind: "$orderedProducts.productDetails.product",
+  //   },
+  //   {
+  //     $lookup: {
+  //       from: "images",
+  //       localField: "orderedProducts.productDetails.product.image.thumbnail",
+  //       foreignField: "_id",
+  //       as: "orderedProducts.productDetails.product.image.thumbnail",
+  //     },
+  //   },
+  //   {
+  //     $unwind: "$orderedProducts.productDetails.product.image.thumbnail",
+  //   },
+  //   {
+  //     $group: {
+  //       _id: "$_id",
+  //       orderId: { $first: "$orderId" },
+  //       userId: { $first: "$userId" },
+  //       orderedProducts: {
+  //         $push: {
+  //           product: {
+  //             _id: "$orderedProducts.productDetails.product._id",
+  //             title: "$orderedProducts.productDetails.product.title",
+  //             // Include other fields you need from the product
+  //             image: {
+  //               url: "$orderedProducts.productDetails.product.image.thumbnail.src",
+  //               alt: "$orderedProducts.productDetails.product.image.thumbnail.src",
+  //             },
+  //           },
+  //           productDetails: {
+  //             $map: {
+  //               input: "$orderedProducts.productDetails",
+  //               as: "details",
+  //               in: {
+  //                 _id: "$$details._id",
+  //                 unitPrice: "$$details.unitPrice",
+  //                 quantity: "$$details.quantity",
+  //                 total: "$$details.total",
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   },
+  //   {
+  //     $project: {
+  //       _id: 0,
+  //       orderId: 1,
+  //       userId: 1,
+  //       orderedProducts: 1,
+  //     },
+  //   },
+  // ];
+
+  // const res2 = await Order.aggregate(pipeline);
+  // console.log(res2);
+
+  // return res2;
   return result;
 };
 
 const updateOrderStatusIntoDB = async (
   user: TJwtPayload,
-  id: mongoose.Types.ObjectId,
   payload: {
     status: TOrderStatus;
     message: string;
+    orderIds: mongoose.Types.ObjectId[];
   }
 ): Promise<void> => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
+    for (const id of payload.orderIds) {
+      const isOrderAvailable = await Order.findById(id).session(session);
 
-    const isOrderAvailable = await Order.findById(id).session(session);
+      if (!isOrderAvailable) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No order found");
+      }
+      if (isOrderAvailable?.status === "canceled") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "This order is canceled.");
+      }
+      if (isOrderAvailable?.status === "deleted") {
+        throw new ApiError(httpStatus.BAD_REQUEST, "This order is deleted.");
+      }
+      isOrderAvailable.status = payload.status;
+      if (payload.status === "deleted") {
+        isOrderAvailable.isDeleted = true;
+      }
+      await isOrderAvailable.save({ session });
 
-    if (!isOrderAvailable) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No order found");
-    }
-    if (isOrderAvailable?.status === "canceled") {
-      throw new ApiError(httpStatus.BAD_REQUEST, "This order is canceled.");
-    }
-    isOrderAvailable.status = payload.status;
-    await isOrderAvailable.save({ session });
+      const orderStatusHistory = await OrderStatusHistory.findOne({
+        orderId: isOrderAvailable?.orderId,
+      }).session(session);
 
-    const orderStatusHistory = await OrderStatusHistory.findOne({
-      orderId: isOrderAvailable?.orderId,
-    }).session(session);
+      if (!orderStatusHistory) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No order status found.");
+      }
 
-    if (!orderStatusHistory) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No order status found.");
-    }
+      orderStatusHistory.message =
+        payload.status === "canceled" ? payload.message : undefined;
 
-    orderStatusHistory.message =
-      payload.status === "canceled" ? payload.message : undefined;
+      orderStatusHistory.history.push({
+        updatedBy: user.id,
+        status: payload.status,
+      });
 
-    orderStatusHistory.history.push({
-      updatedBy: user.id,
-      status: payload.status,
-    });
+      const result = await orderStatusHistory.save({ session });
 
-    const result = await orderStatusHistory.save({ session });
+      if (!result) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update status");
+      }
 
-    if (!result) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update status");
-    }
+      if (payload.status === "canceled" || payload.status === "deleted") {
+        const order = await Order.findOne(
+          { orderId: isOrderAvailable?.orderId },
+          { productDetails: 1 }
+        )
+          .populate([
+            {
+              path: "orderedProductsDetails",
+              select: "productDetails.product productDetails.quantity -_id",
+            },
+          ])
+          .session(session);
 
-    if (payload.status === "canceled") {
-      const order = await Order.findOne(
-        { orderId: isOrderAvailable?.orderId },
-        { productDetails: 1 }
-      )
-        .populate([
-          {
-            path: "orderedProductsDetails",
-            select: "productDetails.product productDetails.quantity -_id",
-          },
-        ])
-        .session(session);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const orderedProductsIds = (order?.orderedProductsDetails as any)
-        ?.productDetails;
-      for (const item of orderedProductsIds) {
-        const product = await ProductModel.findById(item.product, {
-          inventory: 1,
-        })
-          .session(session)
-          .lean();
-        if (!product) {
-          throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            "Failed to find the product"
-          );
-        }
-        const updateQUantity = await InventoryModel.updateOne(
-          { _id: product.inventory },
-          { $inc: { stockQuantity: item.quantity } }
-        ).session(session);
-        if (!updateQUantity.modifiedCount) {
-          throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            "Failed to update quantity"
-          );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const orderedProductsIds = (order?.orderedProductsDetails as any)
+          ?.productDetails;
+        for (const item of orderedProductsIds) {
+          const product = await ProductModel.findById(item.product, {
+            inventory: 1,
+          })
+            .session(session)
+            .lean();
+          if (!product) {
+            throw new ApiError(
+              httpStatus.BAD_REQUEST,
+              "Failed to find the product"
+            );
+          }
+          const updateQUantity = await InventoryModel.updateOne(
+            { _id: product.inventory },
+            { $inc: { stockQuantity: item.quantity } }
+          ).session(session);
+          if (!updateQUantity.modifiedCount) {
+            throw new ApiError(
+              httpStatus.BAD_REQUEST,
+              "Failed to update quantity"
+            );
+          }
         }
       }
     }
