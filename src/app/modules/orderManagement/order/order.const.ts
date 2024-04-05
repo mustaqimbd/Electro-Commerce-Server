@@ -2,6 +2,7 @@ import { TOrderSourceName, TOrderStatus } from "./order.interface";
 
 export const orderStatus: TOrderStatus[] = [
   "pending",
+  "confirmed",
   "processing",
   "On courier",
   "completed",

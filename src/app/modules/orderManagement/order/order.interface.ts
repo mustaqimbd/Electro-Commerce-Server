@@ -7,6 +7,7 @@ import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 
 export type TOrderStatus =
   | "pending"
+  | "confirmed"
   | "processing"
   | "On courier"
   | "completed"
@@ -38,6 +39,7 @@ export type TOrderData = {
   tax?: number;
   shippingCharge: mongoose.Types.ObjectId | TShippingCharge;
   discount?: number;
+  advance?: number;
   total: number;
   payment: mongoose.Types.ObjectId;
   status: TOrderStatus;

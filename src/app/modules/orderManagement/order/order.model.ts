@@ -41,6 +41,9 @@ const OrderSchema = new Schema<TOrder>(
     discount: {
       type: Number,
     },
+    advance: {
+      type: Number,
+    },
     total: {
       type: Number,
       required: true,

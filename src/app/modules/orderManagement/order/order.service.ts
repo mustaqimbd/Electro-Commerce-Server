@@ -426,15 +426,26 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     },
     {
       $lookup: {
-        from: "orderpayments",
-        localField: "payment",
+        from: "shippingcharges",
+        localField: "shippingCharge",
         foreignField: "_id",
-        as: "paymentInfo",
+        as: "shippingCharge",
       },
     },
     {
-      $unwind: "$paymentInfo",
+      $unwind: "$shippingCharge",
     },
+    // {
+    //   $lookup: {
+    //     from: "paymentmethods",
+    //     localField: "payment",
+    //     foreignField: "_id",
+    //     as: "paymentInfo",
+    //   },
+    // },
+    // {
+    //   $unwind: "$paymentInfo",
+    // },
     {
       $lookup: {
         from: "orderedproducts",
@@ -445,28 +456,6 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     },
     {
       $unwind: "$orderedProducts",
-    },
-    {
-      $lookup: {
-        from: "paymentmethods",
-        localField: "paymentInfo.paymentMethod",
-        foreignField: "_id",
-        as: "paymentMethod",
-      },
-    },
-    {
-      $unwind: "$paymentMethod",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "paymentMethod.image",
-        foreignField: "_id",
-        as: "paymentMethodThumb",
-      },
-    },
-    {
-      $unwind: "$paymentMethodThumb",
     },
     {
       $unwind: "$orderedProducts.productDetails",
@@ -487,20 +476,20 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
         _id: "$_id",
         orderId: { $first: "$orderId" },
         total: { $first: "$total" },
+        subtotal: { $first: "$subtotal" },
         discount: { $first: "$discount" },
         status: { $first: "$status" },
         shipping: { $first: "$shippingData" },
-        payment: { $first: "$payment" },
+        shippingCharge: { $first: "$shippingCharge" },
+        // payment: { $first: "$paymentInfo" },
         createdAt: { $first: "$createdAt" },
         officialNotes: { $first: "$officialNotes" },
         invoiceNotes: { $first: "$invoiceNotes" },
         courierNotes: { $first: "$courierNotes" },
-        orderSource: { $first: "$orderSource" },
-        productDetails: {
+        orderSource: { $first: "$orderFrom" },
+        products: {
           $push: {
-            product: {
-              title: "$productInfo.title",
-            },
+            title: "$productInfo.title",
             unitPrice: "$orderedProducts.productDetails.unitPrice",
             quantity: "$orderedProducts.productDetails.quantity",
             total: "$orderedProducts.productDetails.total",
@@ -512,16 +501,18 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
       $project: {
         _id: 1,
         orderId: 1,
+        subtotal: 1,
         total: 1,
         discount: 1,
         status: 1,
         shipping: {
-          customerName: "$shipping.fullName",
+          fullName: "$shipping.fullName",
           phoneNumber: "$shipping.phoneNumber",
           fullAddress: "$shipping.fullAddress",
         },
-        payment: 1,
-        productDetails: 1,
+        shippingCharge: { amount: "$shippingCharge.amount" },
+        // payment: 1,
+        products: 1,
         createdAt: 1,
         officialNotes: 1,
         invoiceNotes: 1,
