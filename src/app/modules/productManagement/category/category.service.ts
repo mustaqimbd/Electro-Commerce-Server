@@ -38,7 +38,7 @@ const getAllCategoriesFromDB = async () => {
         as: "image",
       },
     },
-    { $unwind: "$image" },
+    { $unwind: { path: "$image", preserveNullAndEmptyArrays: true } },
     {
       $lookup: {
         from: "subcategories",
