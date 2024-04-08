@@ -18,6 +18,8 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
     orderNotes,
     eventId,
     orderSource,
+    custom,
+    orderedProducts,
   } = req.body;
   const user = req.user;
   const result = await OrderServices.createOrderIntoDB(
@@ -29,7 +31,9 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
     orderNotes,
     req as Request,
     eventId,
-    orderSource
+    orderSource,
+    custom,
+    orderedProducts
   );
 
   successResponse<TOrder>(res, {

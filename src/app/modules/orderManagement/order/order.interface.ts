@@ -1,4 +1,6 @@
 import mongoose, { Document } from "mongoose";
+import { TSelectedAttributes } from "../../../types/attribute";
+import { TProduct } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
@@ -10,6 +12,7 @@ export type TOrderStatus =
   | "confirmed"
   | "processing"
   | "On courier"
+  | "picked by courier"
   | "completed"
   | "canceled"
   | "follow up"
@@ -29,11 +32,20 @@ export type TOrderSource = {
   url?: string;
 };
 
+export type TProductDetails = {
+  product: mongoose.Types.ObjectId | TProduct;
+  attributes?: TSelectedAttributes[];
+  unitPrice: number;
+  quantity: number;
+  total: number;
+};
+
 export type TOrderData = {
   orderId: string;
   userId: mongoose.Types.ObjectId | TUser;
   sessionId: string;
   orderedProductsDetails: mongoose.Types.ObjectId | TOrderedProducts;
+  productDetails: TProductDetails[];
   couponDetails?: mongoose.Types.ObjectId;
   subtotal?: number;
   tax?: number;

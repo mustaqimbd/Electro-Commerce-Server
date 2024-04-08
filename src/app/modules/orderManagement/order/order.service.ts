@@ -14,8 +14,10 @@ import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import { TPrice } from "../../productManagement/price/price.interface";
+import { TProduct } from "../../productManagement/product/product.interface";
 import ProductModel from "../../productManagement/product/product.model";
 import { Cart } from "../../shoppingCartManagement/cart/cart.model";
+import { TCartItem } from "../../shoppingCartManagement/cartItem/cartItem.interface";
 import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
@@ -42,7 +44,13 @@ const createOrderIntoDB = async (
   orderNotes: string,
   req: Request,
   eventId: string,
-  orderSource: TOrderSource
+  orderSource: TOrderSource,
+  custom: string,
+  orderedProducts: {
+    product: mongoose.Types.ObjectId;
+    quantity: number;
+    attributes?: TSelectedAttributes[];
+  }[]
 ): Promise<TOrder> => {
   const userQuery = optionalAuthUserQuery(user);
   let response;
@@ -57,73 +65,146 @@ const createOrderIntoDB = async (
     const orderData: Partial<TOrder> = {};
     let onlyProductsCosts = 0;
     const orderId = createOrderId();
-    // calculation starts here costs
-    const cart = await Cart.findOne(userQuery)
-      .populate({
-        path: "cartItems.item",
-        select: "product attributes quantity -_id",
-        populate: {
-          path: "product",
-          select: "price isDeleted inventory",
-          populate: [
+    let orderedProductInfo: {
+      product: {
+        _id: mongoose.Types.ObjectId;
+        price: TPrice;
+        inventory: TInventory;
+        isDeleted: boolean;
+      };
+      quantity: number;
+      attributes?: TSelectedAttributes[];
+    }[] = [];
+    if (custom) {
+      if (!user.isAuthenticated) {
+        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
+      }
+      // if(user.role?.includes("admin"))
+      const data = [];
+      for (const item of orderedProducts) {
+        const product = (
+          await ProductModel.aggregate([
+            { $match: { _id: new mongoose.Types.ObjectId(item.product) } },
             {
-              path: "price",
-              select: "salePrice regularPrice -_id",
+              $lookup: {
+                from: "prices",
+                localField: "price",
+                foreignField: "_id",
+                as: "price",
+              },
             },
             {
-              path: "inventory",
-              select: "stockQuantity",
+              $unwind: "$price",
             },
-          ],
-        },
-      })
-      .session(session)
-      .exec();
-    if (!cart) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
+            {
+              $lookup: {
+                from: "inventories",
+                localField: "inventory",
+                foreignField: "_id",
+                as: "inventory",
+              },
+            },
+            {
+              $unwind: "$inventory",
+            },
+            {
+              $project: {
+                price: {
+                  regularPrice: "$price.regularPrice",
+                  salePrice: "$price.salePrice",
+                },
+                inventory: {
+                  _id: "$inventory._id",
+                  stockQuantity: "$inventory.stockQuantity",
+                },
+                isDeleted: 1,
+              },
+            },
+          ])
+        )[0];
+        data.push({
+          product,
+          quantity: item.quantity,
+          attributes: item?.attributes,
+        });
+      }
+      orderedProductInfo = data;
+    } else {
+      const cart = await Cart.findOne(userQuery)
+        .populate({
+          path: "cartItems.item",
+          select: "product attributes quantity -_id",
+          populate: {
+            path: "product",
+            select: "price isDeleted inventory",
+            populate: [
+              {
+                path: "price",
+                select: "salePrice regularPrice -_id",
+              },
+              {
+                path: "inventory",
+                select: "stockQuantity",
+              },
+            ],
+          },
+        })
+        .exec();
+      if (!cart) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
+      }
+      orderedProductInfo = cart?.cartItems?.map(({ item }) => {
+        const cartItem = item as TCartItem;
+        const product = cartItem.product as TProduct;
+        return {
+          product: {
+            _id: product._id,
+            price: product.price as TPrice,
+            inventory: product.inventory as TInventory,
+            isDeleted: product.isDeleted,
+          },
+          quantity: cartItem.quantity,
+          attributes: cartItem.attributes,
+        };
+      });
     }
+
     const quantityUpdateData: {
       productInventoryId: string;
       quantity: number;
     }[] = [];
-    const orderedProductData = cart?.cartItems?.map(({ item }) => {
-      const productItem = item as {
-        quantity: number;
-        attributes: TSelectedAttributes[];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        product: any;
-      };
-      if (productItem.product.isDeleted) {
+    const orderedProductData = orderedProductInfo?.map((item) => {
+      if (item.product.isDeleted) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `Selected product is no more available. ID: ${productItem.product._id}`
+          `Selected product is no more available. ID: ${item.product._id}`
         );
       }
-      if (
-        productItem?.product.inventory?.stockQuantity < productItem.quantity
-      ) {
+      if (item?.product.inventory?.stockQuantity < item.quantity) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `Lack of stock. ID: ${productItem.product._id}`
+          `Lack of stock. ID: ${item.product._id}`
         );
       }
 
       quantityUpdateData.push({
-        productInventoryId: productItem.product.inventory._id,
-        quantity: productItem.quantity,
+        productInventoryId: item.product.inventory?._id,
+        quantity: item.quantity,
       });
 
       const result = {
-        product: productItem?.product?._id,
+        product: item?.product?._id,
         unitPrice:
-          productItem?.product?.price?.salePrice ||
-          productItem?.product?.price?.regularPrice,
-        quantity: productItem?.quantity,
+          item?.product?.price?.salePrice || item?.product?.price?.regularPrice,
+        quantity: item?.quantity,
         total: Math.round(
-          productItem?.quantity * productItem?.product?.price?.salePrice ||
-            productItem?.product?.price?.regularPrice
+          item?.quantity *
+            Number(
+              item?.product?.price?.salePrice ||
+                item?.product?.price?.regularPrice
+            )
         ),
-        // attributes: productItem?.attributes,
+        // attributes: productItem?.attributes, //TODO: Enable if attributes is need
       };
       onlyProductsCosts += result.total;
       return result;
@@ -141,7 +222,10 @@ const createOrderIntoDB = async (
       orderId,
       productDetails: orderedProductData,
     };
-    singleOrder = orderedProductData[0];
+    singleOrder = {
+      product: String(orderedProductInfo[0]?.product?._id),
+      quantity: orderedProductInfo[0].quantity,
+    };
 
     orderData.orderedProductsDetails = (
       await OrderedProducts.create([orderedProductsData], { session })
