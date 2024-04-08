@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type TStockStatus = "In stock" | "Out of stock" | "On backorder";
 
@@ -17,4 +17,4 @@ export type TInventory = {
   soldIndividually: boolean;
   createdBy: Types.ObjectId;
   isDeleted: boolean;
-};
+} & Document;

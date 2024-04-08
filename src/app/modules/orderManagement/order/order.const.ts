@@ -5,6 +5,7 @@ export const orderStatus: TOrderStatus[] = [
   "confirmed",
   "processing",
   "On courier",
+  "picked by courier",
   "completed",
   "canceled",
   "follow up",

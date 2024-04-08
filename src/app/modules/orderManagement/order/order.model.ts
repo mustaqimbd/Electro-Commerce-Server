@@ -1,6 +1,38 @@
 import mongoose, { Schema, model } from "mongoose";
 import { orderSources } from "./order.const";
-import { TOrder } from "./order.interface";
+import { TOrder, TProductDetails } from "./order.interface";
+
+const ProductDetailsSchema = new Schema<TProductDetails>({
+  product: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: "Product",
+  },
+  attributes: [
+    {
+      type: {
+        name: {
+          type: String,
+        },
+        value: {
+          type: String,
+        },
+      },
+    },
+  ],
+  unitPrice: {
+    type: Number,
+    require: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+  },
+  total: {
+    type: Number,
+    required: true,
+  },
+});
 
 const OrderSchema = new Schema<TOrder>(
   {
@@ -22,6 +54,7 @@ const OrderSchema = new Schema<TOrder>(
       required: true,
       ref: "OrderedProduct",
     },
+    productDetails: [ProductDetailsSchema],
     couponDetails: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coupon",

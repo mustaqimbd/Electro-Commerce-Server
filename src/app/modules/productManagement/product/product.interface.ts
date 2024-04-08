@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { Document, Types } from "mongoose";
 import { TAttribute } from "../attribute/attribute.interface";
 import { TInventory } from "../inventory/inventory.interface";
 import { TPrice } from "../price/price.interface";
@@ -43,4 +43,4 @@ export type TProduct = {
   updatedBy: Types.ObjectId;
   deletedBy: Types.ObjectId;
   isDeleted: boolean;
-};
+} & Document;
