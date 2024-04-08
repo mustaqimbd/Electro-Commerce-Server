@@ -86,6 +86,7 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
   await AuthServices.logoutUser(refreshToken);
   req.session.destroy(() => {});
   res.cookie("refreshToken", "", { expires: new Date(0) });
+  res.cookie("accessToken", "", { expires: new Date(0) });
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Logged out successfully.",

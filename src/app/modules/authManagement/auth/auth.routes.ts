@@ -3,7 +3,7 @@ import authGuard from "../../../middlewares/authGuard";
 import limitRequest from "../../../middlewares/requestLimitHandler";
 import validateRequest from "../../../middlewares/validateRequest";
 import { AuthControllers } from "./auth.controller";
-import { AuthValidation, refreshTokenZodSchema } from "./auth.validation";
+import { AuthValidation } from "./auth.validation";
 
 const route = express.Router();
 
@@ -29,8 +29,8 @@ route.post(
 
 route.post(
   "/logout",
-  validateRequest(refreshTokenZodSchema),
-  authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  // validateRequest(refreshTokenZodSchema),
+  // authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
   AuthControllers.logoutUser
 );
 
