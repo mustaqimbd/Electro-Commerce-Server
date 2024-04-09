@@ -73,9 +73,11 @@ const OrderSchema = new Schema<TOrder>(
     },
     discount: {
       type: Number,
+      default: 0,
     },
     advance: {
       type: Number,
+      default: 0,
     },
     total: {
       type: Number,
@@ -126,6 +128,9 @@ const OrderSchema = new Schema<TOrder>(
         enum: orderSources,
       },
       url: {
+        type: String,
+      },
+      lpNo: {
         type: String,
       },
     },

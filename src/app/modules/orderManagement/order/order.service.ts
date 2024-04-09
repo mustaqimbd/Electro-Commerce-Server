@@ -4,7 +4,6 @@ import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
-import { TSelectedAttributes } from "../../../types/attribute";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { convertIso } from "../../../utilities/ISOConverter";
@@ -22,36 +21,57 @@ import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
-import {
-  TOrderedProducts,
-  TProductDetails,
-} from "../orderedProducts/orderedProducts.interface";
+import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
 import { OrderedProducts } from "../orderedProducts/orderedProducts.model";
 import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
-import { TOrder, TOrderSource, TOrderStatus } from "./order.interface";
+import { OrderHelper } from "./order.helper";
+import {
+  TOrder,
+  TOrderSource,
+  TOrderStatus,
+  TProductDetails,
+  TSanitizedOrProduct,
+} from "./order.interface";
 import { Order } from "./order.model";
 import createOrderId from "./order.utils";
 
 const createOrderIntoDB = async (
-  payment: TPaymentData,
-  shipping: TShippingData,
-  shippingChargeId: mongoose.Types.ObjectId,
-  user: TOptionalAuthGuardPayload,
-  orderFrom: string,
-  orderNotes: string,
-  req: Request,
-  eventId: string,
-  orderSource: TOrderSource,
-  custom: string,
-  orderedProducts: {
-    product: mongoose.Types.ObjectId;
-    quantity: number;
-    attributes?: TSelectedAttributes[];
-  }[]
+  body: unknown,
+  req: Request
 ): Promise<TOrder> => {
+  const {
+    payment,
+    shipping,
+    shippingCharge,
+    orderFrom,
+    orderNotes,
+    eventId,
+    orderSource,
+    custom,
+    salesPage,
+    orderedProducts,
+  } = body as {
+    payment: TPaymentData;
+    shipping: TShippingData;
+    shippingCharge: mongoose.Types.ObjectId;
+    orderFrom: string;
+    orderNotes: string;
+    eventId: string;
+    orderSource: TOrderSource;
+    custom: boolean;
+    salesPage: boolean;
+    orderedProducts: TProductDetails[];
+  };
+  let { courierNotes, officialNotes, invoiceNotes, advance } = body as {
+    courierNotes?: string;
+    officialNotes?: string;
+    invoiceNotes?: string;
+    advance?: number;
+  };
+  const user = req?.user as TOptionalAuthGuardPayload;
   const userQuery = optionalAuthUserQuery(user);
   let response;
   const session = await mongoose.startSession();
@@ -65,70 +85,24 @@ const createOrderIntoDB = async (
     const orderData: Partial<TOrder> = {};
     let onlyProductsCosts = 0;
     const orderId = createOrderId();
-    let orderedProductInfo: {
-      product: {
-        _id: mongoose.Types.ObjectId;
-        price: TPrice;
-        inventory: TInventory;
-        isDeleted: boolean;
-      };
-      quantity: number;
-      attributes?: TSelectedAttributes[];
-    }[] = [];
+    let orderedProductInfo: TSanitizedOrProduct[] = [];
     if (custom) {
-      if (!user.isAuthenticated) {
-        throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
-      }
-      // if(user.role?.includes("admin"))
-      const data = [];
-      for (const item of orderedProducts) {
-        const product = (
-          await ProductModel.aggregate([
-            { $match: { _id: new mongoose.Types.ObjectId(item.product) } },
-            {
-              $lookup: {
-                from: "prices",
-                localField: "price",
-                foreignField: "_id",
-                as: "price",
-              },
-            },
-            {
-              $unwind: "$price",
-            },
-            {
-              $lookup: {
-                from: "inventories",
-                localField: "inventory",
-                foreignField: "_id",
-                as: "inventory",
-              },
-            },
-            {
-              $unwind: "$inventory",
-            },
-            {
-              $project: {
-                price: {
-                  regularPrice: "$price.regularPrice",
-                  salePrice: "$price.salePrice",
-                },
-                inventory: {
-                  _id: "$inventory._id",
-                  stockQuantity: "$inventory.stockQuantity",
-                },
-                isDeleted: 1,
-              },
-            },
-          ])
-        )[0];
-        data.push({
-          product,
-          quantity: item.quantity,
-          attributes: item?.attributes,
-        });
-      }
-      orderedProductInfo = data;
+      //TODO: Enable auth protection
+      // if (!user.isAuthenticated) {
+      //   throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
+      // }
+      // if (!["admin", "staff"]?.includes(String(user?.role))) {
+      //   throw new ApiError(
+      //     httpStatus.BAD_REQUEST,
+      //     "Only staff or admin can create custom orders."
+      //   );
+      // }
+      orderedProductInfo =
+        await OrderHelper.sanitizeOrderedProducts(orderedProducts);
+    } else if (salesPage) {
+      orderedProductInfo = await OrderHelper.sanitizeOrderedProducts([
+        orderedProducts[0],
+      ]);
     } else {
       const cart = await Cart.findOne(userQuery)
         .populate({
@@ -167,6 +141,13 @@ const createOrderIntoDB = async (
           attributes: cartItem.attributes,
         };
       });
+    }
+
+    if (!custom) {
+      courierNotes = undefined;
+      officialNotes = undefined;
+      invoiceNotes = undefined;
+      advance = 0;
     }
 
     const quantityUpdateData: {
@@ -217,6 +198,9 @@ const createOrderIntoDB = async (
         { $inc: { stockQuantity: -item.quantity } }
       ).session(session);
     }
+
+    orderData.productDetails = orderedProductData as TProductDetails[];
+
     // create ordered products document
     const orderedProductsData = {
       orderId,
@@ -258,14 +242,17 @@ const createOrderIntoDB = async (
       })
     )[0]._id;
     // get shipping charge
-    const shippingCharges = await ShippingCharge.findById(shippingChargeId);
+    const shippingCharges = await ShippingCharge.findById(shippingCharge);
     if (!shippingCharges) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
         "Failed to find shipping charges"
       );
     }
-    totalCost = onlyProductsCosts + Number(shippingCharges?.amount);
+    totalCost =
+      onlyProductsCosts +
+      Number(shippingCharges?.amount) -
+      Number(advance || 0);
     orderData.orderId = orderId;
     orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
     orderData.sessionId = userQuery.sessionId as string;
@@ -275,7 +262,11 @@ const createOrderIntoDB = async (
     orderData.status = "pending";
     orderData.orderFrom = orderFrom;
     orderData.orderNotes = orderNotes;
+    orderData.courierNotes = courierNotes;
+    orderData.officialNotes = officialNotes;
+    orderData.invoiceNotes = invoiceNotes;
     orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
+    orderData.advance = advance;
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
@@ -284,8 +275,10 @@ const createOrderIntoDB = async (
       await Address.updateOne({ uid: user.uid }, shipping).session(session);
     }
     // clear cart and cart items
-    await Cart.deleteOne(userQuery).session(session);
-    await CartItem.deleteMany(userQuery).session(session);
+    if (!salesPage || !custom) {
+      await Cart.deleteOne(userQuery).session(session);
+      await CartItem.deleteMany(userQuery).session(session);
+    }
     response = orderRes;
     await session.commitTransaction();
     await session.endSession();
@@ -295,17 +288,19 @@ const createOrderIntoDB = async (
     throw error;
   }
 
-  purchaseEventHelper(
-    shipping,
-    {
-      productId: singleOrder.product,
-      quantity: singleOrder.quantity,
-      totalCost,
-    },
-    orderSource,
-    req,
-    eventId
-  );
+  if (!custom) {
+    purchaseEventHelper(
+      shipping,
+      {
+        productId: singleOrder.product,
+        quantity: singleOrder.quantity,
+        totalCost,
+      },
+      orderSource,
+      req,
+      eventId
+    );
+  }
 
   return response;
 };

@@ -1,5 +1,7 @@
 import mongoose, { Document } from "mongoose";
 import { TSelectedAttributes } from "../../../types/attribute";
+import { TInventory } from "../../productManagement/inventory/inventory.interface";
+import { TPrice } from "../../productManagement/price/price.interface";
 import { TProduct } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
@@ -30,6 +32,7 @@ export type TOrderSourceName =
 export type TOrderSource = {
   name: TOrderSourceName;
   url?: string;
+  lpNo?: string;
 };
 
 export type TProductDetails = {
@@ -38,7 +41,7 @@ export type TProductDetails = {
   unitPrice: number;
   quantity: number;
   total: number;
-};
+} & Document;
 
 export type TOrderData = {
   orderId: string;
@@ -67,3 +70,14 @@ export type TOrderData = {
 };
 
 export type TOrder = TOrderData & Document;
+
+export type TSanitizedOrProduct = {
+  product: {
+    _id: mongoose.Types.ObjectId;
+    price: TPrice;
+    inventory: TInventory;
+    isDeleted: boolean;
+  };
+  quantity: number;
+  attributes?: TSelectedAttributes[];
+};

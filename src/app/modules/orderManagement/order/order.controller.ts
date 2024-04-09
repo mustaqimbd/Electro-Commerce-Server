@@ -10,30 +10,9 @@ import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const {
-    payment,
-    shipping,
-    shippingChargeId,
-    orderFrom,
-    orderNotes,
-    eventId,
-    orderSource,
-    custom,
-    orderedProducts,
-  } = req.body;
-  const user = req.user;
   const result = await OrderServices.createOrderIntoDB(
-    payment,
-    shipping,
-    shippingChargeId,
-    user as TOptionalAuthGuardPayload,
-    orderFrom,
-    orderNotes,
-    req as Request,
-    eventId,
-    orderSource,
-    custom,
-    orderedProducts
+    req?.body,
+    req as Request
   );
 
   successResponse<TOrder>(res, {
