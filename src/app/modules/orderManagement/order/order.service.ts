@@ -514,68 +514,6 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     {
       $unwind: "$shippingCharge",
     },
-    // {
-    //   $lookup: {
-    //     from: "paymentmethods",
-    //     localField: "payment",
-    //     foreignField: "_id",
-    //     as: "paymentInfo",
-    //   },
-    // },
-    // {
-    //   $unwind: "$paymentInfo",
-    // },
-    {
-      $lookup: {
-        from: "orderedproducts",
-        localField: "orderedProductsDetails",
-        foreignField: "_id",
-        as: "orderedProducts",
-      },
-    },
-    {
-      $unwind: "$orderedProducts",
-    },
-    {
-      $unwind: "$orderedProducts.productDetails",
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "orderedProducts.productDetails.product",
-        foreignField: "_id",
-        as: "productInfo",
-      },
-    },
-    {
-      $unwind: "$productInfo",
-    },
-    {
-      $group: {
-        _id: "$_id",
-        orderId: { $first: "$orderId" },
-        total: { $first: "$total" },
-        subtotal: { $first: "$subtotal" },
-        discount: { $first: "$discount" },
-        status: { $first: "$status" },
-        shipping: { $first: "$shippingData" },
-        shippingCharge: { $first: "$shippingCharge" },
-        // payment: { $first: "$paymentInfo" },
-        createdAt: { $first: "$createdAt" },
-        officialNotes: { $first: "$officialNotes" },
-        invoiceNotes: { $first: "$invoiceNotes" },
-        courierNotes: { $first: "$courierNotes" },
-        orderSource: { $first: "$orderFrom" },
-        products: {
-          $push: {
-            title: "$productInfo.title",
-            unitPrice: "$orderedProducts.productDetails.unitPrice",
-            quantity: "$orderedProducts.productDetails.quantity",
-            total: "$orderedProducts.productDetails.total",
-          },
-        },
-      },
-    },
     {
       $project: {
         _id: 1,
@@ -585,18 +523,72 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
         discount: 1,
         status: 1,
         shipping: {
-          fullName: "$shipping.fullName",
-          phoneNumber: "$shipping.phoneNumber",
-          fullAddress: "$shipping.fullAddress",
+          fullName: "$shippingData.fullName",
+          phoneNumber: "$shippingData.phoneNumber",
+          fullAddress: "$shippingData.fullAddress",
         },
         shippingCharge: { amount: "$shippingCharge.amount" },
-        // payment: 1,
-        products: 1,
         createdAt: 1,
         officialNotes: 1,
         invoiceNotes: 1,
         courierNotes: 1,
         orderSource: 1,
+        productDetails: 1,
+      },
+    },
+    {
+      $unwind: "$productDetails",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productDetails.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: "$productInfo",
+    },
+    {
+      $project: {
+        _id: 1,
+        orderId: 1,
+        subtotal: 1,
+        total: 1,
+        discount: 1,
+        status: 1,
+        shipping: 1,
+        shippingCharge: 1,
+        createdAt: 1,
+        officialNotes: 1,
+        invoiceNotes: 1,
+        courierNotes: 1,
+        orderSource: 1,
+        product: {
+          title: "$productInfo.title",
+          unitPrice: "$productDetails.unitPrice",
+          quantity: "$productDetails.quantity",
+          total: "$productDetails.total",
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        orderId: { $first: "$orderId" },
+        total: { $first: "$total" },
+        subtotal: { $first: "$subtotal" },
+        discount: { $first: "$discount" },
+        status: { $first: "$status" },
+        shipping: { $first: "$shipping" },
+        shippingCharge: { $first: "$shippingCharge" },
+        createdAt: { $first: "$createdAt" },
+        officialNotes: { $first: "$officialNotes" },
+        invoiceNotes: { $first: "$invoiceNotes" },
+        courierNotes: { $first: "$courierNotes" },
+        orderSource: { $first: "$orderSource" },
+        products: { $push: "$product" },
       },
     },
   ];
@@ -704,337 +696,204 @@ const getAllOrderCustomersFromDB = async (user: TOptionalAuthGuardPayload) => {
 const getOrderInfoByOrderIdAdminFromDB = async (
   id: mongoose.Types.ObjectId
 ): Promise<TOrder | null> => {
-  const result = await Order.findOne({ _id: id }).populate([
-    { path: "statusHistory", select: "refunded history -_id" },
-    { path: "shippingCharge", select: "name amount -_id" },
-    { path: "shipping", select: "fullName phoneNumber fullAddress -_id" },
+  const pipeline = [
+    { $match: { _id: new mongoose.Types.ObjectId(id) } },
     {
-      path: "payment",
-      select: "phoneNumber transactionId paymentMethod -_id",
-      populate: {
-        path: "paymentMethod",
-        select: "name image -_id",
-        populate: {
-          path: "image",
-          select: "src alt -_id",
-        },
+      $lookup: {
+        from: "shippings",
+        localField: "shipping",
+        foreignField: "_id",
+        as: "shippingData",
       },
     },
     {
-      path: "orderedProductsDetails",
-      select: "productDetails -_id",
-      populate: {
-        path: "productDetails.product",
-        select: "title image id  _id",
-        populate: {
-          path: "image.thumbnail",
-          select: "src alt -_id",
-        },
+      $unwind: "$shippingData",
+    },
+    {
+      $lookup: {
+        from: "shippingcharges",
+        localField: "shippingCharge",
+        foreignField: "_id",
+        as: "shippingCharge",
       },
     },
-  ]);
+    {
+      $unwind: "$shippingCharge",
+    },
+    {
+      $lookup: {
+        from: "orderpayments",
+        localField: "payment",
+        foreignField: "_id",
+        as: "payment",
+      },
+    },
+    {
+      $unwind: "$payment",
+    },
+    {
+      $lookup: {
+        from: "paymentmethods",
+        localField: "payment.paymentMethod",
+        foreignField: "_id",
+        as: "paymentMethod",
+      },
+    },
+    {
+      $unwind: "$paymentMethod",
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "paymentMethod.image",
+        foreignField: "_id",
+        as: "paymentMethodImage",
+      },
+    },
+    {
+      $unwind: "$paymentMethodImage",
+    },
+    {
+      $lookup: {
+        from: "orderstatushistories",
+        localField: "statusHistory",
+        foreignField: "_id",
+        as: "statusHistory",
+      },
+    },
+    {
+      $unwind: "$statusHistory",
+    },
+    {
+      $project: {
+        _id: 1,
+        orderId: 1,
+        subtotal: 1,
+        total: 1,
+        discount: 1,
+        advance: 1,
+        status: 1,
+        shipping: {
+          fullName: "$shippingData.fullName",
+          phoneNumber: "$shippingData.phoneNumber",
+          fullAddress: "$shippingData.fullAddress",
+        },
+        shippingCharge: {
+          name: "$shippingCharge.name",
+          amount: "$shippingCharge.amount",
+        },
+        payment: {
+          paymentMethod: {
+            name: "$paymentMethod.name",
+            image: {
+              src: "$paymentMethodImage.src",
+              alt: "$paymentMethodImage.alt",
+            },
+          },
+          phoneNumber: "$payment.phoneNumber",
+          transactionId: "$payment.transactionId",
+        },
+        statusHistory: {
+          refunded: "$statusHistory.refunded",
+          history: "$statusHistory.history",
+        },
+        officialNotes: 1,
+        invoiceNotes: 1,
+        courierNotes: 1,
+        orderNotes: 1,
+        orderSource: 1,
+        productDetails: 1,
+        createdAt: 1,
+      },
+    },
+    {
+      $unwind: "$productDetails",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productDetails.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: "$productInfo",
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "productInfo.image.thumbnail",
+        foreignField: "_id",
+        as: "productThumb",
+      },
+    },
+    {
+      $unwind: "$productThumb",
+    },
+    {
+      $project: {
+        _id: 1,
+        orderId: 1,
+        subtotal: 1,
+        total: 1,
+        discount: 1,
+        advance: 1,
+        status: 1,
+        shipping: 1,
+        shippingCharge: 1,
+        officialNotes: 1,
+        invoiceNotes: 1,
+        courierNotes: 1,
+        orderNotes: 1,
+        orderSource: 1,
+        statusHistory: 1,
+        payment: 1,
+        product: {
+          _id: "$productDetails._id",
+          product: {
+            title: "$productInfo.title",
+            image: {
+              src: "$productThumb.src",
+              alt: "$productThumb.alt",
+            },
+          },
+          unitPrice: "$productDetails.unitPrice",
+          quantity: "$productDetails.quantity",
+          total: "$productDetails.total",
+        },
+        createdAt: 1,
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        orderId: { $first: "$orderId" },
+        total: { $first: "$total" },
+        subtotal: { $first: "$subtotal" },
+        discount: { $first: "$discount" },
+        advance: { $first: "$advance" },
+        status: { $first: "$status" },
+        shipping: { $first: "$shipping" },
+        payment: { $first: "$payment" },
+        shippingCharge: { $first: "$shippingCharge" },
+        officialNotes: { $first: "$officialNotes" },
+        invoiceNotes: { $first: "$invoiceNotes" },
+        courierNotes: { $first: "$courierNotes" },
+        orderNotes: { $first: "$orderNotes" },
+        orderSource: { $first: "$orderSource" },
+        statusHistory: { $first: "$statusHistory" },
+        products: { $push: "$product" },
+        createdAt: { $first: "$createdAt" },
+      },
+    },
+  ];
+  const result = (await Order.aggregate(pipeline))[0];
 
   if (!result) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "No order was found with this ID."
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this id");
   }
 
-  // const pipeline = [
-  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
-  //   {
-  //     $lookup: {
-  //       from: "orderedproducts",
-  //       localField: "orderedProductsDetails",
-  //       foreignField: "_id",
-  //       as: "orderedproducts",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedproducts",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "products",
-  //       localField: "orderedproducts.productDetails.product",
-  //       foreignField: "_id",
-  //       as: "products",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$products",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "images",
-  //       localField: "products.image.thumbnail",
-  //       foreignField: "_id",
-  //       as: "image",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$image",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "orderstatushistories",
-  //       localField: "statusHistory",
-  //       foreignField: "_id",
-  //       as: "statusHistory"
-  //     }
-  //   },
-  //   {
-  //     $unwind: "$statusHistory"
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "shippings",
-  //       localField: "shipping",
-  //       foreignField: "_id",
-  //       as: "shipping"
-  //     }
-  //   },
-  //   {
-  //     $unwind: "$shipping"
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "shippingcharges",
-  //       localField: "shippingCharge",
-  //       foreignField: "_id",
-  //       as: "shippingCharge"
-  //     }
-  //   },
-  //   {
-  //     $unwind: "$shippingCharge"
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "orderpayments",
-  //       localField: "payment",
-  //       foreignField: "_id",
-  //       as: "payment"
-  //     }
-  //   },
-  //   {
-  //     $unwind: "$payment"
-  //   },
-  //   {
-  //     $group: {
-  //       _id: "$_id",
-  //       shippingCharge: { $first: "$shippingCharge" },
-  //       total: { $first: "$total" },
-  //       payment: { $first: "$payment" },
-  //       statusHistory: { $first: "$statusHistory" },
-  //       status: { $first: "$status" },
-  //       shipping: { $first: "$shipping" },
-  //       products: {
-  //         $push: {
-  //           title: "$products.title",
-  //           image: {
-  //             src: "$image.src",
-  //             alt: "$image.alt"
-  //           },
-  //           unitPrice: "$orderedproducts.productDetails.unitPrice"
-  //         }
-  //       } // Group products into an array
-  //     }
-  //   },
-  //   {
-  //     $project: {
-  //       _id: 1,
-  //       statusHistory: { refunded: 1, history: 1 },
-  //       shippingCharge: { name: 1, amount: 1 },
-  //       payment: 1,
-  //       products: {
-  //         _id: 1,
-  //         title: 1,
-  //         image: {
-  //           src: "$image.src",
-  //           alt: "$image.alt",
-  //         },
-  //         unitPrice: 1,
-  //         quantity: 1,
-  //         total: 1,
-  //       },
-  //       shipping: {
-  //         fullName: 1,
-  //         phoneNumber: 1,
-  //         fullAddress: 1,
-  //       },
-  //       productDetails: {
-  //         product: "$orderedProductsDetails.productDetails.product",
-  //         unitPrice: "$orderedProductsDetails.productDetails.unitPrice",
-  //       },
-  //       orderedproducts: 1,
-  //       status: 1,
-  //       total: 1,
-  //       courierNotes: 1,
-  //       invoiceNotes: 1,
-  //       officialNotes: 1,
-  //       discount: 1,
-  //     },
-  //   },
-  // ];
-
-  // const result2 = await Order.aggregate(pipeline);
-  // console.log(result2);
-  // console.log(result2[0].orderedproducts);
-
-  // const pipeline = [
-  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
-  //   {
-  //     $lookup: {
-  //       from: "orderedproducts",
-  //       localField: "orderedProductsDetails",
-  //       foreignField: "_id",
-  //       as: "orderedProducts",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedProducts",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "products",
-  //       localField: "orderedProducts.productDetails.product",
-  //       foreignField: "_id",
-  //       as: "orderedProducts.productDetails.product",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedProducts.productDetails.product",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "images",
-  //       localField: "orderedProducts.productDetails.product.image.thumbnail",
-  //       foreignField: "_id",
-  //       as: "orderedProducts.productDetails.product.image.thumbnail",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedProducts.productDetails.product.image.thumbnail",
-  //   },
-  //   {
-  //     $group: {
-  //       _id: "$_id",
-  //       orderId: { $first: "$orderId" },
-  //       userId: { $first: "$userId" },
-  //       // Add other fields from Order model as needed
-  //       orderedProducts: { $push: "$orderedProducts" },
-  //     },
-  //   },
-  //   {
-  //     $project: {
-  //       _id: 0, // Exclude _id field
-  //       orderId: 1,
-  //       userId: 1,
-  //       orderedProducts: {
-  //         $map: {
-  //           // orderItemID: "$$orderedProduct.productDetails._id",
-  //           input: "$orderedProducts",
-  //           as: "orderedProduct",
-  //           in: {
-  //             product: {
-  //               _id: "$$orderedProduct.productDetails.product._id",
-  //               title: "$$orderedProduct.productDetails.product.title",
-  //               // Include other fields you need
-  //               image: {
-  //                 url: "$$orderedProduct.productDetails.product.image.thumbnail.src",
-  //                 alt: "$$orderedProduct.productDetails.product.image.thumbnail.src",
-  //               },
-  //             },
-  //           },
-  //         },
-  //       },
-  //       // Project other fields from Order model as needed
-  //     },
-  //   },
-  // ];
-
-  // const pipeline = [
-  //   { $match: { _id: new mongoose.Types.ObjectId(id) } },
-  //   {
-  //     $lookup: {
-  //       from: "orderedproducts",
-  //       localField: "orderedProductsDetails",
-  //       foreignField: "_id",
-  //       as: "orderedProducts",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedProducts",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "products",
-  //       localField: "orderedProducts.productDetails.product",
-  //       foreignField: "_id",
-  //       as: "orderedProducts.productDetails.product",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedProducts.productDetails.product",
-  //   },
-  //   {
-  //     $lookup: {
-  //       from: "images",
-  //       localField: "orderedProducts.productDetails.product.image.thumbnail",
-  //       foreignField: "_id",
-  //       as: "orderedProducts.productDetails.product.image.thumbnail",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$orderedProducts.productDetails.product.image.thumbnail",
-  //   },
-  //   {
-  //     $group: {
-  //       _id: "$_id",
-  //       orderId: { $first: "$orderId" },
-  //       userId: { $first: "$userId" },
-  //       orderedProducts: {
-  //         $push: {
-  //           product: {
-  //             _id: "$orderedProducts.productDetails.product._id",
-  //             title: "$orderedProducts.productDetails.product.title",
-  //             // Include other fields you need from the product
-  //             image: {
-  //               url: "$orderedProducts.productDetails.product.image.thumbnail.src",
-  //               alt: "$orderedProducts.productDetails.product.image.thumbnail.src",
-  //             },
-  //           },
-  //           productDetails: {
-  //             $map: {
-  //               input: "$orderedProducts.productDetails",
-  //               as: "details",
-  //               in: {
-  //                 _id: "$$details._id",
-  //                 unitPrice: "$$details.unitPrice",
-  //                 quantity: "$$details.quantity",
-  //                 total: "$$details.total",
-  //               },
-  //             },
-  //           },
-  //         },
-  //       },
-  //     },
-  //   },
-  //   {
-  //     $project: {
-  //       _id: 0,
-  //       orderId: 1,
-  //       userId: 1,
-  //       orderedProducts: 1,
-  //     },
-  //   },
-  // ];
-
-  // const res2 = await Order.aggregate(pipeline);
-  // console.log(res2);
-
-  // return res2;
   return result;
 };
 
