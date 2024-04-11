@@ -4,6 +4,7 @@ import { TInventory } from "../../productManagement/inventory/inventory.interfac
 import { TPrice } from "../../productManagement/price/price.interface";
 import { TProduct } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
+import { TWarranty } from "../../warrantyManagement/warrenty/warranty.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
 import { TShipping } from "../shipping/shipping.interface";
@@ -41,6 +42,7 @@ export type TProductDetails = {
   unitPrice: number;
   quantity: number;
   total: number;
+  warranty: mongoose.Types.ObjectId | TWarranty;
 } & Document;
 
 export type TOrderData = {

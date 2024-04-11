@@ -1,5 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
-import { orderSources } from "./order.const";
+import { orderSources, orderStatus } from "./order.const";
 import { TOrder, TProductDetails } from "./order.interface";
 
 const ProductDetailsSchema = new Schema<TProductDetails>({
@@ -31,6 +31,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
   total: {
     type: Number,
     required: true,
+  },
+  warranty: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Warranty",
   },
 });
 
@@ -95,6 +99,7 @@ const OrderSchema = new Schema<TOrder>(
     },
     status: {
       type: String,
+      enum: orderStatus,
       required: true,
     },
     shipping: {

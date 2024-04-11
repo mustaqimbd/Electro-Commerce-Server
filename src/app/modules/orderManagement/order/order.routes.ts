@@ -76,48 +76,4 @@ router.get(
   OrderController.orderCountsByStatus
 );
 
-// router.get("/update-all", async (req, res) => {
-//   try {
-//     const batchSize = 50; // Adjust batch size as needed
-//     const totalOrders = await Order.countDocuments();
-//     let processedCount = 0;
-
-//     while (processedCount < totalOrders) {
-//       // Find orders in batches
-//       const orders = await Order.find()
-//         .populate("orderedProductsDetails")
-//         .skip(processedCount)
-//         .limit(batchSize);
-
-//       // Iterate over each order in the batch
-//       for (const order of orders) {
-//         const productDetails = [];
-
-//         // Extract product details from orderedProductsDetails and populate into productDetails
-//         if (
-//           order.orderedProductsDetails &&
-//           order.orderedProductsDetails.productDetails
-//         ) {
-//           for (const orderedProduct of order?.orderedProductsDetails
-//             ?.productDetails || []) {
-//             const { product, unitPrice, quantity, total } = orderedProduct;
-//             productDetails.push({ product, unitPrice, quantity, total });
-//           }
-//         }
-
-//         // Update the productDetails field in the order
-//         await Order.findByIdAndUpdate(order._id, { $set: { productDetails } });
-//       }
-
-//       processedCount += batchSize;
-//       console.log(`Processed ${processedCount} out of ${totalOrders} orders`);
-//     }
-
-//     console.log("Product details migration completed successfully!");
-//   } catch (error) {
-//     console.error("Error migrating product details:", error);
-//   }
-//   res.send(["ok"]);
-// });
-
 export const OrderRoutes = router;

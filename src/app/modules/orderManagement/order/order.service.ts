@@ -18,6 +18,9 @@ import ProductModel from "../../productManagement/product/product.model";
 import { Cart } from "../../shoppingCartManagement/cart/cart.model";
 import { TCartItem } from "../../shoppingCartManagement/cartItem/cartItem.interface";
 import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
+import { TWarrantyData } from "../../warrantyManagement/warrenty/warranty.interface";
+import { Warranty } from "../../warrantyManagement/warrenty/warranty.model";
+import { generateWarrantyId } from "../../warrantyManagement/warrenty/warranty.utils";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
@@ -832,6 +835,28 @@ const getOrderInfoByOrderIdAdminFromDB = async (
       $unwind: "$productThumb",
     },
     {
+      $lookup: {
+        from: "warranties",
+        localField: "productDetails.warranty",
+        foreignField: "_id",
+        as: "warranty",
+      },
+    },
+    {
+      $addFields: {
+        warranty: {
+          $cond: {
+            if: { $eq: [{ $size: "$warranty" }, 0] },
+            then: {
+              warrantyCodes: null,
+              createdAt: null,
+            },
+            else: { $arrayElemAt: ["$warranty", 0] },
+          },
+        },
+      },
+    },
+    {
       $project: {
         _id: 1,
         orderId: 1,
@@ -857,6 +882,10 @@ const getOrderInfoByOrderIdAdminFromDB = async (
               src: "$productThumb.src",
               alt: "$productThumb.alt",
             },
+          },
+          warranty: {
+            warrantyCodes: "$warranty.warrantyCodes",
+            createdAt: "$warranty.createdAt",
           },
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
@@ -906,6 +935,12 @@ const updateOrderStatusIntoDB = async (
   }
 ): Promise<void> => {
   const session = await mongoose.startSession();
+  if (payload.orderIds.length > 10) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Can update only 10 order's status at a time."
+    );
+  }
   try {
     session.startTransaction();
     for (const id of payload.orderIds) {
@@ -920,10 +955,60 @@ const updateOrderStatusIntoDB = async (
       if (isOrderAvailable?.status === "deleted") {
         throw new ApiError(httpStatus.BAD_REQUEST, "This order is deleted.");
       }
+      if (isOrderAvailable?.status === "pending") {
+        if (!["processing", "canceled", "deleted"].includes(payload?.status)) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Pending orders can only be change to 'processing', 'canceled' or 'deleted'"
+          );
+        }
+      }
+      if (
+        isOrderAvailable?.status === "processing" &&
+        payload?.status === "processing"
+      ) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `${id}, This order is already on processing.`
+        );
+      }
+
       isOrderAvailable.status = payload.status;
       if (payload.status === "deleted") {
         isOrderAvailable.isDeleted = true;
       }
+
+      if (payload.status === "processing") {
+        const updatedProductsDetails = [];
+        for (const productDetails of isOrderAvailable?.productDetails || []) {
+          const warrantyCodes = Array.from(
+            { length: productDetails.quantity },
+            (_, index) => index + 1
+          ).map(() => generateWarrantyId());
+
+          const warrantyData: TWarrantyData = {
+            order_id: isOrderAvailable._id,
+            orderId: isOrderAvailable.orderId,
+            productId: productDetails.product as mongoose.Types.ObjectId,
+            warrantyCodes,
+          };
+          const warranty = (
+            await Warranty.create([warrantyData], { session })
+          )[0];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const updatedData: any = {
+            product: productDetails.product,
+            attributes: productDetails.attributes,
+            unitPrice: productDetails.unitPrice,
+            total: productDetails.total,
+            quantity: productDetails.quantity,
+            warranty: warranty._id,
+          };
+          updatedProductsDetails.push(updatedData);
+        }
+        isOrderAvailable.productDetails = updatedProductsDetails;
+      }
+
       await isOrderAvailable.save({ session });
 
       const orderStatusHistory = await OrderStatusHistory.findOne({
