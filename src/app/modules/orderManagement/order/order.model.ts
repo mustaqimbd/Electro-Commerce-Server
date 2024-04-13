@@ -55,7 +55,6 @@ const OrderSchema = new Schema<TOrder>(
     },
     orderedProductsDetails: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
       ref: "OrderedProduct",
     },
     productDetails: [ProductDetailsSchema],
