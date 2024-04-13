@@ -1,5 +1,5 @@
 import mongoose, { Schema, model } from "mongoose";
-import { orderSources } from "./order.const";
+import { orderSources, orderStatus } from "./order.const";
 import { TOrder, TProductDetails } from "./order.interface";
 
 const ProductDetailsSchema = new Schema<TProductDetails>({
@@ -32,6 +32,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     type: Number,
     required: true,
   },
+  warranty: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Warranty",
+  },
 });
 
 const OrderSchema = new Schema<TOrder>(
@@ -51,7 +55,6 @@ const OrderSchema = new Schema<TOrder>(
     },
     orderedProductsDetails: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
       ref: "OrderedProduct",
     },
     productDetails: [ProductDetailsSchema],
@@ -73,9 +76,11 @@ const OrderSchema = new Schema<TOrder>(
     },
     discount: {
       type: Number,
+      default: 0,
     },
     advance: {
       type: Number,
+      default: 0,
     },
     total: {
       type: Number,
@@ -93,6 +98,7 @@ const OrderSchema = new Schema<TOrder>(
     },
     status: {
       type: String,
+      enum: orderStatus,
       required: true,
     },
     shipping: {
@@ -126,6 +132,9 @@ const OrderSchema = new Schema<TOrder>(
         enum: orderSources,
       },
       url: {
+        type: String,
+      },
+      lpNo: {
         type: String,
       },
     },

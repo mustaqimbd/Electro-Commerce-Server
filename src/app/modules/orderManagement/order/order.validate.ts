@@ -5,24 +5,53 @@ import { shippingValidationZodSchema } from "../shipping/shipping.validation";
 import { orderSources, orderStatus } from "./order.const";
 
 const createOrderValidation = z.object({
-  body: z.object({
-    payment: paymentZodSchema,
-    shippingChargeId: z.string({
-      required_error: "Shipping charge id is required",
-    }),
-    shipping: shippingValidationZodSchema(true),
-    orderNotes: z.string().optional(),
-    eventId: z.string({ required_error: "Event id is required." }),
-    orderSource: z.object(
-      {
-        name: z.enum([...orderSources] as [string, ...string[]], {
-          required_error: "Source name is required.",
-        }),
-        url: z.string().optional(),
+  body: z
+    .object({
+      payment: paymentZodSchema,
+      shippingCharge: z.string({
+        required_error: "Shipping charge id is required",
+      }),
+      shipping: shippingValidationZodSchema(true),
+      eventId: z.string({ required_error: "Event id is required." }),
+      orderSource: z.object(
+        {
+          name: z.enum([...orderSources] as [string, ...string[]], {
+            required_error: "Source name is required.",
+          }),
+          url: z.string().optional(),
+        },
+        { required_error: "Some value from order source is required." }
+      ),
+      orderedProducts: z
+        .object({
+          quantity: z.number(),
+          product: z.string(),
+        })
+        .array()
+        .optional(),
+      custom: z.boolean().optional(),
+      salesPage: z.boolean().optional(),
+      advance: z.number().optional(),
+      orderNotes: z.string().optional(),
+      officialNotes: z.string().optional(),
+      invoiceNotes: z.string().optional(),
+      courierNotes: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        // If either custom or salesPage is true, orderedProducts should be present
+        return (
+          (!data?.custom && !data?.salesPage) ||
+          data?.orderedProducts?.length ||
+          0 > 0
+        );
       },
-      { required_error: "Some value from order source is required." }
+      {
+        message:
+          "Ordered products are required when the order is either custom or from the sales page",
+        path: ["orderedProducts"],
+      }
     ),
-  }),
 });
 
 const updateOrderStatus = z.object({
