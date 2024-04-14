@@ -19,6 +19,7 @@ const createOrderValidation = z.object({
             required_error: "Source name is required.",
           }),
           url: z.string().optional(),
+          lpNo: z.string().optional(),
         },
         { required_error: "Some value from order source is required." }
       ),
