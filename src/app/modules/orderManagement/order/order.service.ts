@@ -978,21 +978,7 @@ const updateOrderStatusIntoDB = async (
       }
 
       if (payload.status === "canceled" || payload.status === "deleted") {
-        const order = await Order.findOne(
-          { orderId: isOrderAvailable?.orderId },
-          { productDetails: 1 }
-        )
-          .populate([
-            {
-              path: "orderedProductsDetails",
-              select: "productDetails.product productDetails.quantity -_id",
-            },
-          ])
-          .session(session);
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const orderedProductsIds = (order?.orderedProductsDetails as any)
-          ?.productDetails;
+        const orderedProductsIds = isOrderAvailable?.productDetails;
         for (const item of orderedProductsIds) {
           const product = await ProductModel.findById(item.product, {
             inventory: 1,
