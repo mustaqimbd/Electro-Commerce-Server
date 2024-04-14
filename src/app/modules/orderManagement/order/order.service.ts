@@ -65,6 +65,7 @@ const createOrderIntoDB = async (
     salesPage: boolean;
     orderedProducts: TProductDetails[];
   };
+
   let { courierNotes, officialNotes, invoiceNotes, advance } = body as {
     courierNotes?: string;
     officialNotes?: string;
@@ -256,7 +257,11 @@ const createOrderIntoDB = async (
     orderData.courierNotes = courierNotes;
     orderData.officialNotes = officialNotes;
     orderData.invoiceNotes = invoiceNotes;
-    orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
+    orderData.orderSource = {
+      name: orderSource?.name,
+      url: orderSource?.url,
+      lpNo: orderSource?.lpNo,
+    };
     orderData.advance = advance;
     const [orderRes] = await Order.create([orderData], { session });
     if (!orderRes) {
