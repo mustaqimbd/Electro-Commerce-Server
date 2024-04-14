@@ -864,12 +864,11 @@ const getOrderInfoByOrderIdAdminFromDB = async (
         payment: 1,
         product: {
           _id: "$productDetails._id",
-          product: {
-            title: "$productInfo.title",
-            image: {
-              src: "$productThumb.src",
-              alt: "$productThumb.alt",
-            },
+          productId: "$productInfo._id",
+          title: "$productInfo.title",
+          image: {
+            src: "$productThumb.src",
+            alt: "$productThumb.alt",
           },
           warranty: {
             warrantyCodes: "$warranty.warrantyCodes",
