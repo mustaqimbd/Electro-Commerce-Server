@@ -15,7 +15,7 @@ const verifyToken = <T>(token: string, secret: Secret): T => {
   try {
     payload = jwt.verify(token, secret) as T;
   } catch (error) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid signature");
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid signature");
   }
   return payload;
 };
