@@ -22,41 +22,6 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const createOrderFromSalesPage = catchAsync(
-  async (req: Request, res: Response) => {
-    const {
-      payment,
-      shipping,
-      shippingChargeId,
-      orderFrom,
-      productId,
-      quantity,
-      orderNotes,
-      eventId,
-      orderSource,
-    } = req.body;
-    const user = req.user;
-    const result = await OrderServices.createOrderFromSalesPageIntoDB(
-      payment,
-      shipping,
-      shippingChargeId,
-      user as TOptionalAuthGuardPayload,
-      orderFrom,
-      productId,
-      quantity,
-      orderNotes,
-      req,
-      eventId,
-      orderSource
-    );
-    successResponse<TOrder>(res, {
-      statusCode: httpStatus.CREATED,
-      message: "Order created successfully",
-      data: result,
-    });
-  }
-);
-
 const getOrderInfoByOrderIdCustomer = catchAsync(
   async (req: Request, res: Response) => {
     const { orderId } = req.params;
@@ -177,7 +142,6 @@ export const OrderController = {
   updateStatus,
   getAllOrdersAdmin,
   updateOrderDetails,
-  createOrderFromSalesPage,
   deleteOrdersById,
   updateOrderedProductQuantityByAdmin,
   orderCountsByStatus,
