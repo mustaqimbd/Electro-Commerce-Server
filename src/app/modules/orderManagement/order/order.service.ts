@@ -21,8 +21,6 @@ import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
-import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
-import { OrderedProducts } from "../orderedProducts/orderedProducts.model";
 import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
@@ -297,164 +295,6 @@ const createOrderIntoDB = async (
       eventId
     );
   }
-
-  return response;
-};
-
-const createOrderFromSalesPageIntoDB = async (
-  payment: TPaymentData,
-  shipping: TShippingData,
-  shippingChargeId: mongoose.Types.ObjectId,
-  user: TOptionalAuthGuardPayload,
-  orderFrom: string,
-  productId: mongoose.Types.ObjectId,
-  quantity: number,
-  orderNotes: string,
-  req: Request,
-  eventId: string,
-  orderSource: TOrderSource
-): Promise<TOrder> => {
-  if (typeof quantity !== "number" || !quantity) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Quantity must be numeric and greater than 1."
-    );
-  }
-  if (typeof productId !== "string" || !productId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Product ID must be given.");
-  }
-
-  let totalCost = 0;
-  const userQuery = optionalAuthUserQuery(user);
-  let response;
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-    const orderData: Partial<TOrder> = {};
-    const orderId = createOrderId();
-
-    const findOrderedProduct = await ProductModel.findOne(
-      {
-        _id: productId,
-      },
-      { inventory: 1, price: 1 }
-    ).populate([{ path: "inventory" }, { path: "price" }]);
-    if (
-      (findOrderedProduct?.inventory as TInventory)?.stockQuantity < quantity
-    ) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Lack of stock quantity.");
-    }
-    if (!findOrderedProduct) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No products found.");
-    }
-
-    const orderedProductData = {
-      product: findOrderedProduct?._id,
-      unitPrice:
-        (findOrderedProduct?.price as TPrice)?.salePrice ||
-        (findOrderedProduct?.price as TPrice)?.regularPrice,
-      quantity,
-      total: Math.round(
-        quantity *
-          ((findOrderedProduct?.price as TPrice)?.salePrice ??
-            (findOrderedProduct?.price as TPrice)?.regularPrice ??
-            0)
-      ),
-    };
-
-    // decrease the quantity
-    const quantityUpdate = await InventoryModel.updateOne(
-      { _id: findOrderedProduct?.inventory },
-      { $inc: { stockQuantity: -quantity } }
-    ).session(session);
-    if (!quantityUpdate.modifiedCount) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Something went wrong"
-      );
-    }
-    // create ordered products document
-    const orderedProductsData = {
-      orderId,
-      productDetails: [orderedProductData],
-    };
-    orderData.orderedProductsDetails = (
-      await OrderedProducts.create([orderedProductsData], { session })
-    )[0]._id;
-    // create payment document
-    const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
-    if (!paymentMethod) {
-      {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No payment method found");
-      }
-    }
-    if (paymentMethod?.isPaymentDetailsNeeded) {
-      if (!payment.phoneNumber || !payment.transactionId) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request.");
-      }
-    }
-    payment.orderId = orderId;
-    orderData.payment = (
-      await OrderPayment.create([payment], { session })
-    )[0]._id;
-    // Create Shipping data
-    shipping.orderId = orderId;
-    orderData.shipping = (
-      await Shipping.create([shipping], { session })
-    )[0]._id;
-    // create status document
-    orderData.statusHistory = (
-      await OrderStatusHistory.create([{ orderId, history: [{}] }], {
-        session,
-      })
-    )[0]._id;
-    // get shipping charge
-    const shippingCharges = await ShippingCharge.findById(shippingChargeId);
-    if (!shippingCharges) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Failed to find shipping charges"
-      );
-    }
-    totalCost = orderedProductData?.total + Number(shippingCharges?.amount);
-    orderData.orderId = orderId;
-    orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
-    orderData.sessionId = userQuery.sessionId as string;
-    orderData.subtotal = orderedProductData?.total;
-    orderData.shippingCharge = shippingCharges?._id;
-    orderData.total = totalCost;
-
-    orderData.status = "pending";
-    orderData.orderFrom = orderFrom;
-    orderData.orderNotes = orderNotes;
-    orderData.orderSource = { name: orderSource?.name, url: orderSource?.url };
-    const [orderRes] = await Order.create([orderData], { session });
-    if (!orderRes) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
-    }
-    if (user.id) {
-      await Address.updateOne({ uid: user.uid }, shipping).session(session);
-    }
-    // clear cart and cart items
-    await Cart.deleteOne(userQuery).session(session);
-    await CartItem.deleteMany(userQuery).session(session);
-    response = orderRes;
-    await session.commitTransaction();
-    await session.endSession();
-  } catch (error) {
-    await session.abortTransaction();
-    await session.endSession();
-    throw error;
-  }
-
-  // track on facebook pixel
-  purchaseEventHelper(
-    shipping,
-    { productId, quantity, totalCost },
-    orderSource,
-    req,
-    eventId
-  );
 
   return response;
 };
@@ -1067,14 +907,10 @@ const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
   try {
     session.startTransaction();
     for (const orderId of orderIds) {
-      const order = await Order.findOne({ _id: orderId }).populate([
-        { path: "orderedProductsDetails", select: "productDetails" },
-      ]);
+      const order = await Order.findOne({ _id: orderId });
       if (order) {
-        order.orderedProductsDetails =
-          order.orderedProductsDetails as TOrderedProducts;
         // update quantity
-        for (const item of order.orderedProductsDetails.productDetails) {
+        for (const item of order.productDetails) {
           const product = await ProductModel.findById(item.product, {
             inventory: 1,
             title: 1,
@@ -1103,94 +939,61 @@ const updateOrderedProductQuantityByAdmin = async (
   orderedItemId: string,
   quantity: number
 ) => {
-  const stringToObject = new mongoose.Types.ObjectId(orderId);
-  const findOrderAggregation = [
-    {
-      $match: { _id: stringToObject },
-    },
-    {
-      $lookup: {
-        from: "orderedproducts",
-        localField: "orderedProductsDetails",
-        foreignField: "_id",
-        as: "orderedProducts",
-      },
-    },
-
-    {
-      $unwind: "$orderedProducts",
-    },
-    {
-      $lookup: {
-        from: "shippingcharges",
-        localField: "shippingCharge",
-        foreignField: "_id",
-        as: "shippingCharge",
-      },
-    },
-    {
-      $unwind: "$shippingCharge",
-    },
-    {
-      $project: {
-        _id: null,
-        orderedProducts: 1,
-        shippingCharge: 1,
-        discount: 1,
-      },
-    },
-  ];
-  const order = (await Order.aggregate([...findOrderAggregation]))[0];
-
-  const orderedProducts = order?.orderedProducts;
-  const shippingCharge = order?.shippingCharge;
-
-  if (!orderedProducts) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "No order item found with this id."
-    );
-  }
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    let itemIndex = (
-      orderedProducts?.productDetails as TProductDetails[]
-    ).findIndex(
-      (productDetail) => productDetail?._id.toString() === orderedItemId
+
+    const order = (
+      await Order.aggregate([
+        {
+          $match: { _id: new mongoose.Types.ObjectId(orderId) },
+        },
+        {
+          $lookup: {
+            from: "shippingcharges",
+            localField: "shippingCharge",
+            foreignField: "_id",
+            as: "shippingCharge",
+          },
+        },
+        {
+          $unwind: "$shippingCharge",
+        },
+        {
+          $project: {
+            productDetails: 1,
+            shippingCharge: 1,
+            discount: 1,
+            advance: 1,
+          },
+        },
+      ])
+    )[0];
+
+    if (!order) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "No order found.");
+    }
+
+    const currentUpdateItem = (order.productDetails as TProductDetails[]).find(
+      (item) => item._id.toString() === orderedItemId
     );
 
-    if (itemIndex === -1) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "No order item found with this id."
-      );
-    }
-    itemIndex = Number(itemIndex);
-
-    const orderItem = orderedProducts.productDetails[itemIndex];
-    const updateQuantityDoc = {
+    const updateObj = {
       $set: {
         "productDetails.$.quantity": quantity,
-        "productDetails.$.total": orderItem.unitPrice * quantity,
+        "productDetails.$.total":
+          Number(currentUpdateItem?.unitPrice) * quantity,
       },
     };
-
-    const productsQuantityUpdate = await OrderedProducts.updateOne(
+    await Order.findOneAndUpdate(
       {
-        "productDetails._id": orderItem._id,
+        _id: orderId,
+        "productDetails._id": orderedItemId,
       },
-      updateQuantityDoc
-    ).session(session);
+      updateObj
+    );
 
-    if (!productsQuantityUpdate.matchedCount) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to update order quantity"
-      );
-    }
-
-    const productId = orderItem.product;
+    const productId = currentUpdateItem?.product;
     const productInventory = (
       await ProductModel.aggregate([
         {
@@ -1217,7 +1020,7 @@ const updateOrderedProductQuantityByAdmin = async (
     )[0].inventory;
 
     const updatedQuantity =
-      productInventory.stockQuantity + orderItem.quantity - quantity;
+      productInventory.stockQuantity + currentUpdateItem?.quantity - quantity;
     const result = await InventoryModel.updateOne(
       { _id: productInventory._id },
       { stockQuantity: updatedQuantity }
@@ -1231,14 +1034,19 @@ const updateOrderedProductQuantityByAdmin = async (
     }
 
     let subtotalWithoutChangedItem = 0;
-    (orderedProducts.productDetails as TProductDetails[])
-      .filter((item) => item._id !== orderItem._id)
+    (order.productDetails as TProductDetails[])
+      .filter((item) => item._id !== currentUpdateItem?._id)
       .forEach((item) => (subtotalWithoutChangedItem += item.total));
 
     const updatedSubtotal =
-      subtotalWithoutChangedItem + orderItem.unitPrice * quantity;
+      subtotalWithoutChangedItem +
+      Number(currentUpdateItem?.unitPrice) * quantity;
+
     const updatedTotal =
-      updatedSubtotal + shippingCharge.amount - Number(order?.discount || 0);
+      updatedSubtotal +
+      order.shippingCharge.amount -
+      Number(order?.discount || 0) -
+      Number(order?.advance || 0);
 
     const orderUpdateRes = await Order.updateOne(
       { _id: orderId },
@@ -1282,7 +1090,16 @@ const orderCountsByStatusFromBD = async () => {
       },
     },
   ];
-  const result = await Order.aggregate(pipeline);
+  let result = await Order.aggregate(pipeline);
+  result = [
+    result.find((item) => item.name === "pending"),
+    result.find((item) => item.name === "confirmed"),
+    result.find((item) => item.name === "processing"),
+    result.find((item) => item.name === "canceled"),
+    result.find((item) => item.name === "follow up"),
+    result.find((item) => item.name === "follow up"),
+    result.find((item) => item.name === "On courier"),
+  ].filter(Boolean);
   return result;
 };
 
@@ -1339,7 +1156,6 @@ const orderCountsByStatusFromBD = async () => {
 
 export const OrderServices = {
   createOrderIntoDB,
-  createOrderFromSalesPageIntoDB,
   updateOrderStatusIntoDB,
   getAllOrderCustomersFromDB,
   getOrderInfoByOrderIdCustomerFromDB,
