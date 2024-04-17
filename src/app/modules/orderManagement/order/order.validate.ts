@@ -61,15 +61,6 @@ const updateOrderStatus = z.object({
     message: z.string().optional(),
     orderIds: z.string({ required_error: "Order ids is required" }).array(),
   }),
-  // .refine((data) => {
-  //   let res = true;
-  //   if (data.status === "canceled") {
-  //     if (!data.message) {
-  //       res = false;
-  //     }
-  //   }
-  //   return res;
-  // }, "Please provide the message"),
 });
 
 const updateOrderDetailsByAdmin = z.object({

@@ -37,4 +37,8 @@ export default {
   },
   c_api_access_token: env.C_API_ACCESS_TOKEN,
   pixel_id: env.PIXEL_ID,
+  stead_fast: {
+    api_key: env.STEAD_FAST_API_KEY,
+    secret_key: env.STEAD_FAST_SECRET_KEY,
+  },
 };

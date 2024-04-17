@@ -101,6 +101,9 @@ const OrderSchema = new Schema<TOrder>(
       enum: orderStatus,
       required: true,
     },
+    deliveryStatus: {
+      type: String,
+    },
     shipping: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shipping",
