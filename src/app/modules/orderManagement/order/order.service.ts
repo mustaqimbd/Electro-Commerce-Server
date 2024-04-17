@@ -307,6 +307,11 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   if (query.status) {
     matchQuery.status = query?.status as string;
   }
+  if (!query.status || query.status === "all") {
+    matchQuery.status = {
+      $in: ["pending", "confirmed", "processing", "follow up"],
+    };
+  }
 
   if (query.startFrom) {
     const startTime = convertIso(query.startFrom);
@@ -1077,6 +1082,20 @@ const updateOrderedProductQuantityByAdmin = async (
 const orderCountsByStatusFromBD = async () => {
   const pipeline = [
     {
+      $match: {
+        status: {
+          $in: [
+            "pending",
+            "confirmed",
+            "processing",
+            "follow up",
+            "canceled",
+            "deleted",
+          ],
+        },
+      },
+    },
+    {
       $group: {
         _id: "$status",
         total: { $sum: 1 },
@@ -1092,13 +1111,20 @@ const orderCountsByStatusFromBD = async () => {
   ];
   let result = await Order.aggregate(pipeline);
   result = [
+    {
+      total: result.reduce(
+        (acc, curr) =>
+          acc + (!["canceled", "deleted"].includes(curr.name) ? curr.total : 0),
+        0
+      ),
+      name: "all",
+    },
     result.find((item) => item.name === "pending"),
     result.find((item) => item.name === "confirmed"),
     result.find((item) => item.name === "processing"),
+    result.find((item) => item.name === "follow up"),
     result.find((item) => item.name === "canceled"),
-    result.find((item) => item.name === "follow up"),
-    result.find((item) => item.name === "follow up"),
-    result.find((item) => item.name === "On courier"),
+    result.find((item) => item.name === "deleted"),
   ].filter(Boolean);
   return result;
 };

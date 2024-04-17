@@ -25,7 +25,7 @@ const logger = createLogger({
         "logs",
         "winston",
         "success",
-        "um-%DATE%-success.log"
+        "ec-%DATE%-success.log"
       ),
       datePattern: "YYYY-MM-DD-HH",
       zippedArchive: true,
@@ -46,7 +46,28 @@ const errorLogger = createLogger({
         "logs",
         "winston",
         "error",
-        "um-%DATE%-error.log"
+        "ec-%DATE%-error.log"
+      ),
+      datePattern: "YYYY-MM-DD-HH",
+      zippedArchive: true,
+      maxSize: "20m",
+      maxFiles: "14d",
+    }),
+  ],
+});
+
+const courierStatusUpdateError = createLogger({
+  level: "error",
+  format: combine(label({ label: "Electro commerce" }), timestamp(), myFormat),
+  transports: [
+    new transports.Console(),
+    new DailyRotateFile({
+      filename: path.join(
+        process.cwd(),
+        "logs",
+        "winston",
+        "courierStatusUpdateError",
+        "ec-%DATE%-error.log"
       ),
       datePattern: "YYYY-MM-DD-HH",
       zippedArchive: true,
@@ -62,4 +83,4 @@ const consoleLogger = createLogger({
   transports: [new transports.Console()],
 });
 
-export { consoleLogger, errorLogger, logger };
+export { consoleLogger, courierStatusUpdateError, errorLogger, logger };

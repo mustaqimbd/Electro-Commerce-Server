@@ -60,6 +60,7 @@ export type TOrderData = {
   total: number;
   payment: mongoose.Types.ObjectId;
   status: TOrderStatus;
+  deliveryStatus: string;
   statusHistory: mongoose.Types.ObjectId | TOrderStatusHistory;
   shipping: mongoose.Types.ObjectId | TShipping;
   isDeleted: boolean;
