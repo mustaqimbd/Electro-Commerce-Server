@@ -24,6 +24,27 @@ const category = z.object({
   subCategory: z.array(z.string()).optional(),
 });
 
+const warrantyInfo = z.object({
+  duration: z.string().min(1, { message: "Duration is required!" }),
+  terms: z.string().min(1, { message: "Duration is required!" }),
+});
+
+const publishedStatusSchema = z.object({
+  status: z.enum([...publishedStatus] as [string, ...string[]]),
+  visibility: z.enum([...visibilityStatus] as [string, ...string[]]),
+  date: z.string().min(1, { message: "Date is required!" }),
+});
+
+const updatePublishedStatus = z
+  .object({
+    status: z.enum([...publishedStatus] as [string, ...string[]]).optional(),
+    visibility: z
+      .enum([...visibilityStatus] as [string, ...string[]])
+      .optional(),
+    date: z.string().min(1, { message: "Date is required!" }).optional(),
+  })
+  .optional();
+
 const product = z.object({
   body: z.object({
     title: z.string().min(1, { message: "Title is required!" }),
@@ -41,13 +62,11 @@ const product = z.object({
     attribute: z.array(updateProductAttribute).optional(),
     brand: z.array(z.string()).optional(),
     category: category,
+    warranty: z.boolean({ required_error: "warranty is required" }),
+    warrantyInfo: warrantyInfo.optional(),
     tag: z.array(z.string()).optional(),
     seoData: SeoDataValidation.updatesSeoData.optional(),
-    publishedStatus: z.object({
-      status: z.enum([...publishedStatus] as [string, ...string[]]),
-      visibility: z.enum([...visibilityStatus] as [string, ...string[]]),
-      date: z.string().min(1, { message: "Date is required!" }),
-    }),
+    publishedStatus: publishedStatusSchema,
   }),
 });
 
@@ -71,19 +90,11 @@ const updateProduct = z.object({
     attribute: z.array(updateProductAttribute).optional(),
     brand: z.array(z.string()).optional(),
     category: category.optional(),
+    warranty: z.boolean().optional(),
+    warrantyInfo: warrantyInfo.optional(),
     tag: z.array(z.string()).optional(),
     seoData: SeoDataValidation.updatesSeoData.optional(),
-    publishedStatus: z
-      .object({
-        status: z
-          .enum([...publishedStatus] as [string, ...string[]])
-          .optional(),
-        visibility: z
-          .enum([...visibilityStatus] as [string, ...string[]])
-          .optional(),
-        date: z.string().min(1, { message: "Date is required!" }).optional(),
-      })
-      .optional(),
+    publishedStatus: updatePublishedStatus,
   }),
 });
 

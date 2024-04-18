@@ -460,6 +460,7 @@ const updateProductIntoDB = async (
       attribute,
       brand,
       category,
+      warrantyInfo,
       tag,
       ...remainingUpdateData
     } = payload;
@@ -517,6 +518,12 @@ const updateProductIntoDB = async (
         updateCategory[`category.${key}`] = value;
       }
     }
+    const updateWarrantyInfo: Record<string, unknown> = {};
+    if (warrantyInfo && Object.keys(warrantyInfo).length) {
+      for (const [key, value] of Object.entries(warrantyInfo)) {
+        updateWarrantyInfo[`warrantyInfo.${key}`] = value;
+      }
+    }
     const updatePublishedStatus: Record<string, unknown> = {};
     if (publishedStatus && Object.keys(publishedStatus).length) {
       for (const [key, value] of Object.entries(publishedStatus)) {
@@ -544,8 +551,9 @@ const updateProductIntoDB = async (
           brand: updateBrand,
           ...updateCategory,
           tag: updateTag,
-          ...remainingUpdateData,
+          ...updateWarrantyInfo,
           ...updatePublishedStatus,
+          ...remainingUpdateData,
           updatedBy,
         },
       },
