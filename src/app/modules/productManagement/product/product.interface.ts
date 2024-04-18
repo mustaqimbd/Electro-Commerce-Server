@@ -19,6 +19,11 @@ export type TCategorySchema = {
   subCategory?: Types.ObjectId[];
 };
 
+export type TWarrantyInfo = {
+  duration: string;
+  terms: string;
+};
+
 export type TProduct = {
   id: string;
   title: string;
@@ -36,6 +41,8 @@ export type TProduct = {
   attribute: Partial<TAttribute>[];
   brand: Types.ObjectId[];
   category: TCategorySchema;
+  warranty: boolean;
+  warrantyInfo: TWarrantyInfo;
   tag: Types.ObjectId[];
   seoData: Types.ObjectId; // | TSeoData
   publishedStatus: TPublishedStatusSchema;

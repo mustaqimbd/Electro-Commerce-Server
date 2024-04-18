@@ -4,6 +4,7 @@ import {
   TProduct,
   TProductImage,
   TPublishedStatusSchema,
+  TWarrantyInfo,
 } from "./product.interface";
 import { TAttribute } from "../attribute/attribute.interface";
 import { publishedStatus, visibilityStatus } from "./product.const";
@@ -48,6 +49,14 @@ const categorySchema = new Schema<TCategorySchema>(
   { _id: false }
 );
 
+const warrantyInfoSchema = new Schema<TWarrantyInfo>(
+  {
+    duration: { type: String },
+    terms: { type: String },
+  },
+  { _id: false }
+);
+
 const productSchema = new Schema<TProduct>(
   {
     id: { type: String, required: true, unique: true },
@@ -81,6 +90,10 @@ const productSchema = new Schema<TProduct>(
       type: [{ type: Schema.Types.ObjectId, ref: "Brand" }],
     },
     category: categorySchema,
+    warranty: { type: Boolean, required: true },
+    warrantyInfo: {
+      type: warrantyInfoSchema,
+    },
     tag: {
       type: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
     },
@@ -99,12 +112,10 @@ const productSchema = new Schema<TProduct>(
     },
     updatedBy: {
       type: Schema.Types.ObjectId,
-      required: true,
       ref: "User",
     },
     deletedBy: {
       type: Schema.Types.ObjectId,
-      required: true,
       ref: "User",
     },
     isDeleted: { type: Boolean, default: false },
