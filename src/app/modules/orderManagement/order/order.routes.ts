@@ -26,6 +26,7 @@ router.get(
 
 router.get(
   "/admin/all-orders",
+  validateRequest(OrderValidation.getAllOrder),
   // authGuard({
   //   requiredRoles: ["admin", "staff"],
   //   //   requiredPermission: "manage orders",
@@ -45,22 +46,22 @@ router.patch(
 
 router.patch(
   "/update-order/:id",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.updateOrderDetails
 );
 
 router.delete(
   "/delete-many",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.deleteOrders),
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.deleteOrdersById
 );
 
 router.patch(
   "/update-quantity/:id",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateQuantity),
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.updateOrderedProductQuantityByAdmin
 );
 
@@ -68,6 +69,12 @@ router.get(
   "/orders-count-by-status",
   // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.orderCountsByStatus
+);
+
+router.get(
+  "/update-order-delivery-status",
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  OrderController.updateOrdersDeliveryStatus
 );
 
 export const OrderRoutes = router;

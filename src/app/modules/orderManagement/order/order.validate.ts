@@ -55,6 +55,18 @@ const createOrderValidation = z.object({
     ),
 });
 
+const getAllOrder = z.object({
+  query: z.object({
+    startFrom: z.string().optional(),
+    endAt: z.string().optional(),
+    phoneNumber: z.string().optional(),
+    status: z.string().optional(),
+    sort: z.string().optional(),
+    limit: z.string().optional(),
+    page: z.string().optional(),
+  }),
+});
+
 const updateOrderStatus = z.object({
   body: z.object({
     status: z.enum([...orderStatus] as [string, ...string[]]),
@@ -94,6 +106,7 @@ const updateQuantity = z.object({
 
 export const OrderValidation = {
   createOrderValidation,
+  getAllOrder,
   updateOrderStatus,
   updateOrderDetailsByAdmin,
   deleteOrders,

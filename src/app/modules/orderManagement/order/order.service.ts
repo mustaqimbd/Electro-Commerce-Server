@@ -4,6 +4,7 @@ import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
+import updateCourierStatus from "../../../helper/updateCourierStatus";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { convertIso } from "../../../utilities/ISOConverter";
@@ -307,7 +308,9 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   if (query.status) {
     matchQuery.status = query?.status as string;
   }
-  if (!query.status || query.status === "all") {
+
+  // if there is no status or status is all and no phone number provided
+  if ((!query.status || query.status === "all") && !query.phoneNumber) {
     matchQuery.status = {
       $in: ["pending", "confirmed", "processing", "follow up"],
     };
@@ -1129,6 +1132,10 @@ const orderCountsByStatusFromBD = async () => {
   return result;
 };
 
+const updateOrdersDeliveryStatusIntoDB = async () => {
+  await updateCourierStatus();
+};
+
 // this will need later
 // const deleteOrderByIdFromBD = async (id: string) => {
 //   const session = await mongoose.startSession();
@@ -1191,4 +1198,5 @@ export const OrderServices = {
   deleteOrdersByIdFromBD,
   updateOrderedProductQuantityByAdmin,
   orderCountsByStatusFromBD,
+  updateOrdersDeliveryStatusIntoDB,
 };
