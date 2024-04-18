@@ -134,6 +134,16 @@ const orderCountsByStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateOrdersDeliveryStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    await OrderServices.updateOrdersDeliveryStatusIntoDB();
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order delivery status updated successfully",
+    });
+  }
+);
+
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -145,4 +155,5 @@ export const OrderController = {
   deleteOrdersById,
   updateOrderedProductQuantityByAdmin,
   orderCountsByStatus,
+  updateOrdersDeliveryStatus,
 };
