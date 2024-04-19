@@ -88,6 +88,33 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateProcessingStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    await OrderServices.updateProcessingDoneIntoDB(
+      req.body?.orderIds,
+      req.user as TJwtPayload
+    );
+
+    successResponse<TOrderStatusHistory>(res, {
+      statusCode: httpStatus.CREATED,
+      message: "Status updated successfully",
+    });
+  }
+);
+
+const bookCourierAndUpdateStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    await OrderServices.bookCourierAndUpdateStatusIntoDB(
+      req.body?.orderIds,
+      req.user as TJwtPayload
+    );
+    successResponse<TOrderStatusHistory>(res, {
+      statusCode: httpStatus.CREATED,
+      message: "Courier booked successfully",
+    });
+  }
+);
+
 const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
   await OrderServices.updateOrderDetailsByAdminIntoDB(
     req.params.id as unknown as mongoose.Types.ObjectId,
@@ -156,4 +183,6 @@ export const OrderController = {
   updateOrderedProductQuantityByAdmin,
   orderCountsByStatus,
   updateOrdersDeliveryStatus,
+  updateProcessingStatus,
+  bookCourierAndUpdateStatus,
 };
