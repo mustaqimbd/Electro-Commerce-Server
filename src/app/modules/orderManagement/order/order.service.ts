@@ -774,13 +774,27 @@ const updateOrderStatusIntoDB = async (
     orderIds: mongoose.Types.ObjectId[];
   }
 ): Promise<void> => {
-  const session = await mongoose.startSession();
-  if (payload.orderIds.length > 10) {
+  //TODO: uncomment this code
+  // const acceptableStatus: Partial<TOrderStatus[]> = [
+  //   "confirmed",
+  //   "pending",
+  //   "processing",
+  //   "follow up",
+  //   "canceled",
+  //   "deleted",
+  // ];
+
+  // if (!acceptableStatus.includes(payload.status)) {
+  //   throw new ApiError(httpStatus.BAD_REQUEST, `Can't change from here`);
+  // }
+
+  if (payload.orderIds.length > 12) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Can update only 10 order's status at a time."
+      "Can update only 12 order's status at a time."
     );
   }
+  const session = await mongoose.startSession();
   try {
     session.startTransaction();
     for (const id of payload.orderIds) {
@@ -851,6 +865,118 @@ const updateOrderStatusIntoDB = async (
           }
         }
       }
+    }
+
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+};
+
+const updateProcessingDoneIntoDB = async (
+  orderIds: mongoose.Types.ObjectId[],
+  user: TJwtPayload
+) => {
+  if (orderIds.length > 12) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Can't update more than 12 orders ata time"
+    );
+  }
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const orders = await Order.find(
+      { _id: { $in: orderIds } },
+      { statusHistory: 1, status: 1 }
+    ).session(session);
+
+    for (const order of orders) {
+      if (order.status !== "processing") {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Order is not on processing"
+        );
+      }
+
+      await Order.updateOne(
+        { _id: order._id },
+        { status: "processing done" },
+        { session }
+      );
+
+      await OrderStatusHistory.updateOne(
+        { _id: order.statusHistory },
+        {
+          $push: {
+            history: {
+              status: "processing done",
+              updatedBy: user.id,
+            },
+          },
+        },
+        { session }
+      );
+    }
+
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+};
+
+const bookCourierAndUpdateStatusIntoDB = async (
+  orderIds: mongoose.Types.ObjectId[],
+  user: TJwtPayload
+) => {
+  if (orderIds.length > 12) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Can't update more than 12 orders at a time"
+    );
+  }
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const orders = await Order.find(
+      { _id: { $in: orderIds }, status: "processing done" },
+      { statusHistory: 1, status: 1, orderId: 1 }
+    ).session(session);
+
+    for (const order of orders) {
+      if (order.status !== "processing done") {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Order: ${order.orderId} is not processed`
+        );
+      }
+
+      await Order.updateOne(
+        { _id: order._id },
+        { status: "On courier" },
+        { session }
+      );
+
+      await OrderStatusHistory.updateOne(
+        { _id: order.statusHistory },
+        {
+          $push: {
+            history: {
+              status: "On courier",
+              updatedBy: user.id,
+            },
+          },
+        },
+        { session }
+      );
     }
 
     await session.commitTransaction();
@@ -1190,6 +1316,8 @@ const updateOrdersDeliveryStatusIntoDB = async () => {
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
+  updateProcessingDoneIntoDB,
+  bookCourierAndUpdateStatusIntoDB,
   getAllOrderCustomersFromDB,
   getOrderInfoByOrderIdCustomerFromDB,
   getOrderInfoByOrderIdAdminFromDB,

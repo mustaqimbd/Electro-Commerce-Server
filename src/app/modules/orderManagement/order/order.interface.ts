@@ -14,6 +14,7 @@ export type TOrderStatus =
   | "pending"
   | "confirmed"
   | "processing"
+  | "processing done"
   | "On courier"
   | "picked by courier"
   | "completed"

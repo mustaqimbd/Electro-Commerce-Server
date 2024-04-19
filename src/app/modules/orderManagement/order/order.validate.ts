@@ -4,6 +4,12 @@ import { paymentZodSchema } from "../orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../shipping/shipping.validation";
 import { orderSources, orderStatus } from "./order.const";
 
+const validateOrderIds = () =>
+  z
+    .string({ required_error: "Order ids is required" })
+    .array()
+    .nonempty({ message: "Can't be empty" });
+
 const createOrderValidation = z.object({
   body: z
     .object({
@@ -71,7 +77,17 @@ const updateOrderStatus = z.object({
   body: z.object({
     status: z.enum([...orderStatus] as [string, ...string[]]),
     message: z.string().optional(),
-    orderIds: z.string({ required_error: "Order ids is required" }).array(),
+    orderIds: validateOrderIds(),
+  }),
+});
+const updateProcessingStatus = z.object({
+  body: z.object({
+    orderIds: validateOrderIds(),
+  }),
+});
+const bookCourier = z.object({
+  body: z.object({
+    orderIds: validateOrderIds(),
   }),
 });
 
@@ -93,7 +109,7 @@ const updateOrderDetailsByAdmin = z.object({
 
 const deleteOrders = z.object({
   body: z.object({
-    orderIds: z.string().array().nonempty({ message: "Can't be empty" }),
+    orderIds: validateOrderIds(),
   }),
 });
 
@@ -108,6 +124,8 @@ export const OrderValidation = {
   createOrderValidation,
   getAllOrder,
   updateOrderStatus,
+  updateProcessingStatus,
+  bookCourier,
   updateOrderDetailsByAdmin,
   deleteOrders,
   updateQuantity,

@@ -45,6 +45,26 @@ router.patch(
 );
 
 router.patch(
+  "/update-processing-status",
+  validateRequest(OrderValidation.updateProcessingStatus),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   // requiredPermission: "manage orders",
+  // }),
+  OrderController.updateProcessingStatus
+);
+
+router.patch(
+  "/book-courier-and-update-status",
+  validateRequest(OrderValidation.bookCourier),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   // requiredPermission: "manage orders",
+  // }),
+  OrderController.bookCourierAndUpdateStatus
+);
+
+router.patch(
   "/update-order/:id",
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   // authGuard({ requiredRoles: ["admin", "staff"] }),
