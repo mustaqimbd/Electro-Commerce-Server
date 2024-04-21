@@ -75,18 +75,26 @@ const getAllOrder = z.object({
 
 const updateOrderStatus = z.object({
   body: z.object({
-    status: z.enum([...orderStatus] as [string, ...string[]]),
+    status: z.enum([...orderStatus] as [string, ...string[]], {
+      required_error: "Status is required",
+    }),
     message: z.string().optional(),
     orderIds: validateOrderIds(),
   }),
 });
 const updateProcessingStatus = z.object({
   body: z.object({
+    status: z.enum([...orderStatus] as [string, ...string[]], {
+      required_error: "Status is required",
+    }),
     orderIds: validateOrderIds(),
   }),
 });
-const bookCourier = z.object({
+const bookCourierAndUpdateStatus = z.object({
   body: z.object({
+    status: z.enum([...orderStatus] as [string, ...string[]], {
+      required_error: "Status is required",
+    }),
     orderIds: validateOrderIds(),
   }),
 });
@@ -125,7 +133,7 @@ export const OrderValidation = {
   getAllOrder,
   updateOrderStatus,
   updateProcessingStatus,
-  bookCourier,
+  bookCourierAndUpdateStatus,
   updateOrderDetailsByAdmin,
   deleteOrders,
   updateQuantity,

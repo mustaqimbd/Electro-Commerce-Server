@@ -35,7 +35,9 @@ import {
   TSanitizedOrProduct,
 } from "./order.interface";
 import { Order } from "./order.model";
-import createOrderId from "./order.utils";
+import { createOrderId, updateStockOnOrderCancelOrDelete } from "./order.utils";
+
+const maxOrderStatusChangeAtATime = 20;
 
 const createOrderIntoDB = async (
   body: unknown,
@@ -770,11 +772,10 @@ const updateOrderStatusIntoDB = async (
   user: TJwtPayload,
   payload: {
     status: TOrderStatus;
-    message: string;
     orderIds: mongoose.Types.ObjectId[];
   }
 ): Promise<void> => {
-  //TODO: uncomment this code
+  // From this API, admins can only change to this status below.
   // const acceptableStatus: Partial<TOrderStatus[]> = [
   //   "confirmed",
   //   "pending",
@@ -785,85 +786,69 @@ const updateOrderStatusIntoDB = async (
   // ];
 
   // if (!acceptableStatus.includes(payload.status)) {
-  //   throw new ApiError(httpStatus.BAD_REQUEST, `Can't change from here`);
+  //   throw new ApiError(
+  //     httpStatus.BAD_REQUEST,
+  //     `Can't change to ${payload.status} from here`
+  //   );
   // }
 
-  if (payload.orderIds.length > 12) {
+  if (payload.orderIds.length > maxOrderStatusChangeAtATime) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Can update only 12 order's status at a time."
+      `Can't update more than ${maxOrderStatusChangeAtATime} orders at a time`
     );
   }
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    for (const id of payload.orderIds) {
-      const isOrderAvailable = await Order.findById(id).session(session);
+    const orders = await Order.find({ _id: { $in: payload.orderIds } }).session(
+      session
+    );
+    for (const order of orders) {
+      if (["deleted"].includes(order.status)) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `The order ${order.orderId} is deleted`
+        );
+      }
+      const orderPreviousStatus = order.status;
+      order.status = payload.status;
 
-      if (!isOrderAvailable) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No order found");
-      }
-      if (isOrderAvailable?.status === "canceled") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "This order is canceled.");
-      }
-      if (isOrderAvailable?.status === "deleted") {
-        throw new ApiError(httpStatus.BAD_REQUEST, "This order is deleted.");
-      }
-
-      isOrderAvailable.status = payload.status;
       if (payload.status === "deleted") {
-        isOrderAvailable.isDeleted = true;
+        order.isDeleted = true;
       }
 
-      await isOrderAvailable.save({ session });
+      await order.save({ session });
 
-      const orderStatusHistory = await OrderStatusHistory.findOne({
-        orderId: isOrderAvailable?.orderId,
-      }).session(session);
+      await OrderStatusHistory.updateOne(
+        { _id: order.statusHistory },
+        {
+          $push: {
+            history: {
+              status: payload.status,
+              updatedBy: user.id,
+            },
+          },
+        },
+        { session }
+      );
 
-      if (!orderStatusHistory) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "No order status found.");
+      const orderedProducts = order?.productDetails;
+
+      // If the admin try to retrieve to a canceled order
+      if (
+        orderPreviousStatus === "canceled" &&
+        !["canceled", "deleted"].includes(payload.status)
+      ) {
+        await updateStockOnOrderCancelOrDelete(orderedProducts, session, false);
       }
 
-      orderStatusHistory.message =
-        payload.status === "canceled" ? payload.message : undefined;
-
-      orderStatusHistory.history.push({
-        updatedBy: user.id,
-        status: payload.status,
-      });
-
-      const result = await orderStatusHistory.save({ session });
-
-      if (!result) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update status");
-      }
-
-      if (payload.status === "canceled" || payload.status === "deleted") {
-        const orderedProductsIds = isOrderAvailable?.productDetails;
-        for (const item of orderedProductsIds) {
-          const product = await ProductModel.findById(item.product, {
-            inventory: 1,
-          })
-            .session(session)
-            .lean();
-          if (!product) {
-            throw new ApiError(
-              httpStatus.BAD_REQUEST,
-              "Failed to find the product"
-            );
-          }
-          const updateQUantity = await InventoryModel.updateOne(
-            { _id: product.inventory },
-            { $inc: { stockQuantity: item.quantity } }
-          ).session(session);
-          if (!updateQUantity.modifiedCount) {
-            throw new ApiError(
-              httpStatus.BAD_REQUEST,
-              "Failed to update quantity"
-            );
-          }
-        }
+      // if the previous status is not canceled or deleted and now try to cancel the order
+      if (
+        !["canceled", "deleted"].includes(orderPreviousStatus) &&
+        ["canceled", "deleted"].includes(payload.status)
+      ) {
+        await updateStockOnOrderCancelOrDelete(orderedProducts, session);
       }
     }
 
@@ -878,49 +863,51 @@ const updateOrderStatusIntoDB = async (
 
 const updateProcessingDoneIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
+  status: Partial<TOrderStatus>,
   user: TJwtPayload
 ) => {
-  if (orderIds.length > 12) {
+  if (!["processing done", "canceled"].includes(status)) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Can't update more than 12 orders ata time"
+      `Can't change to ${status} from here`
     );
   }
+
+  if (orderIds.length > maxOrderStatusChangeAtATime) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't update more than ${maxOrderStatusChangeAtATime} orders at a time`
+    );
+  }
+
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
 
     const orders = await Order.find(
-      { _id: { $in: orderIds } },
+      { _id: { $in: orderIds }, status: "processing" },
       { statusHistory: 1, status: 1 }
     ).session(session);
 
     for (const order of orders) {
-      if (order.status !== "processing") {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Order is not on processing"
-        );
-      }
-
-      await Order.updateOne(
-        { _id: order._id },
-        { status: "processing done" },
-        { session }
-      );
+      await Order.updateOne({ _id: order._id }, { status }, { session });
 
       await OrderStatusHistory.updateOne(
         { _id: order.statusHistory },
         {
           $push: {
             history: {
-              status: "processing done",
+              status,
               updatedBy: user.id,
             },
           },
         },
         { session }
       );
+
+      if (status === "canceled") {
+        await updateStockOnOrderCancelOrDelete(order.productDetails, session);
+      }
     }
 
     await session.commitTransaction();
@@ -934,14 +921,22 @@ const updateProcessingDoneIntoDB = async (
 
 const bookCourierAndUpdateStatusIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
+  status: Partial<TOrderStatus>,
   user: TJwtPayload
 ) => {
-  if (orderIds.length > 12) {
+  if (!["On courier", "canceled"].includes(status)) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Can't update more than 12 orders at a time"
+      `Can't change to ${status} from here`
     );
   }
+  if (orderIds.length > maxOrderStatusChangeAtATime) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't update more than ${maxOrderStatusChangeAtATime} orders at a time`
+    );
+  }
+
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -952,31 +947,29 @@ const bookCourierAndUpdateStatusIntoDB = async (
     ).session(session);
 
     for (const order of orders) {
-      if (order.status !== "processing done") {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          `Order: ${order.orderId} is not processed`
+      if (status === "On courier") {
+        await Order.updateOne(
+          { _id: order._id },
+          { status: "On courier" },
+          { session }
         );
-      }
 
-      await Order.updateOne(
-        { _id: order._id },
-        { status: "On courier" },
-        { session }
-      );
-
-      await OrderStatusHistory.updateOne(
-        { _id: order.statusHistory },
-        {
-          $push: {
-            history: {
-              status: "On courier",
-              updatedBy: user.id,
+        await OrderStatusHistory.updateOne(
+          { _id: order.statusHistory },
+          {
+            $push: {
+              history: {
+                status: "On courier",
+                updatedBy: user.id,
+              },
             },
           },
-        },
-        { session }
-      );
+          { session }
+        );
+      }
+      if (status === "canceled") {
+        await updateStockOnOrderCancelOrDelete(order.productDetails, session);
+      }
     }
 
     await session.commitTransaction();
@@ -992,8 +985,14 @@ const updateOrderDetailsByAdminIntoDB = async (
   id: mongoose.Types.ObjectId,
   payload: Partial<TOrder>
 ) => {
-  const { discount, shipping, invoiceNotes, officialNotes, courierNotes } =
-    payload;
+  const {
+    discount,
+    shipping,
+    invoiceNotes,
+    officialNotes,
+    courierNotes,
+    followUpDate,
+  } = payload;
   const findOrder = await Order.findOne({ _id: id }).populate([
     { path: "shippingCharge", select: "amount -_id" },
   ]);
@@ -1025,6 +1024,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.invoiceNotes = invoiceNotes;
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
+    updatedDoc.followUpDate = followUpDate;
     await Order.findOneAndUpdate({ _id: id }, updatedDoc).session(session);
 
     await session.commitTransaction();

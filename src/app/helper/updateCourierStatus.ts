@@ -16,7 +16,6 @@ const updateCourierStatus = async () => {
             "partial_delivered_approval_pending",
             "cancelled_approval_pending",
             "unknown_approval_pending",
-            "partial_delivered",
             "hold",
             "in_review",
             null,

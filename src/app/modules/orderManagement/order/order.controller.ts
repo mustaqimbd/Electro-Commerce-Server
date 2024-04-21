@@ -90,8 +90,10 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
 
 const updateProcessingStatus = catchAsync(
   async (req: Request, res: Response) => {
+    const { orderIds, status } = req.body;
     await OrderServices.updateProcessingDoneIntoDB(
-      req.body?.orderIds,
+      orderIds,
+      status,
       req.user as TJwtPayload
     );
 
@@ -104,8 +106,10 @@ const updateProcessingStatus = catchAsync(
 
 const bookCourierAndUpdateStatus = catchAsync(
   async (req: Request, res: Response) => {
+    const { status, orderIds } = req.body;
     await OrderServices.bookCourierAndUpdateStatusIntoDB(
-      req.body?.orderIds,
+      orderIds,
+      status,
       req.user as TJwtPayload
     );
     successResponse<TOrderStatusHistory>(res, {
@@ -115,17 +119,19 @@ const bookCourierAndUpdateStatus = catchAsync(
   }
 );
 
-const updateOrderDetails = catchAsync(async (req: Request, res: Response) => {
-  await OrderServices.updateOrderDetailsByAdminIntoDB(
-    req.params.id as unknown as mongoose.Types.ObjectId,
-    req.body
-  );
+const updateOrderDetailsByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    await OrderServices.updateOrderDetailsByAdminIntoDB(
+      req.params.id as unknown as mongoose.Types.ObjectId,
+      req.body
+    );
 
-  successResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Order details updated successfully.",
-  });
-});
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order details updated successfully.",
+    });
+  }
+);
 
 const updateOrderedProductQuantityByAdmin = catchAsync(
   async (req: Request, res: Response) => {
@@ -178,7 +184,7 @@ export const OrderController = {
   getAllOrderCustomers,
   updateStatus,
   getAllOrdersAdmin,
-  updateOrderDetails,
+  updateOrderDetailsByAdmin,
   deleteOrdersById,
   updateOrderedProductQuantityByAdmin,
   orderCountsByStatus,

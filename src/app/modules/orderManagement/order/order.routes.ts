@@ -56,7 +56,7 @@ router.patch(
 
 router.patch(
   "/book-courier-and-update-status",
-  validateRequest(OrderValidation.bookCourier),
+  validateRequest(OrderValidation.bookCourierAndUpdateStatus),
   // authGuard({
   //   requiredRoles: ["admin", "staff"],
   //   // requiredPermission: "manage orders",
@@ -68,7 +68,7 @@ router.patch(
   "/update-order/:id",
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   // authGuard({ requiredRoles: ["admin", "staff"] }),
-  OrderController.updateOrderDetails
+  OrderController.updateOrderDetailsByAdmin
 );
 
 router.delete(

@@ -62,6 +62,7 @@ export type TOrderData = {
   payment: mongoose.Types.ObjectId;
   status: TOrderStatus;
   deliveryStatus: string;
+  followUpDate?: string;
   statusHistory: mongoose.Types.ObjectId | TOrderStatusHistory;
   shipping: mongoose.Types.ObjectId | TShipping;
   isDeleted: boolean;

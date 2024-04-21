@@ -104,6 +104,9 @@ const OrderSchema = new Schema<TOrder>(
     deliveryStatus: {
       type: String,
     },
+    followUpDate: {
+      type: String,
+    },
     shipping: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Shipping",
