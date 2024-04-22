@@ -6,7 +6,9 @@ export type TWarrantyData = {
   order_id: mongoose.Types.ObjectId | TOrder;
   orderId: string;
   productId: mongoose.Types.ObjectId | TProduct;
-  endsDate?: Date;
+  duration: string;
+  startDate: string;
+  endsDate: string;
   warrantyCodes: string[];
 };
 
