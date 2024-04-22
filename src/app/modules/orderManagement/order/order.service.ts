@@ -379,6 +379,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
         invoiceNotes: 1,
         courierNotes: 1,
         orderSource: 1,
+        followUpDate: 1,
         productDetails: 1,
       },
     },
@@ -410,6 +411,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
         officialNotes: 1,
         invoiceNotes: 1,
         courierNotes: 1,
+        followUpDate: 1,
         orderSource: 1,
         product: {
           title: "$productInfo.title",
@@ -433,6 +435,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
         officialNotes: { $first: "$officialNotes" },
         invoiceNotes: { $first: "$invoiceNotes" },
         courierNotes: { $first: "$courierNotes" },
+        followUpDate: { $first: "$followUpDate" },
         orderSource: { $first: "$orderSource" },
         products: { $push: "$product" },
       },
@@ -647,6 +650,7 @@ const getOrderInfoByOrderIdAdminFromDB = async (
         invoiceNotes: 1,
         courierNotes: 1,
         orderNotes: 1,
+        followUpDate: 1,
         orderSource: 1,
         productDetails: 1,
         createdAt: 1,
@@ -752,6 +756,7 @@ const getOrderInfoByOrderIdAdminFromDB = async (
         invoiceNotes: { $first: "$invoiceNotes" },
         courierNotes: { $first: "$courierNotes" },
         orderNotes: { $first: "$orderNotes" },
+        followUpDate: { $first: "$followUpDate" },
         orderSource: { $first: "$orderSource" },
         statusHistory: { $first: "$statusHistory" },
         products: { $push: "$product" },
@@ -1025,7 +1030,16 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
-    await Order.findOneAndUpdate({ _id: id }, updatedDoc).session(session);
+
+    await Order.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          ...updatedDoc,
+        },
+      },
+      { session, new: true }
+    );
 
     await session.commitTransaction();
     await session.endSession();
