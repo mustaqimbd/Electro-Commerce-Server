@@ -303,9 +303,7 @@ const createOrderIntoDB = async (
 };
 
 const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
-  const matchQuery: Record<string, unknown> = {
-    isDeleted: { $ne: true },
-  };
+  const matchQuery: Record<string, unknown> = {};
 
   if (query.status) {
     matchQuery.status = query?.status as string;

@@ -1,78 +1,129 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
-import { TProductDetails } from "../../orderManagement/order/order.interface";
 import { Order } from "../../orderManagement/order/order.model";
-import { TWarrantyData, TWarrantyInfoInput } from "./warranty.interface";
-import { Warranty } from "./warranty.model";
+import { TWarrantyInfoInput } from "./warranty.interface";
 
 const createWarrantyIntoDB = async (
   order_id: mongoose.Types.ObjectId,
   warrantyInfo: TWarrantyInfoInput[]
 ) => {
   const session = await mongoose.startSession();
+  // const { startDate, endDate } = warrantyDuration("1 years");
+
   try {
     session.startTransaction();
-    const order = (
-      await Order.aggregate([
-        {
-          $match: {
-            isDeleted: { $ne: true },
-            status: { $ne: "canceled" },
-            _id: new mongoose.Types.ObjectId(order_id),
+
+    const pipeline = [
+      { $match: { _id: new mongoose.Types.ObjectId(order_id) } },
+      {
+        $unwind: "$productDetails",
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productDetails.product",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      {
+        $unwind: "$productInfo",
+      },
+      {
+        $lookup: {
+          from: "images",
+          localField: "productInfo.image.thumbnail",
+          foreignField: "_id",
+          as: "productThumb",
+        },
+      },
+      {
+        $unwind: "$productThumb",
+      },
+      {
+        $lookup: {
+          from: "warranties",
+          localField: "productDetails.warranty",
+          foreignField: "_id",
+          as: "warranty",
+        },
+      },
+      {
+        $addFields: {
+          warranty: {
+            $cond: {
+              if: { $eq: [{ $size: "$warranty" }, 0] },
+              then: {
+                warrantyCodes: null,
+                createdAt: null,
+              },
+              else: { $arrayElemAt: ["$warranty", 0] },
+            },
           },
         },
-        {
-          $project: {
-            productDetails: 1,
-            orderId: 1,
+      },
+      {
+        $project: {
+          _id: 1,
+          product: {
+            _id: "$productDetails._id",
+            product: {
+              _id: "$productInfo._id",
+              title: "$productInfo.title",
+              warranty: "$productInfo.warranty",
+              warrantyInfo: "$productInfo.warrantyInfo",
+            },
+            warranty: {
+              warrantyCodes: "$warranty.warrantyCodes",
+              createdAt: "$warranty.createdAt",
+            },
+            unitPrice: "$productDetails.unitPrice",
+            quantity: "$productDetails.quantity",
+            total: "$productDetails.total",
           },
+          createdAt: 1,
         },
-      ])
-    )[0];
+      },
+      {
+        $group: {
+          _id: "$_id",
+          products: { $push: "$product" },
+          createdAt: { $first: "$createdAt" },
+        },
+      },
+    ];
+
+    const order = (await Order.aggregate(pipeline))[0];
 
     if (!order) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "No order found with this ID."
-      );
+      throw new ApiError(httpStatus.BAD_REQUEST, "No order found with");
     }
 
-    for (const item of warrantyInfo) {
-      const findOrderItem = (order.productDetails as TProductDetails[]).find(
-        (orderItem) => orderItem._id.toString() === item.itemId
-      );
-      if (findOrderItem?.quantity !== item.codes.length) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Please add all warranty codes"
+    for (const item of order.products) {
+      if (item?.product?.warranty) {
+        const findTheWarrantyIdFromInput = warrantyInfo.find(
+          (infoItem) => infoItem.itemId === item._id.toString()
         );
+        if (findTheWarrantyIdFromInput?.codes?.length !== item?.quantity) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Please insert all warranty codes"
+          );
+        }
+        if (item?.warranty?.warrantyCodes?.length) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Warranty for product: ${item?.product?.title} is already exist`
+          );
+        }
+        // console.log(findTheWarrantyIdFromInput);
+        // console.log(item.warranty);
       }
-
-      const warrantyData: TWarrantyData = {
-        order_id,
-        orderId: order.orderId,
-        productId: findOrderItem.product,
-        warrantyCodes: item.codes,
-        // endsDate:89,
-      };
-      const warrantyRes = (
-        await Warranty.create([warrantyData], { session })
-      )[0];
-      const updatedDoc = {
-        $set: {
-          "productDetails.$.warranty": warrantyRes._id,
-        },
-      };
-
-      await Order.findOneAndUpdate(
-        {
-          _id: order_id,
-          "productDetails._id": findOrderItem._id,
-        },
-        updatedDoc
-      ).session(session);
     }
+
+    // console.log(order.products);
+    // console.log(order.products[0]?.product?.warrantyInfo);
 
     await session.commitTransaction();
     await session.endSession();
