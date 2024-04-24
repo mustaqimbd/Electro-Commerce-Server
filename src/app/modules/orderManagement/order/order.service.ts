@@ -1221,18 +1221,20 @@ const updateOrderedProductQuantityByAdmin = async (
 };
 
 const orderCountsByStatusFromBD = async () => {
+  const statusMap = {
+    all: 0,
+    pending: 0,
+    confirmed: 0,
+    processing: 0,
+    "follow up": 0,
+    canceled: 0,
+    deleted: 0,
+  };
   const pipeline = [
     {
       $match: {
         status: {
-          $in: [
-            "pending",
-            "confirmed",
-            "processing",
-            "follow up",
-            "canceled",
-            "deleted",
-          ],
+          $in: Object.keys(statusMap).filter((status) => status !== "all"),
         },
       },
     },
@@ -1242,32 +1244,23 @@ const orderCountsByStatusFromBD = async () => {
         total: { $sum: 1 },
       },
     },
-    {
-      $project: {
-        name: "$_id",
-        total: 1,
-        _id: 0,
-      },
-    },
   ];
-  let result = await Order.aggregate(pipeline);
-  result = [
-    {
-      total: result.reduce(
-        (acc, curr) =>
-          acc + (!["canceled", "deleted"].includes(curr.name) ? curr.total : 0),
-        0
-      ),
-      name: "all",
-    },
-    result.find((item) => item.name === "pending"),
-    result.find((item) => item.name === "confirmed"),
-    result.find((item) => item.name === "processing"),
-    result.find((item) => item.name === "follow up"),
-    result.find((item) => item.name === "canceled"),
-    result.find((item) => item.name === "deleted"),
-  ].filter(Boolean);
-  return result;
+
+  const result = await Order.aggregate(pipeline);
+
+  result.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+    if (!["canceled", "deleted"].includes(_id)) {
+      statusMap.all += total;
+    }
+  });
+
+  const formattedResult = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
+
+  return formattedResult;
 };
 
 const updateOrdersDeliveryStatusIntoDB = async () => {

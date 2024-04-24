@@ -1,15 +1,16 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
+import { warrantyDuration } from "../../../utilities/warrantyDuration";
 import { Order } from "../../orderManagement/order/order.model";
-import { TWarrantyInfoInput } from "./warranty.interface";
+import { TWarrantyData, TWarrantyInfoInput } from "./warranty.interface";
+import { Warranty } from "./warranty.model";
 
 const createWarrantyIntoDB = async (
   order_id: mongoose.Types.ObjectId,
   warrantyInfo: TWarrantyInfoInput[]
 ) => {
   const session = await mongoose.startSession();
-  // const { startDate, endDate } = warrantyDuration("1 years");
 
   try {
     session.startTransaction();
@@ -66,6 +67,7 @@ const createWarrantyIntoDB = async (
       {
         $project: {
           _id: 1,
+          orderId: 1,
           product: {
             _id: "$productDetails._id",
             product: {
@@ -88,6 +90,7 @@ const createWarrantyIntoDB = async (
       {
         $group: {
           _id: "$_id",
+          orderId: { $first: "$orderId" },
           products: { $push: "$product" },
           createdAt: { $first: "$createdAt" },
         },
@@ -99,38 +102,75 @@ const createWarrantyIntoDB = async (
     if (!order) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No order found with");
     }
-
-    for (const item of order.products) {
+    for (const item of order?.products || []) {
       if (item?.product?.warranty) {
-        const findTheWarrantyIdFromInput = warrantyInfo.find(
-          (infoItem) => infoItem.itemId === item._id.toString()
+        const findWarrantyInput = warrantyInfo.find(
+          (itemInfo) => itemInfo.itemId === item._id.toString()
         );
-        if (findTheWarrantyIdFromInput?.codes?.length !== item?.quantity) {
+
+        if (!findWarrantyInput) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            "Please insert all warranty codes"
+            `Failed to match order item`
           );
         }
+
+        if (findWarrantyInput?.codes?.length !== item?.quantity) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Please add ${item.quantity} warranty codes for '${item.product.title}'`
+          );
+        }
+
         if (item?.warranty?.warrantyCodes?.length) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
             `Warranty for product: ${item?.product?.title} is already exist`
           );
         }
-        // console.log(findTheWarrantyIdFromInput);
-        // console.log(item.warranty);
+
+        const { startDate, endDate } = warrantyDuration(
+          item?.product?.warrantyInfo?.duration
+        );
+
+        if (!startDate || !endDate) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Failed to calculate start and ends date"
+          );
+        }
+
+        const warrantyData: TWarrantyData = {
+          order_id,
+          orderId: order?.orderId,
+          productId: item?.product?._id,
+          duration: item?.product?.warrantyInfo?.duration,
+          startDate,
+          endsDate: endDate as string,
+          warrantyCodes: findWarrantyInput?.codes as string[],
+        };
+
+        const warrantyRes = (
+          await Warranty.create([warrantyData], { session })
+        )[0];
+        await Order.findOneAndUpdate(
+          {
+            _id: order_id,
+            "productDetails._id": item._id,
+          },
+          {
+            $set: { "productDetails.$.warranty": warrantyRes._id },
+          }
+        );
       }
     }
 
-    // console.log(order.products);
-    // console.log(order.products[0]?.product?.warrantyInfo);
-
     await session.commitTransaction();
-    await session.endSession();
   } catch (error) {
     await session.abortTransaction();
-    await session.endSession();
     throw error;
+  } finally {
+    await session.endSession();
   }
 };
 
