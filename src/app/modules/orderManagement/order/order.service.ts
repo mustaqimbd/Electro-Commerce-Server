@@ -1,6 +1,6 @@
 import { Request } from "express";
 import httpStatus from "http-status";
-import mongoose, { PipelineStage } from "mongoose";
+import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
@@ -35,7 +35,12 @@ import {
   TSanitizedOrProduct,
 } from "./order.interface";
 import { Order } from "./order.model";
-import { createOrderId, updateStockOnOrderCancelOrDelete } from "./order.utils";
+import {
+  createOrderId,
+  deleteWarrantyFromOrder,
+  ordersPipeline,
+  updateStockOnOrderCancelOrDelete,
+} from "./order.utils";
 
 const maxOrderStatusChangeAtATime = 20;
 
@@ -304,6 +309,23 @@ const createOrderIntoDB = async (
 
 const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   const matchQuery: Record<string, unknown> = {};
+  const acceptableStatus: TOrderStatus[] = [
+    "pending",
+    "confirmed",
+    "processing",
+    "follow up",
+  ];
+
+  if (
+    ![...acceptableStatus, "canceled", "deleted", "all", undefined].includes(
+      query.status as never
+    )
+  ) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't get ${query.status} orders`
+    );
+  }
 
   if (query.status) {
     matchQuery.status = query?.status as string;
@@ -312,7 +334,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   // if there is no status or status is all and no phone number provided
   if ((!query.status || query.status === "all") && !query.phoneNumber) {
     matchQuery.status = {
-      $in: ["pending", "confirmed", "processing", "follow up"],
+      $in: [...acceptableStatus],
     };
   }
 
@@ -332,113 +354,10 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     };
   }
 
-  const pipeline: PipelineStage[] = [
-    {
-      $match: matchQuery,
-    },
-    {
-      $lookup: {
-        from: "shippings",
-        localField: "shipping",
-        foreignField: "_id",
-        as: "shippingData",
-      },
-    },
-    {
-      $unwind: "$shippingData",
-    },
-    {
-      $lookup: {
-        from: "shippingcharges",
-        localField: "shippingCharge",
-        foreignField: "_id",
-        as: "shippingCharge",
-      },
-    },
-    {
-      $unwind: "$shippingCharge",
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        status: 1,
-        shipping: {
-          fullName: "$shippingData.fullName",
-          phoneNumber: "$shippingData.phoneNumber",
-          fullAddress: "$shippingData.fullAddress",
-        },
-        shippingCharge: { amount: "$shippingCharge.amount" },
-        createdAt: 1,
-        officialNotes: 1,
-        invoiceNotes: 1,
-        courierNotes: 1,
-        orderSource: 1,
-        followUpDate: 1,
-        productDetails: 1,
-      },
-    },
-    {
-      $unwind: "$productDetails",
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "productDetails.product",
-        foreignField: "_id",
-        as: "productInfo",
-      },
-    },
-    {
-      $unwind: "$productInfo",
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        status: 1,
-        shipping: 1,
-        shippingCharge: 1,
-        createdAt: 1,
-        officialNotes: 1,
-        invoiceNotes: 1,
-        courierNotes: 1,
-        followUpDate: 1,
-        orderSource: 1,
-        product: {
-          title: "$productInfo.title",
-          unitPrice: "$productDetails.unitPrice",
-          quantity: "$productDetails.quantity",
-          total: "$productDetails.total",
-        },
-      },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        orderId: { $first: "$orderId" },
-        total: { $first: "$total" },
-        subtotal: { $first: "$subtotal" },
-        discount: { $first: "$discount" },
-        status: { $first: "$status" },
-        shipping: { $first: "$shipping" },
-        shippingCharge: { $first: "$shippingCharge" },
-        createdAt: { $first: "$createdAt" },
-        officialNotes: { $first: "$officialNotes" },
-        invoiceNotes: { $first: "$invoiceNotes" },
-        courierNotes: { $first: "$courierNotes" },
-        followUpDate: { $first: "$followUpDate" },
-        orderSource: { $first: "$orderSource" },
-        products: { $push: "$product" },
-      },
-    },
-  ];
+  const pipeline = ordersPipeline();
+  pipeline.unshift({
+    $match: matchQuery,
+  });
 
   if (query.phoneNumber) {
     pipeline.push({
@@ -460,6 +379,157 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   const meta = orderQuery.metaData(total);
 
   return { meta, data };
+};
+
+const getProcessingOrdersAdminFromDB = async (
+  query: Record<string, string>
+) => {
+  const matchQuery: Record<string, unknown> = {};
+  const acceptableStatus: TOrderStatus[] = [
+    "processing",
+    "warranty added",
+    "processing done",
+  ];
+
+  if (query.status) {
+    matchQuery.status = query?.status as string;
+  }
+
+  if (query.orderId) {
+    matchQuery.orderId = query.orderId;
+  }
+
+  if ((!query.status || query.status === "all") && !query.orderId) {
+    matchQuery.status = {
+      $in: [...acceptableStatus],
+    };
+  }
+
+  if (![...acceptableStatus, undefined].includes(query.status as never)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't get ${query.status} orders`
+    );
+  }
+
+  const pipeline = ordersPipeline();
+
+  pipeline.unshift({
+    $match: matchQuery,
+  });
+
+  const orderQuery = new AggregateQueryHelper(
+    Order.aggregate(pipeline),
+    query
+  ).sort();
+  // .paginate();
+  const data = await orderQuery.model;
+  const total = (await Order.aggregate(pipeline)).length;
+  const meta = orderQuery.metaData(total);
+
+  // Orders counts
+  const statusMap = {
+    processing: 0,
+    "warranty added": 0,
+    "processing done": 0,
+  };
+  const countRes = await Order.aggregate([
+    {
+      $match: {
+        status: {
+          $in: Object.keys(statusMap),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  countRes.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+  });
+  const formattedCount = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
+
+  return { countsByStatus: formattedCount, meta, data };
+};
+
+const getProcessingDoneCourierOrdersAdminFromDB = async (
+  query: Record<string, string>
+) => {
+  const matchQuery: Record<string, unknown> = {};
+  const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
+
+  if (query.status) {
+    matchQuery.status = query?.status as string;
+  }
+
+  if (query.orderId) {
+    matchQuery.orderId = query.orderId;
+  }
+
+  if ((!query.status || query.status === "all") && !query.orderId) {
+    matchQuery.status = {
+      $in: [...acceptableStatus],
+    };
+  }
+
+  if (![...acceptableStatus, undefined].includes(query.status as never)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't get ${query.status} orders`
+    );
+  }
+
+  const pipeline = ordersPipeline();
+
+  pipeline.unshift({
+    $match: matchQuery,
+  });
+
+  const orderQuery = new AggregateQueryHelper(
+    Order.aggregate(pipeline),
+    query
+  ).sort();
+  // .paginate();
+  const data = await orderQuery.model;
+  const total = (await Order.aggregate(pipeline)).length;
+  const meta = orderQuery.metaData(total);
+
+  // Orders counts
+  const statusMap = {
+    "processing done": 0,
+    "On courier": 0,
+  };
+  const countRes = await Order.aggregate([
+    {
+      $match: {
+        status: {
+          $in: Object.keys(statusMap),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  countRes.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+  });
+  const formattedCount = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
+
+  return { countsByStatus: formattedCount, meta, data };
 };
 
 const getOrderInfoByOrderIdCustomerFromDB = async (
@@ -779,21 +849,21 @@ const updateOrderStatusIntoDB = async (
   }
 ): Promise<void> => {
   // From this API, admins can only change to this status below.
-  // const acceptableStatus: Partial<TOrderStatus[]> = [
-  //   "confirmed",
-  //   "pending",
-  //   "processing",
-  //   "follow up",
-  //   "canceled",
-  //   "deleted",
-  // ];
+  const acceptableStatus: Partial<TOrderStatus[]> = [
+    "confirmed",
+    "pending",
+    "processing",
+    "follow up",
+    "canceled",
+    "deleted",
+  ];
 
-  // if (!acceptableStatus.includes(payload.status)) {
-  //   throw new ApiError(
-  //     httpStatus.BAD_REQUEST,
-  //     `Can't change to ${payload.status} from here`
-  //   );
-  // }
+  if (![...acceptableStatus].includes(payload.status)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't change to ${payload.status}`
+    );
+  }
 
   if (payload.orderIds.length > maxOrderStatusChangeAtATime) {
     throw new ApiError(
@@ -804,9 +874,10 @@ const updateOrderStatusIntoDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const orders = await Order.find({ _id: { $in: payload.orderIds } }).session(
-      session
-    );
+    const orders = await Order.find({
+      _id: { $in: payload.orderIds },
+      status: { $in: ["pending", "confirmed", "follow up"] },
+    }).session(session);
     for (const order of orders) {
       if (["deleted"].includes(order.status)) {
         throw new ApiError(
@@ -864,16 +935,14 @@ const updateOrderStatusIntoDB = async (
   }
 };
 
-const updateProcessingDoneIntoDB = async (
+const updateProcessingStatusIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
   status: Partial<TOrderStatus>,
   user: TJwtPayload
 ) => {
-  if (!["processing done", "canceled"].includes(status)) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      `Can't change to ${status} from here`
-    );
+  const acceptableStatus = ["warranty added", "processing done", "canceled"];
+  if (![...acceptableStatus].includes(status)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
   }
 
   if (orderIds.length > maxOrderStatusChangeAtATime) {
@@ -888,8 +957,11 @@ const updateProcessingDoneIntoDB = async (
     session.startTransaction();
 
     const orders = await Order.find(
-      { _id: { $in: orderIds }, status: "processing" },
-      { statusHistory: 1, status: 1 }
+      {
+        _id: { $in: orderIds },
+        status: { $in: ["processing", "warranty added", "processing done"] },
+      },
+      { statusHistory: 1, status: 1, productDetails: 1, orderId: 1 }
     ).session(session);
 
     for (const order of orders) {
@@ -910,6 +982,9 @@ const updateProcessingDoneIntoDB = async (
 
       if (status === "canceled") {
         await updateStockOnOrderCancelOrDelete(order.productDetails, session);
+        if (order.productDetails.map((item) => item.warranty).length) {
+          await deleteWarrantyFromOrder(order.productDetails, session);
+        }
       }
     }
 
@@ -928,10 +1003,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
   user: TJwtPayload
 ) => {
   if (!["On courier", "canceled"].includes(status)) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      `Can't change to ${status} from here`
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
   }
   if (orderIds.length > maxOrderStatusChangeAtATime) {
     throw new ApiError(
@@ -945,8 +1017,8 @@ const bookCourierAndUpdateStatusIntoDB = async (
     session.startTransaction();
 
     const orders = await Order.find(
-      { _id: { $in: orderIds }, status: "processing done" },
-      { statusHistory: 1, status: 1, orderId: 1 }
+      { _id: { $in: orderIds } },
+      { statusHistory: 1, status: 1, orderId: 1, productDetails: 1 }
     ).session(session);
 
     for (const order of orders) {
@@ -972,6 +1044,9 @@ const bookCourierAndUpdateStatusIntoDB = async (
       }
       if (status === "canceled") {
         await updateStockOnOrderCancelOrDelete(order.productDetails, session);
+        if (order.productDetails.map((item) => item.warranty).length) {
+          await deleteWarrantyFromOrder(order.productDetails, session);
+        }
       }
     }
 
@@ -1321,7 +1396,7 @@ const updateOrdersDeliveryStatusIntoDB = async () => {
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
-  updateProcessingDoneIntoDB,
+  updateProcessingStatusIntoDB,
   bookCourierAndUpdateStatusIntoDB,
   getAllOrderCustomersFromDB,
   getOrderInfoByOrderIdCustomerFromDB,
@@ -1332,4 +1407,6 @@ export const OrderServices = {
   updateOrderedProductQuantityByAdmin,
   orderCountsByStatusFromBD,
   updateOrdersDeliveryStatusIntoDB,
+  getProcessingOrdersAdminFromDB,
+  getProcessingDoneCourierOrdersAdminFromDB,
 };

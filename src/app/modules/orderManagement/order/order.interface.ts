@@ -13,14 +13,13 @@ import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 export type TOrderStatus =
   | "pending"
   | "confirmed"
+  | "follow up"
   | "processing"
   | "processing done"
+  | "warranty added"
   | "On courier"
-  | "picked by courier"
-  | "completed"
-  | "canceled"
-  | "follow up"
   | "returned"
+  | "canceled"
   | "deleted";
 
 export type TOrderSourceName =
