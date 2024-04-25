@@ -1,5 +1,11 @@
 import mongoose, { Schema, model } from "mongoose";
-import { contactStatus } from "./warranty.const";
+import { ShippingSchema } from "../../orderManagement/shipping/shipping.model";
+import {
+  warrantyApprovalStatus,
+  warrantyClaimedContactStatus,
+  warrantyClaimedProductCondition,
+  warrantyClaimedProductLocation,
+} from "./warranty.const";
 import { TWarrantyClaim } from "./warrantyClaim.interface";
 
 const WarrantyCLaimSchema = new Schema<TWarrantyClaim>({
@@ -11,16 +17,28 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>({
     type: String,
     required: true,
   },
-  shipping: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Shipping",
-    required: true,
-  },
+  shipping: ShippingSchema,
   contactStatus: {
     type: String,
-    enum: contactStatus,
+    enum: warrantyClaimedContactStatus,
   },
   identifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  result: {
+    type: String,
+    enum: warrantyClaimedProductCondition,
+  },
+  productLocation: {
+    type: String,
+    enum: warrantyClaimedProductLocation,
+  },
+  approvalStatus: {
+    type: String,
+    enum: warrantyApprovalStatus,
+  },
+  finalCheckedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
