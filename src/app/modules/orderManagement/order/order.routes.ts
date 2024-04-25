@@ -26,12 +26,32 @@ router.get(
 
 router.get(
   "/admin/all-orders",
-  validateRequest(OrderValidation.getAllOrder),
+  validateRequest(OrderValidation.getOrdersAdmin),
   // authGuard({
   //   requiredRoles: ["admin", "staff"],
   //   //   requiredPermission: "manage orders",
   // }),
   OrderController.getAllOrdersAdmin
+);
+
+router.get(
+  "/admin/processing-orders",
+  validateRequest(OrderValidation.getOrdersAdmin),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   //   requiredPermission: "manage orders",
+  // }),
+  OrderController.getProcessingOrdersAdmin
+);
+
+router.get(
+  "/admin/processing-done-on-courier-orders",
+  validateRequest(OrderValidation.getOrdersAdmin),
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   //   requiredPermission: "manage orders",
+  // }),
+  OrderController.getProcessingDoneCourierOrdersAdmin
 );
 
 router.patch(

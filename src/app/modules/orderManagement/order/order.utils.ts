@@ -1,11 +1,13 @@
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import ProductModel from "../../productManagement/product/product.model";
+import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { TProductDetails } from "./order.interface";
+import { Order } from "./order.model";
 
-const createOrderId = () => {
+export const createOrderId = () => {
   const date = new Date();
   const timestamp = date.getTime();
   const randomNum = Math.floor(Math.random() * 9000) + 1000;
@@ -14,7 +16,7 @@ const createOrderId = () => {
   return orderId.slice(0, 10);
 };
 
-const updateStockOnOrderCancelOrDelete = async (
+export const updateStockOnOrderCancelOrDelete = async (
   productDetails: TProductDetails[],
   session: mongoose.mongo.ClientSession,
   inc: boolean = true
@@ -45,4 +47,125 @@ const updateStockOnOrderCancelOrDelete = async (
   }
 };
 
-export { createOrderId, updateStockOnOrderCancelOrDelete };
+export const ordersPipeline = (): PipelineStage[] => [
+  {
+    $lookup: {
+      from: "shippings",
+      localField: "shipping",
+      foreignField: "_id",
+      as: "shippingData",
+    },
+  },
+  {
+    $unwind: "$shippingData",
+  },
+  {
+    $lookup: {
+      from: "shippingcharges",
+      localField: "shippingCharge",
+      foreignField: "_id",
+      as: "shippingCharge",
+    },
+  },
+  {
+    $unwind: "$shippingCharge",
+  },
+  {
+    $project: {
+      _id: 1,
+      orderId: 1,
+      subtotal: 1,
+      total: 1,
+      discount: 1,
+      status: 1,
+      shipping: {
+        fullName: "$shippingData.fullName",
+        phoneNumber: "$shippingData.phoneNumber",
+        fullAddress: "$shippingData.fullAddress",
+      },
+      shippingCharge: { amount: "$shippingCharge.amount" },
+      createdAt: 1,
+      officialNotes: 1,
+      invoiceNotes: 1,
+      courierNotes: 1,
+      orderSource: 1,
+      followUpDate: 1,
+      productDetails: 1,
+    },
+  },
+  {
+    $unwind: "$productDetails",
+  },
+  {
+    $lookup: {
+      from: "products",
+      localField: "productDetails.product",
+      foreignField: "_id",
+      as: "productInfo",
+    },
+  },
+  {
+    $unwind: "$productInfo",
+  },
+  {
+    $project: {
+      _id: 1,
+      orderId: 1,
+      subtotal: 1,
+      total: 1,
+      discount: 1,
+      status: 1,
+      shipping: 1,
+      shippingCharge: 1,
+      createdAt: 1,
+      officialNotes: 1,
+      invoiceNotes: 1,
+      courierNotes: 1,
+      followUpDate: 1,
+      orderSource: 1,
+      product: {
+        title: "$productInfo.title",
+        unitPrice: "$productDetails.unitPrice",
+        quantity: "$productDetails.quantity",
+        total: "$productDetails.total",
+      },
+    },
+  },
+  {
+    $group: {
+      _id: "$_id",
+      orderId: { $first: "$orderId" },
+      total: { $first: "$total" },
+      subtotal: { $first: "$subtotal" },
+      discount: { $first: "$discount" },
+      status: { $first: "$status" },
+      shipping: { $first: "$shipping" },
+      shippingCharge: { $first: "$shippingCharge" },
+      createdAt: { $first: "$createdAt" },
+      officialNotes: { $first: "$officialNotes" },
+      invoiceNotes: { $first: "$invoiceNotes" },
+      courierNotes: { $first: "$courierNotes" },
+      followUpDate: { $first: "$followUpDate" },
+      orderSource: { $first: "$orderSource" },
+      products: { $push: "$product" },
+    },
+  },
+];
+
+export const deleteWarrantyFromOrder = async (
+  productDetails: TProductDetails[],
+  session: mongoose.mongo.ClientSession
+) => {
+  const deleteQuery = {
+    _id: {
+      $in: productDetails
+        .map((item) => item.warranty)
+        .map((item) => new mongoose.Types.ObjectId(`${item}`)),
+    },
+  };
+  await Warranty.deleteMany(deleteQuery).session(session);
+  await Order.updateMany(
+    { "productDetails.warranty": { $exists: true } },
+    { $unset: { "productDetails.$[].warranty": 1 } }
+  ).session(session);
+};

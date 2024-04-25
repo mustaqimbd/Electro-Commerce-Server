@@ -77,6 +77,42 @@ const getAllOrdersAdmin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getProcessingOrdersAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { countsByStatus, meta, data } =
+      await OrderServices.getProcessingOrdersAdminFromDB(
+        req.query as unknown as Record<string, string>
+      );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Processing orders retrieved successfully",
+      meta,
+      data: {
+        countsByStatus,
+        data,
+      },
+    });
+  }
+);
+
+const getProcessingDoneCourierOrdersAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { countsByStatus, meta, data } =
+      await OrderServices.getProcessingDoneCourierOrdersAdminFromDB(
+        req.query as unknown as Record<string, string>
+      );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Processing done and on courier orders retrieved successfully",
+      meta,
+      data: {
+        countsByStatus,
+        data,
+      },
+    });
+  }
+);
+
 const updateStatus = catchAsync(async (req: Request, res: Response) => {
   const user = req.user;
 
@@ -91,7 +127,7 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
 const updateProcessingStatus = catchAsync(
   async (req: Request, res: Response) => {
     const { orderIds, status } = req.body;
-    await OrderServices.updateProcessingDoneIntoDB(
+    await OrderServices.updateProcessingStatusIntoDB(
       orderIds,
       status,
       req.user as TJwtPayload
@@ -184,6 +220,7 @@ export const OrderController = {
   getAllOrderCustomers,
   updateStatus,
   getAllOrdersAdmin,
+  getProcessingOrdersAdmin,
   updateOrderDetailsByAdmin,
   deleteOrdersById,
   updateOrderedProductQuantityByAdmin,
@@ -191,4 +228,5 @@ export const OrderController = {
   updateOrdersDeliveryStatus,
   updateProcessingStatus,
   bookCourierAndUpdateStatus,
+  getProcessingDoneCourierOrdersAdmin,
 };

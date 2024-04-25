@@ -61,7 +61,7 @@ const createOrderValidation = z.object({
     ),
 });
 
-const getAllOrder = z.object({
+const getOrdersAdmin = z.object({
   query: z.object({
     startFrom: z.string().optional(),
     endAt: z.string().optional(),
@@ -130,7 +130,7 @@ const updateQuantity = z.object({
 
 export const OrderValidation = {
   createOrderValidation,
-  getAllOrder,
+  getOrdersAdmin,
   updateOrderStatus,
   updateProcessingStatus,
   bookCourierAndUpdateStatus,
