@@ -1,7 +1,7 @@
 import mongoose, { Schema, model } from "mongoose";
 import { TShippingData } from "./shipping.interface";
 
-const ShippingSchema = new Schema<TShippingData>(
+export const ShippingSchema = new Schema<TShippingData>(
   {
     orderId: {
       type: String,
