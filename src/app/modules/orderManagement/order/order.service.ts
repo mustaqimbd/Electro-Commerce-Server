@@ -39,7 +39,7 @@ import {
   createOrderId,
   deleteWarrantyFromOrder,
   ordersPipeline,
-  updateStockOnOrderCancelOrDelete,
+  updateStockOnOrderCancelOrDeleteOrRetrieve,
 } from "./order.utils";
 
 const maxOrderStatusChangeAtATime = 20;
@@ -532,84 +532,6 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   return { countsByStatus: formattedCount, meta, data };
 };
 
-const getOrderInfoByOrderIdCustomerFromDB = async (
-  orderId: string
-): Promise<TOrder | null> => {
-  const result = await Order.findOne(
-    { orderId },
-    {
-      orderId: 1,
-      subtotal: 1,
-      shippingCharge: 1,
-      total: 1,
-      status: 1,
-      orderedProductsDetails: 1,
-      _id: 0,
-      createdAt: 1,
-      payment: 1,
-      shipping: 1,
-    }
-  ).populate([
-    { path: "shippingCharge", select: "amount name -_id" },
-    {
-      path: "orderedProductsDetails",
-      select: "productDetails -_id",
-      populate: {
-        path: "productDetails.product",
-        select: "title image -_id",
-        populate: {
-          path: "image",
-          select: "thumbnail",
-        },
-      },
-    },
-    {
-      path: "payment",
-      populate: {
-        path: "paymentMethod",
-        select: "name image",
-        populate: {
-          path: "image",
-          select: "src alt",
-        },
-      },
-    },
-    {
-      path: "shipping",
-    },
-  ]);
-  if (!result) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this id");
-  }
-  return result;
-};
-
-const getAllOrderCustomersFromDB = async (user: TOptionalAuthGuardPayload) => {
-  const userQuery = optionalAuthUserQuery(user);
-  const result = await Order.find(userQuery, {
-    orderId: 1,
-    orderedProductsDetails: 1,
-    shippingCharge: 1,
-    total: 1,
-    payment: 1,
-    status: 1,
-    shipping: 1,
-    _id: 0,
-    updatedAt: 1,
-  }).populate([
-    {
-      path: "orderedProductsDetails",
-      select: "-orderId -_id -__v",
-      populate: {
-        path: "productDetails.product",
-        select: "title image -_id",
-      },
-    },
-    { path: "shippingCharge", select: "name amount -_id" },
-  ]);
-  return result;
-};
-
 const getOrderInfoByOrderIdAdminFromDB = async (
   id: mongoose.Types.ObjectId
 ): Promise<TOrder | null> => {
@@ -841,6 +763,84 @@ const getOrderInfoByOrderIdAdminFromDB = async (
   return result;
 };
 
+const getOrderInfoByOrderIdCustomerFromDB = async (
+  orderId: string
+): Promise<TOrder | null> => {
+  const result = await Order.findOne(
+    { orderId },
+    {
+      orderId: 1,
+      subtotal: 1,
+      shippingCharge: 1,
+      total: 1,
+      status: 1,
+      orderedProductsDetails: 1,
+      _id: 0,
+      createdAt: 1,
+      payment: 1,
+      shipping: 1,
+    }
+  ).populate([
+    { path: "shippingCharge", select: "amount name -_id" },
+    {
+      path: "orderedProductsDetails",
+      select: "productDetails -_id",
+      populate: {
+        path: "productDetails.product",
+        select: "title image -_id",
+        populate: {
+          path: "image",
+          select: "thumbnail",
+        },
+      },
+    },
+    {
+      path: "payment",
+      populate: {
+        path: "paymentMethod",
+        select: "name image",
+        populate: {
+          path: "image",
+          select: "src alt",
+        },
+      },
+    },
+    {
+      path: "shipping",
+    },
+  ]);
+  if (!result) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this id");
+  }
+  return result;
+};
+
+const getAllOrderCustomersFromDB = async (user: TOptionalAuthGuardPayload) => {
+  const userQuery = optionalAuthUserQuery(user);
+  const result = await Order.find(userQuery, {
+    orderId: 1,
+    orderedProductsDetails: 1,
+    shippingCharge: 1,
+    total: 1,
+    payment: 1,
+    status: 1,
+    shipping: 1,
+    _id: 0,
+    updatedAt: 1,
+  }).populate([
+    {
+      path: "orderedProductsDetails",
+      select: "-orderId -_id -__v",
+      populate: {
+        path: "productDetails.product",
+        select: "title image -_id",
+      },
+    },
+    { path: "shippingCharge", select: "name amount -_id" },
+  ]);
+  return result;
+};
+
 const updateOrderStatusIntoDB = async (
   user: TJwtPayload,
   payload: {
@@ -848,12 +848,18 @@ const updateOrderStatusIntoDB = async (
     orderIds: mongoose.Types.ObjectId[];
   }
 ): Promise<void> => {
+  // From this api admin can only change this orders
+  const changableOrders: Partial<TOrderStatus[]> = [
+    "pending",
+    "confirmed",
+    "follow up",
+    "canceled",
+  ];
+
   // From this API, admins can only change to this status below.
   const acceptableStatus: Partial<TOrderStatus[]> = [
-    "confirmed",
-    "pending",
+    ...changableOrders,
     "processing",
-    "follow up",
     "canceled",
     "deleted",
   ];
@@ -865,7 +871,7 @@ const updateOrderStatusIntoDB = async (
     );
   }
 
-  if (payload.orderIds.length > maxOrderStatusChangeAtATime) {
+  if (payload?.orderIds?.length > maxOrderStatusChangeAtATime) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       `Can't update more than ${maxOrderStatusChangeAtATime} orders at a time`
@@ -874,55 +880,68 @@ const updateOrderStatusIntoDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const orders = await Order.find({
-      _id: { $in: payload.orderIds },
-      status: { $in: ["pending", "confirmed", "follow up"] },
-    }).session(session);
+    const orders = await Order.find(
+      {
+        _id: { $in: payload.orderIds },
+        status: { $in: changableOrders },
+      },
+      { orderId: 1, status: 1, statusHistory: 1, productDetails: 1 }
+    ).session(session);
+
+    // Change the orders one by one
     for (const order of orders) {
-      if (["deleted"].includes(order.status)) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          `The order ${order.orderId} is deleted`
-        );
-      }
-      const orderPreviousStatus = order.status;
-      order.status = payload.status;
+      // If this order's previous status is not same as the current
+      if (order.status !== payload.status) {
+        const orderPreviousStatus = order.status;
 
-      if (payload.status === "deleted") {
-        order.isDeleted = true;
-      }
+        const updatedDoc: Record<string, unknown> = {
+          status: payload.status,
+        };
+        if (payload.status === "deleted") {
+          updatedDoc.isDeleted = true;
+        }
 
-      await order.save({ session });
+        await Order.updateOne({ _id: order._id }, updatedDoc, {
+          upsert: true,
+        }).session(session);
 
-      await OrderStatusHistory.updateOne(
-        { _id: order.statusHistory },
-        {
-          $push: {
-            history: {
-              status: payload.status,
-              updatedBy: user.id,
+        await OrderStatusHistory.updateOne(
+          { _id: order.statusHistory },
+          {
+            $push: {
+              history: {
+                status: payload.status,
+                updatedBy: user.id,
+              },
             },
           },
-        },
-        { session }
-      );
+          { session }
+        );
 
-      const orderedProducts = order?.productDetails;
+        const orderedProducts = order?.productDetails;
 
-      // If the admin try to retrieve to a canceled order
-      if (
-        orderPreviousStatus === "canceled" &&
-        !["canceled", "deleted"].includes(payload.status)
-      ) {
-        await updateStockOnOrderCancelOrDelete(orderedProducts, session, false);
-      }
+        // If the admin try to retrieve a canceled order
+        if (
+          orderPreviousStatus === "canceled" &&
+          !["canceled", "deleted"].includes(payload.status)
+        ) {
+          await updateStockOnOrderCancelOrDeleteOrRetrieve(
+            orderedProducts,
+            session,
+            false
+          );
+        }
 
-      // if the previous status is not canceled or deleted and now try to cancel the order
-      if (
-        !["canceled", "deleted"].includes(orderPreviousStatus) &&
-        ["canceled", "deleted"].includes(payload.status)
-      ) {
-        await updateStockOnOrderCancelOrDelete(orderedProducts, session);
+        // if the previous status is not canceled or deleted and now try to cancel the order
+        if (
+          !["canceled", "deleted"].includes(orderPreviousStatus) &&
+          ["canceled", "deleted"].includes(payload.status)
+        ) {
+          await updateStockOnOrderCancelOrDeleteOrRetrieve(
+            orderedProducts,
+            session
+          );
+        }
       }
     }
 
@@ -955,18 +974,76 @@ const updateProcessingStatusIntoDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-
-    const orders = await Order.find(
+    const pipeline = [
       {
-        _id: { $in: orderIds },
-        status: { $in: ["processing", "warranty added", "processing done"] },
+        $match: {
+          _id: {
+            $in: orderIds.map((item) => new mongoose.Types.ObjectId(item)),
+          },
+          status: { $in: ["processing", "warranty added", "processing done"] },
+        },
       },
-      { statusHistory: 1, status: 1, productDetails: 1, orderId: 1 }
-    ).session(session);
+      {
+        $unwind: "$productDetails",
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productDetails.product",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      {
+        $unwind: "$productInfo",
+      },
+      {
+        $project: {
+          _id: 1,
+          orderId: 1,
+          status: 1,
+          statusHistory: 1,
+          product: {
+            _id: "$productDetails._id",
+            productId: "$productInfo._id",
+            productTitle: "$productInfo.title",
+            warranty: "$productDetails.warranty",
+            productWarranty: "$productInfo.warranty",
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id",
+          orderId: { $first: "$orderId" },
+          status: { $first: "$status" },
+          statusHistory: { $first: "$statusHistory" },
+          productDetails: { $push: "$product" },
+        },
+      },
+    ];
+    const orders = await Order.aggregate(pipeline).session(session);
 
     for (const order of orders) {
+      if (status === "processing done") {
+        for (const {
+          warranty,
+          productWarranty,
+          productTitle,
+        } of order.productDetails) {
+          if (productWarranty && !warranty) {
+            throw new ApiError(
+              httpStatus.BAD_REQUEST,
+              `Please add warranty to order '${order?.orderId}' product '${productTitle}'`
+            );
+          }
+        }
+      }
+
+      // Update order status
       await Order.updateOne({ _id: order._id }, { status }, { session });
 
+      // Update order status history
       await OrderStatusHistory.updateOne(
         { _id: order.statusHistory },
         {
@@ -981,10 +1058,13 @@ const updateProcessingStatusIntoDB = async (
       );
 
       if (status === "canceled") {
-        await updateStockOnOrderCancelOrDelete(order.productDetails, session);
-        if (order.productDetails.map((item) => item.warranty).length) {
-          await deleteWarrantyFromOrder(order.productDetails, session);
-        }
+        await Promise.all([
+          updateStockOnOrderCancelOrDeleteOrRetrieve(
+            order.productDetails,
+            session
+          ),
+          deleteWarrantyFromOrder(order.productDetails, session),
+        ]);
       }
     }
 
@@ -1017,33 +1097,31 @@ const bookCourierAndUpdateStatusIntoDB = async (
     session.startTransaction();
 
     const orders = await Order.find(
-      { _id: { $in: orderIds } },
+      { _id: { $in: orderIds }, status: "processing done" },
       { statusHistory: 1, status: 1, orderId: 1, productDetails: 1 }
     ).session(session);
 
     for (const order of orders) {
-      if (status === "On courier") {
-        await Order.updateOne(
-          { _id: order._id },
-          { status: "On courier" },
-          { session }
-        );
+      await Order.updateOne({ _id: order._id }, { status }, { session });
 
-        await OrderStatusHistory.updateOne(
-          { _id: order.statusHistory },
-          {
-            $push: {
-              history: {
-                status: "On courier",
-                updatedBy: user.id,
-              },
+      await OrderStatusHistory.updateOne(
+        { _id: order.statusHistory },
+        {
+          $push: {
+            history: {
+              status,
+              updatedBy: user.id,
             },
           },
-          { session }
-        );
-      }
+        },
+        { session }
+      );
+
       if (status === "canceled") {
-        await updateStockOnOrderCancelOrDelete(order.productDetails, session);
+        await updateStockOnOrderCancelOrDeleteOrRetrieve(
+          order.productDetails,
+          session
+        );
         if (order.productDetails.map((item) => item.warranty).length) {
           await deleteWarrantyFromOrder(order.productDetails, session);
         }

@@ -33,17 +33,6 @@ const createWarrantyIntoDB = async (
       },
       {
         $lookup: {
-          from: "images",
-          localField: "productInfo.image.thumbnail",
-          foreignField: "_id",
-          as: "productThumb",
-        },
-      },
-      {
-        $unwind: "$productThumb",
-      },
-      {
-        $lookup: {
           from: "warranties",
           localField: "productDetails.warranty",
           foreignField: "_id",
@@ -111,7 +100,7 @@ const createWarrantyIntoDB = async (
         if (!findWarrantyInput) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            `Failed to match order item`
+            `Please add warranty for '${item?.product?.title}'`
           );
         }
 
@@ -125,7 +114,7 @@ const createWarrantyIntoDB = async (
         if (item?.warranty?.warrantyCodes?.length) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            `Warranty for product: ${item?.product?.title} is already exist`
+            `Warranty for product: '${item?.product?.title}' is already exist`
           );
         }
 
@@ -160,7 +149,8 @@ const createWarrantyIntoDB = async (
           },
           {
             $set: { "productDetails.$.warranty": warrantyRes._id },
-          }
+          },
+          { session }
         );
       }
     }
