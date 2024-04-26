@@ -16,7 +16,8 @@ export const createOrderId = () => {
   return orderId.slice(0, 10);
 };
 
-export const updateStockOnOrderCancelOrDelete = async (
+// This function will increase or decrease stock quantity base on command. The first parameter will receive product details, the second parameter will receive mongoDB session and the third parameter will receive a boolean value. Base on the value the stock will increase od decrease
+export const updateStockOnOrderCancelOrDeleteOrRetrieve = async (
   productDetails: TProductDetails[],
   session: mongoose.mongo.ClientSession,
   inc: boolean = true
@@ -47,6 +48,7 @@ export const updateStockOnOrderCancelOrDelete = async (
   }
 };
 
+// This pipeline will retrieve orders information
 export const ordersPipeline = (): PipelineStage[] => [
   {
     $lookup: {
@@ -152,6 +154,7 @@ export const ordersPipeline = (): PipelineStage[] => [
   },
 ];
 
+// This function will delete warranty information from warranty collection and update order product details
 export const deleteWarrantyFromOrder = async (
   productDetails: TProductDetails[],
   session: mongoose.mongo.ClientSession
@@ -160,7 +163,9 @@ export const deleteWarrantyFromOrder = async (
     _id: {
       $in: productDetails
         .map((item) => item.warranty)
-        .map((item) => new mongoose.Types.ObjectId(`${item}`)),
+        .map(
+          (item) => new mongoose.Types.ObjectId(item as mongoose.Types.ObjectId)
+        ),
     },
   };
   await Warranty.deleteMany(deleteQuery).session(session);
