@@ -28,6 +28,7 @@ import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { OrderHelper } from "./order.helper";
 import {
+  TCourierProviders,
   TOrder,
   TOrderSource,
   TOrderStatus,
@@ -1080,6 +1081,7 @@ const updateProcessingStatusIntoDB = async (
 const bookCourierAndUpdateStatusIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
   status: Partial<TOrderStatus>,
+  courierProvider: TCourierProviders,
   user: TJwtPayload
 ) => {
   if (!["On courier", "canceled"].includes(status)) {
@@ -1102,7 +1104,14 @@ const bookCourierAndUpdateStatusIntoDB = async (
     ).session(session);
 
     for (const order of orders) {
-      await Order.updateOne({ _id: order._id }, { status }, { session });
+      const updatedDoc = {
+        status,
+        courierDetails: { courierProvider },
+      };
+      await Order.updateOne({ _id: order._id }, updatedDoc, {
+        session,
+        upsert: true,
+      });
 
       await OrderStatusHistory.updateOne(
         { _id: order.statusHistory },

@@ -30,6 +30,8 @@ export type TOrderSourceName =
   | "Social Media"
   | "From Office";
 
+export type TCourierProviders = "steadfast";
+
 export type TOrderSource = {
   name: TOrderSourceName;
   url?: string;
@@ -43,6 +45,10 @@ export type TProductDetails = {
   quantity: number;
   total: number;
   warranty: mongoose.Types.ObjectId | TWarranty;
+} & Document;
+
+export type TCourierDetails = {
+  courierProvider: mongoose.Types.ObjectId;
 } & Document;
 
 export type TOrderData = {
@@ -70,6 +76,7 @@ export type TOrderData = {
   officialNotes?: string;
   invoiceNotes?: string;
   courierNotes?: string;
+  courierDetails?: TCourierDetails;
   orderSource: TOrderSource;
 };
 

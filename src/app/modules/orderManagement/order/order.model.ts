@@ -1,6 +1,6 @@
 import mongoose, { Schema, model } from "mongoose";
 import { orderSources, orderStatus } from "./order.const";
-import { TOrder, TProductDetails } from "./order.interface";
+import { TCourierDetails, TOrder, TProductDetails } from "./order.interface";
 
 const ProductDetailsSchema = new Schema<TProductDetails>({
   product: {
@@ -37,6 +37,15 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     ref: "Warranty",
   },
 });
+
+const CourierDetailsSchema = new Schema<TCourierDetails>(
+  {
+    courierProvider: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+  },
+  { _id: false }
+);
 
 const OrderSchema = new Schema<TOrder>(
   {
@@ -132,6 +141,7 @@ const OrderSchema = new Schema<TOrder>(
     courierNotes: {
       type: String,
     },
+    courierDetails: CourierDetailsSchema,
     orderSource: {
       name: {
         type: String,

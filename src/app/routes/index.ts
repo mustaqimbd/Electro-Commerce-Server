@@ -1,5 +1,6 @@
 import express from "express";
 import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
+import { CourierRoutes } from "../modules/courier/courier.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { paymentMethodRoutes } from "../modules/paymentMethod/paymentMethod.routes";
@@ -91,6 +92,10 @@ const moduleRoutes = [
   {
     path: "/warranty",
     route: WarrantyRoutes,
+  },
+  {
+    path: "/courier",
+    route: CourierRoutes,
   },
 ];
 
