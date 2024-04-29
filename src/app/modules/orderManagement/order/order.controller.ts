@@ -142,10 +142,11 @@ const updateProcessingStatus = catchAsync(
 
 const bookCourierAndUpdateStatus = catchAsync(
   async (req: Request, res: Response) => {
-    const { status, orderIds } = req.body;
+    const { status, orderIds, courierProvider } = req.body;
     await OrderServices.bookCourierAndUpdateStatusIntoDB(
       orderIds,
       status,
+      courierProvider,
       req.user as TJwtPayload
     );
     successResponse<TOrderStatusHistory>(res, {
