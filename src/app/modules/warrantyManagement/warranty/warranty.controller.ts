@@ -16,7 +16,19 @@ const createWarranty = catchAsync(async (req: Request, res: Response) => {
     message: "Warranty created successfully",
   });
 });
+const updateWarranty = catchAsync(async (req: Request, res: Response) => {
+  const { order_Id, warrantyInfo } = req.body;
+  await WarrantyService.updateWarrantyIntoDB(
+    order_Id,
+    warrantyInfo as TWarrantyInfoInput[]
+  );
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Warranty updated successfully",
+  });
+});
 
 export const WarrantyController = {
   createWarranty,
+  updateWarranty,
 };

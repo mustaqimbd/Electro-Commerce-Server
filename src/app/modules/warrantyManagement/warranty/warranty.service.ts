@@ -5,6 +5,7 @@ import { warrantyDuration } from "../../../utilities/warrantyDuration";
 import { Order } from "../../orderManagement/order/order.model";
 import { TWarrantyData, TWarrantyInfoInput } from "./warranty.interface";
 import { Warranty } from "./warranty.model";
+import { findOrderWithWarrantyPipeline } from "./warranty.utils";
 
 const createWarrantyIntoDB = async (
   order_id: mongoose.Types.ObjectId,
@@ -15,76 +16,7 @@ const createWarrantyIntoDB = async (
   try {
     session.startTransaction();
 
-    const pipeline = [
-      { $match: { _id: new mongoose.Types.ObjectId(order_id) } },
-      {
-        $unwind: "$productDetails",
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "productDetails.product",
-          foreignField: "_id",
-          as: "productInfo",
-        },
-      },
-      {
-        $unwind: "$productInfo",
-      },
-      {
-        $lookup: {
-          from: "warranties",
-          localField: "productDetails.warranty",
-          foreignField: "_id",
-          as: "warranty",
-        },
-      },
-      {
-        $addFields: {
-          warranty: {
-            $cond: {
-              if: { $eq: [{ $size: "$warranty" }, 0] },
-              then: {
-                warrantyCodes: null,
-                createdAt: null,
-              },
-              else: { $arrayElemAt: ["$warranty", 0] },
-            },
-          },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          orderId: 1,
-          product: {
-            _id: "$productDetails._id",
-            product: {
-              _id: "$productInfo._id",
-              title: "$productInfo.title",
-              warranty: "$productInfo.warranty",
-              warrantyInfo: "$productInfo.warrantyInfo",
-            },
-            warranty: {
-              warrantyCodes: "$warranty.warrantyCodes",
-              createdAt: "$warranty.createdAt",
-            },
-            unitPrice: "$productDetails.unitPrice",
-            quantity: "$productDetails.quantity",
-            total: "$productDetails.total",
-          },
-          createdAt: 1,
-        },
-      },
-      {
-        $group: {
-          _id: "$_id",
-          orderId: { $first: "$orderId" },
-          products: { $push: "$product" },
-          createdAt: { $first: "$createdAt" },
-        },
-      },
-    ];
+    const pipeline = findOrderWithWarrantyPipeline(order_id);
 
     const order = (await Order.aggregate(pipeline))[0];
 
@@ -164,6 +96,54 @@ const createWarrantyIntoDB = async (
   }
 };
 
+const updateWarrantyIntoDB = async (
+  order_id: mongoose.Types.ObjectId,
+  warrantyInfo: TWarrantyInfoInput[]
+) => {
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const pipeline = findOrderWithWarrantyPipeline(order_id);
+
+    const order = (await Order.aggregate(pipeline))[0];
+
+    if (!order) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "No order found");
+    }
+
+    for (const { itemId, codes } of warrantyInfo || []) {
+      const findUpdatingItem = order?.products?.find(
+        ({ _id }: { _id: mongoose.Types.ObjectId }) =>
+          _id.toString() === itemId.toString()
+      );
+      if (findUpdatingItem) {
+        if (findUpdatingItem.quantity !== codes.length) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Please add ${findUpdatingItem.quantity} warranty codes for '${findUpdatingItem?.product?.title}'`
+          );
+        }
+      }
+
+      await Warranty.updateOne(
+        { _id: findUpdatingItem?.warranty?._id },
+        { $set: { warrantyCodes: codes } },
+        { session, upsert: true }
+      );
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export const WarrantyService = {
   createWarrantyIntoDB,
+  updateWarrantyIntoDB,
 };

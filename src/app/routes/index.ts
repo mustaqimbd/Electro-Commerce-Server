@@ -18,6 +18,7 @@ import { CustomerRoutes } from "../modules/userManagement/customer/customer.rout
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
 import { UserRoutes } from "../modules/userManagement/user/user.routes";
 import { WarrantyRoutes } from "../modules/warrantyManagement/warranty/warranty.routes";
+import { WarrantyClaimRoutes } from "../modules/warrantyManagement/warrantyClaim/warrantyClaim.routes";
 
 const router = express();
 const moduleRoutes = [
@@ -96,6 +97,10 @@ const moduleRoutes = [
   {
     path: "/courier",
     route: CourierRoutes,
+  },
+  {
+    path: "/warranty-claim",
+    route: WarrantyClaimRoutes,
   },
 ];
 
