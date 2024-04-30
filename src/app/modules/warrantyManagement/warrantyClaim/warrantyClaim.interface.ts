@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Document } from "mongoose";
 import { TOrder } from "../../orderManagement/order/order.interface";
 import { TShipping } from "../../orderManagement/shipping/shipping.interface";
 import { TUser } from "../../userManagement/user/user.interface";
@@ -8,7 +8,7 @@ export type TWarrantyClaimedProductCondition = "problem";
 export type TWarrantyClaimedProductLocation = "has been sent";
 export type TWarrantyApprovalStatus = "approved";
 
-export type TWarrantyClaim = {
+export type TWarrantyClaimData = {
   order_id: mongoose.Types.ObjectId | TOrder;
   orderId: string;
   shipping: TShipping;
@@ -19,3 +19,5 @@ export type TWarrantyClaim = {
   approvalStatus: TWarrantyApprovalStatus;
   finalCheckedBy: mongoose.Types.ObjectId | TUser;
 };
+
+export type TWarrantyClaim = TWarrantyClaimData & Document;
