@@ -370,11 +370,10 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     });
   }
 
-  const orderQuery = new AggregateQueryHelper(
-    Order.aggregate(pipeline),
-    query
-  ).sort();
-  // .paginate();
+  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
+    .sort()
+    .paginate();
+
   const data = await orderQuery.model;
   const total = (await Order.aggregate(pipeline)).length;
   const meta = orderQuery.metaData(total);
@@ -419,11 +418,10 @@ const getProcessingOrdersAdminFromDB = async (
     $match: matchQuery,
   });
 
-  const orderQuery = new AggregateQueryHelper(
-    Order.aggregate(pipeline),
-    query
-  ).sort();
-  // .paginate();
+  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
+    .sort()
+    .paginate();
+
   const data = await orderQuery.model;
   const total = (await Order.aggregate(pipeline)).length;
   const meta = orderQuery.metaData(total);
@@ -493,11 +491,10 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     $match: matchQuery,
   });
 
-  const orderQuery = new AggregateQueryHelper(
-    Order.aggregate(pipeline),
-    query
-  ).sort();
-  // .paginate();
+  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
+    .sort()
+    .paginate();
+
   const data = await orderQuery.model;
   const total = (await Order.aggregate(pipeline)).length;
   const meta = orderQuery.metaData(total);

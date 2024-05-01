@@ -9,6 +9,7 @@ import { SeoDataModel } from "../seoData/seoData.model";
 import { publishedStatusQuery, visibilityStatusQuery } from "./product.const";
 import { TProduct } from "./product.interface";
 import ProductModel from "./product.model";
+import { PipelineStage } from "mongoose";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
@@ -109,7 +110,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
       query.brand as string
     );
   }
-  const pipeline = [
+  const pipeline: PipelineStage[] = [
     {
       $match: {
         isDeleted: false,
@@ -186,37 +187,50 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     },
     { $match: filterQuery },
     {
-      $project: {
-        _id: 1,
-        title: 1,
-        slug: 1,
-        shortDescription: 1,
-        price: "$price.regularPrice",
-        salePrice: "$price.salePrice",
-        discountPercent: "$price.discountPercent",
-        stock: "$inventory.stockStatus",
-        stockAvailable: "$inventory.stockAvailable",
-        totalReview: { $size: "$review" },
-        averageRating: { $avg: "$review.rating" },
-        image: {
-          _id: "$thumbnail._id",
-          src: "$thumbnail.src",
-          alt: "$thumbnail.alt",
-        },
-        category: {
-          _id: "$category._id",
-          name: "$category.name",
-        },
-        brand: {
-          $map: {
-            input: "$brand",
-            as: "b",
-            in: {
-              _id: "$$b._id",
-              name: "$$b.name",
+      $facet: {
+        // Define sub-pipeline 1: For getting total count
+        totalCount: [
+          {
+            $count: "total",
+          },
+        ],
+        // Define sub-pipeline 2: For other operations
+        otherData: [
+          {
+            $project: {
+              _id: 1,
+              title: 1,
+              slug: 1,
+              shortDescription: 1,
+              price: "$price.regularPrice",
+              salePrice: "$price.salePrice",
+              discountPercent: "$price.discountPercent",
+              stock: "$inventory.stockStatus",
+              stockAvailable: "$inventory.stockAvailable",
+              totalReview: { $size: "$review" },
+              averageRating: { $avg: "$review.rating" },
+              image: {
+                _id: "$thumbnail._id",
+                src: "$thumbnail.src",
+                alt: "$thumbnail.alt",
+              },
+              category: {
+                _id: "$category._id",
+                name: "$category.name",
+              },
+              brand: {
+                $map: {
+                  input: "$brand",
+                  as: "b",
+                  in: {
+                    _id: "$$b._id",
+                    name: "$$b.name",
+                  },
+                },
+              },
             },
           },
-        },
+        ],
       },
     },
   ];
@@ -344,19 +358,78 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
         published: "$publishedStatus.date",
       },
     },
+    // when uses update query helper, need to use facet
+    // {
+    //   $facet: {
+    //     // Define sub-pipeline 2: For other operations
+    //     data: [
+    //       {
+    //         $project: {
+    //           title: 1,
+    //           price: "$price.regularPrice",
+    //           sku: "$inventory.sku",
+    //           stock: "$inventory.stockStatus",
+    //           stockAvailable: "$inventory.stockAvailable",
+    //           totalReview: { $size: "$review" },
+    //           averageRating: { $avg: "$review.rating" },
+    //           image: {
+    //             _id: "$thumbnail._id",
+    //             src: "$thumbnail.src",
+    //             alt: "$thumbnail.alt",
+    //           },
+    //           category: {
+    //             _id: "$category._id",
+    //             name: "$category.name",
+    //           },
+    //           // subCategory: {
+    //           //   $map: {
+    //           //     input: "$subcategory",
+    //           //     as: "sub",
+    //           //     in: {
+    //           //       _id: "$$sub._id",
+    //           //       name: "$$sub.name",
+    //           //     },
+    //           //   },
+    //           // },
+    //           published: "$publishedStatus.date",
+    //         },
+    //       },
+    //     ],
+    //     // Define sub-pipeline 1: For getting total count
+    //     total: [
+    //       {
+    //         $count: "total"
+    //       }
+    //     ],
+
+    //   }
+    // },
+    // { $unwind: "$total" },
+    // {
+    //   $project: {
+    //     data: 1,
+    //     total: "$total.total"
+    //   }
+    // }
   ];
+
   const productQuery = new AggregateQueryHelper(
     ProductModel.aggregate(pipeline),
     query
-  )
-    .sort()
-    .paginate();
-
+  ).paginate();
   const data = await productQuery.model;
   const total = (await ProductModel.aggregate(pipeline)).length;
   const meta = productQuery.metaData(total);
 
   return { meta, data };
+  // updated query helper usage
+  // const productQuery = new UpdateAggregateQueryHelper(
+  //   ProductModel,
+  //   pipeline,
+  //   query
+  // ).sort().paginate();
+  // const data = await productQuery.metaData();
+  // return data
 };
 
 const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
