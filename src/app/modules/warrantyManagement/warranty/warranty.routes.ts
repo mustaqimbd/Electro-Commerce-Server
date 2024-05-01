@@ -11,4 +11,10 @@ router.post(
   WarrantyController.createWarranty
 );
 
+router.patch(
+  "/",
+  validateRequest(ValidateWarranty.createWarranty),
+  WarrantyController.updateWarranty
+);
+
 export const WarrantyRoutes = router;

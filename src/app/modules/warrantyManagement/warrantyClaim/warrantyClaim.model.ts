@@ -5,7 +5,7 @@ import {
   warrantyClaimedContactStatus,
   warrantyClaimedProductCondition,
   warrantyClaimedProductLocation,
-} from "./warranty.const";
+} from "./warrantyClaim.const";
 import { TWarrantyClaim } from "./warrantyClaim.interface";
 
 const WarrantyCLaimSchema = new Schema<TWarrantyClaim>({
