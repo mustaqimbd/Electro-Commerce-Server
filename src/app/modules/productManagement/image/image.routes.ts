@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ImageControllers } from "./image.controller";
-import imgUploader from "../../../utilities/imgUploader";
 import config from "../../../config/config";
 import authGuard from "../../../middlewares/authGuard";
+import imgUploader from "../../../utilities/imgUploader";
+import { ImageControllers } from "./image.controller";
 
 const router = Router();
 

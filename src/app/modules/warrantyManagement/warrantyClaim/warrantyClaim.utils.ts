@@ -5,7 +5,7 @@ import { Order } from "../../orderManagement/order/order.model";
 
 export const getWarrantyData = async (
   phoneNumber: string,
-  warrantyCode: string
+  warrantyCodes: string[]
 ) => {
   const pipeline: PipelineStage[] = [
     {
@@ -27,6 +27,7 @@ export const getWarrantyData = async (
     {
       $project: {
         _id: 1,
+        orderId: 1,
         shipping: {
           fullName: "$shippingData.fullName",
           phoneNumber: "$shippingData.phoneNumber",
@@ -90,6 +91,7 @@ export const getWarrantyData = async (
     {
       $project: {
         _id: 1,
+        orderId: 1,
         product: {
           _id: "$productDetails._id",
           title: "$productInfo.title",
@@ -103,31 +105,35 @@ export const getWarrantyData = async (
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
         },
+        createdAt: 1,
       },
     },
     {
       $match: {
-        "product.warranty.warrantyCodes": warrantyCode,
+        "product.warranty.warrantyCodes": { $in: warrantyCodes },
       },
     },
     {
       $group: {
         _id: "$_id",
+        orderId: { $first: "$orderId" },
         products: { $push: "$product" },
+        createdAt: { $first: "$createdAt" },
       },
     },
     {
-      $unwind: "$products",
+      $sort: { createdAt: -1 },
     },
     {
-      $match: {
-        "products.warranty.warrantyCodes": warrantyCode,
+      $project: {
+        _id: 1,
+        orderId: 1,
+        products: 1,
       },
     },
   ];
-  const order = (await Order.aggregate(pipeline))[0];
+  const order = await Order.aggregate(pipeline);
   if (!order)
     throw new ApiError(httpStatus.BAD_REQUEST, "No warranty data found");
-
   return order;
 };

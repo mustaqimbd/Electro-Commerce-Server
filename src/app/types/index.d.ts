@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/consistent-type-definitions */
 import { UserAgent } from "express-useragent";
 import { JwtPayload } from "jsonwebtoken";
@@ -6,6 +7,7 @@ declare global {
     interface Request {
       user: JwtPayload;
       useragent: UserAgent;
+      anyData: any | any[];
     }
   }
 }

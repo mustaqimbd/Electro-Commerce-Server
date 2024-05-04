@@ -4,24 +4,45 @@ import {
   warrantyApprovalStatus,
   warrantyClaimedContactStatus,
   warrantyClaimedProductCondition,
-  warrantyClaimedProductLocation,
 } from "./warrantyClaim.const";
 import { TWarrantyClaim } from "./warrantyClaim.interface";
 
 const WarrantyCLaimSchema = new Schema<TWarrantyClaim>({
-  order_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-  },
-  orderId: {
+  shipping: ShippingSchema,
+  problemInDetails: {
     type: String,
     required: true,
   },
-  shipping: ShippingSchema,
   contactStatus: {
     type: String,
     enum: warrantyClaimedContactStatus,
   },
+  videosAndImages: [
+    {
+      path: {
+        type: String,
+      },
+      fileType: {
+        type: String,
+      },
+    },
+  ],
+  warrantyClaimReqData: [
+    {
+      order_id: {
+        type: mongoose.Types.ObjectId,
+        required: true,
+      },
+      orderItemId: {
+        type: mongoose.Types.ObjectId,
+        required: true,
+      },
+      claimedCodes: {
+        type: [String],
+        required: true,
+      },
+    },
+  ],
   identifiedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -29,10 +50,6 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>({
   result: {
     type: String,
     enum: warrantyClaimedProductCondition,
-  },
-  productLocation: {
-    type: String,
-    enum: warrantyClaimedProductLocation,
   },
   approvalStatus: {
     type: String,

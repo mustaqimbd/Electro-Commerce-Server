@@ -1,28 +1,18 @@
 import { NextFunction, Request } from "express";
-// import fs from "fs"; // for file
-import fs from "fs-extra";
-import { TUploadedFiles } from "./formDataParse";
+import fsEx from "fs-extra";
+// import { TUploadedFiles } from "./formDataParse";
 
 const imgDelete = (req: Request, next: NextFunction) => {
-  const filePaths = req.files as TUploadedFiles;
-  if (filePaths) {
-    Object.values(filePaths).forEach((files) => {
-      files.forEach(async (file) => {
-        const filePath = file.path;
-        // delete the file from uploads if error occurs after uploading
-        // fs.unlink(filePath as string, (err) => {
-        //     if (err) {
-        //         return next(err);
-        //     }
-        // });
-        // delete the folder with file from uploads
-        const folderPath = filePath.split("\\").slice(0, -1).join("\\");
-        try {
-          await fs.remove(folderPath);
-        } catch (err) {
-          return next(err);
-        }
-      });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const files = req.files as any[];
+  if (files?.length) {
+    files.forEach(async (file) => {
+      const folderPath = file?.path?.split("\\").slice(0, -1).join("\\");
+      try {
+        await fsEx.remove(folderPath);
+      } catch (err) {
+        return next(err);
+      }
     });
   }
 };
