@@ -44,7 +44,7 @@ export type TProductDetails = {
   unitPrice: number;
   quantity: number;
   total: number;
-  warranty: mongoose.Types.ObjectId | TWarranty;
+  warranty?: mongoose.Types.ObjectId | TWarranty;
 } & Document;
 
 export type TCourierDetails = {

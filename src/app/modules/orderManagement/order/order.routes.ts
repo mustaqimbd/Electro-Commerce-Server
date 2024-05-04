@@ -1,6 +1,7 @@
 import { Router } from "express";
 // import authGuard from "../../../middlewares/authGuard";
 import optionalAuthGuard from "../../../middlewares/optionalAuthGuard";
+import limitRequest from "../../../middlewares/requestLimitHandler";
 import validateRequest from "../../../middlewares/validateRequest";
 import { OrderController } from "./order.controller";
 import { OrderValidation } from "./order.validate";
@@ -11,6 +12,11 @@ router.post(
   "/",
   validateRequest(OrderValidation.createOrderValidation),
   optionalAuthGuard,
+  limitRequest(
+    60,
+    3,
+    "For assistance with additional orders, please contact support. Thank you for your understanding!"
+  ),
   OrderController.createOrder
 );
 

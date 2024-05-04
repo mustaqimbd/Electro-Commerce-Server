@@ -2,18 +2,15 @@ import {
   TWarrantyApprovalStatus,
   TWarrantyClaimedContactStatus,
   TWarrantyClaimedProductCondition,
-  TWarrantyClaimedProductLocation,
 } from "./warrantyClaim.interface";
 
 export const warrantyClaimedContactStatus: TWarrantyClaimedContactStatus[] = [
-  "waiting",
+  "pending",
   "confirm",
+  "retry required",
 ];
 
 export const warrantyClaimedProductCondition: TWarrantyClaimedProductCondition[] =
-  ["problem"];
-
-export const warrantyClaimedProductLocation: TWarrantyClaimedProductLocation[] =
-  ["has been sent"];
+  ["problem", "solved"];
 
 export const warrantyApprovalStatus: TWarrantyApprovalStatus[] = ["approved"];
