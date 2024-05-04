@@ -7,59 +7,63 @@ import {
 } from "./warrantyClaim.const";
 import { TWarrantyClaim } from "./warrantyClaim.interface";
 
-const WarrantyCLaimSchema = new Schema<TWarrantyClaim>({
-  shipping: ShippingSchema,
-  problemInDetails: {
-    type: String,
-    required: true,
-  },
-  contactStatus: {
-    type: String,
-    enum: warrantyClaimedContactStatus,
-  },
-  videosAndImages: [
-    {
-      path: {
-        type: String,
-      },
-      fileType: {
-        type: String,
-      },
+const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
+  {
+    shipping: ShippingSchema,
+    problemInDetails: {
+      type: String,
+      required: true,
     },
-  ],
-  warrantyClaimReqData: [
-    {
-      order_id: {
-        type: mongoose.Types.ObjectId,
-        required: true,
+    videosAndImages: [
+      {
+        path: {
+          type: String,
+        },
+        fileType: {
+          type: String,
+        },
       },
-      orderItemId: {
-        type: mongoose.Types.ObjectId,
-        required: true,
+    ],
+    warrantyClaimReqData: [
+      {
+        order_id: {
+          type: mongoose.Types.ObjectId,
+          required: true,
+        },
+        orderItemId: {
+          type: mongoose.Types.ObjectId,
+          required: true,
+        },
+        claimedCodes: {
+          type: [String],
+          required: true,
+        },
       },
-      claimedCodes: {
-        type: [String],
-        required: true,
-      },
+    ],
+    contactStatus: {
+      type: String,
+      enum: warrantyClaimedContactStatus,
+      default: "pending",
     },
-  ],
-  identifiedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    identifiedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    result: {
+      type: String,
+      enum: warrantyClaimedProductCondition,
+    },
+    approvalStatus: {
+      type: String,
+      enum: warrantyApprovalStatus,
+    },
+    finalCheckedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
-  result: {
-    type: String,
-    enum: warrantyClaimedProductCondition,
-  },
-  approvalStatus: {
-    type: String,
-    enum: warrantyApprovalStatus,
-  },
-  finalCheckedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
-});
+  { timestamps: true }
+);
 
 export const WarrantyClaim = model<TWarrantyClaim>(
   "WarrantyClaim",

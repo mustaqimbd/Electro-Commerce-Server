@@ -4,6 +4,21 @@ import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { WarrantyClaimServices } from "./warrantyClaim.service";
 
+const getAllWarrantyClaimReq = catchAsync(
+  async (req: Request, res: Response) => {
+    const { meta, data } =
+      await WarrantyClaimServices.getAllWarrantyClaimReqFromDB(
+        req.query as unknown as Record<string, string>
+      );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Warranty details retrieved successfully",
+      meta,
+      data,
+    });
+  }
+);
+
 const checkWarranty = catchAsync(async (req: Request, res: Response) => {
   const { phoneNumber, warrantyCodes } = req.body;
   const warranty = await WarrantyClaimServices.checkWarrantyFromDB(
@@ -21,7 +36,7 @@ const createWarrantyClaimReq = catchAsync(
   async (req: Request, res: Response) => {
     const filesInfo = (req?.files as Express.Multer.File[])?.map((file) => ({
       path: file.path,
-      fileType: file.mimetype,
+      fileType: file.mimetype.split("/")[0],
     }));
 
     const payload = {
@@ -32,7 +47,7 @@ const createWarrantyClaimReq = catchAsync(
     const warranty =
       await WarrantyClaimServices.createWarrantyClaimIntoDB(payload);
     successResponse(res, {
-      statusCode: httpStatus.OK,
+      statusCode: httpStatus.CREATED,
       message: "Warranty claim request created successfully",
       data: warranty,
     });
@@ -40,6 +55,7 @@ const createWarrantyClaimReq = catchAsync(
 );
 
 export const WarrantyClaimController = {
+  getAllWarrantyClaimReq,
   checkWarranty,
   createWarrantyClaimReq,
 };

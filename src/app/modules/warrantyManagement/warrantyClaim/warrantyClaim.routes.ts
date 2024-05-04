@@ -9,6 +9,12 @@ import { ClaimWarrantyValidation } from "./warrantyClaim.validate";
 const router = Router();
 
 router.get(
+  "/",
+  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  WarrantyClaimController.getAllWarrantyClaimReq
+);
+
+router.get(
   "/check-warranty",
   validateRequest(ClaimWarrantyValidation.checkWarranty),
   WarrantyClaimController.checkWarranty

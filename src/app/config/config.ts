@@ -28,6 +28,7 @@ export default {
   session_expires: env.SESSION_EXPIRES,
   cart_item_expires: env.CART_ITEM_EXPIRES,
   upload_image_size: env.UPLOAD_IMAGE_SIZE,
+  upload_video_size: env.UPLOAD_VIDEO_SIZE,
   upload_image_maxCount: env.UPLOAD_IMAGE_MAX_COUNT,
   upload_image_format: env.UPLOAD_IMAGE_FORMAT,
   twilio: {
