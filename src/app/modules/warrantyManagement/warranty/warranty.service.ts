@@ -109,6 +109,13 @@ const updateWarrantyIntoDB = async (
 
     const order = (await Order.aggregate(pipeline))[0];
 
+    if (["delivered", "partial_delivered"].includes(order.deliveryStatus)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "This order is delivered, cannot change the warranty."
+      );
+    }
+
     if (!order) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No order found");
     }

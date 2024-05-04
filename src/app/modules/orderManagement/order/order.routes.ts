@@ -22,7 +22,14 @@ router.post(
 
 router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
 
-router.get("/admin/order-id/:id", OrderController.getOrderInfoByOrderIdAdmin);
+router.get(
+  "/admin/order-id/:id",
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   //   requiredPermission: "manage orders",
+  // }),
+  OrderController.getOrderInfoByOrderIdAdmin
+);
 
 router.get(
   "/customer",
@@ -62,52 +69,52 @@ router.get(
 
 router.patch(
   "/update-status",
-  validateRequest(OrderValidation.updateOrderStatus),
   authGuard({
     requiredRoles: ["admin", "staff"],
     // requiredPermission: "manage orders",
   }),
+  validateRequest(OrderValidation.updateOrderStatus),
   OrderController.updateStatus
 );
 
 router.patch(
   "/update-processing-status",
-  validateRequest(OrderValidation.updateProcessingStatus),
   authGuard({
     requiredRoles: ["admin", "staff"],
     // requiredPermission: "manage orders",
   }),
+  validateRequest(OrderValidation.updateProcessingStatus),
   OrderController.updateProcessingStatus
 );
 
 router.patch(
   "/book-courier-and-update-status",
-  validateRequest(OrderValidation.bookCourierAndUpdateStatus),
   authGuard({
     requiredRoles: ["admin", "staff"],
     // requiredPermission: "manage orders",
   }),
+  validateRequest(OrderValidation.bookCourierAndUpdateStatus),
   OrderController.bookCourierAndUpdateStatus
 );
 
 router.patch(
   "/update-order/:id",
-  validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   OrderController.updateOrderDetailsByAdmin
 );
 
 router.delete(
   "/delete-many",
-  validateRequest(OrderValidation.deleteOrders),
   authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.deleteOrders),
   OrderController.deleteOrdersById
 );
 
 router.patch(
   "/update-quantity/:id",
-  validateRequest(OrderValidation.updateQuantity),
   authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(OrderValidation.updateQuantity),
   OrderController.updateOrderedProductQuantityByAdmin
 );
 
