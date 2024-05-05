@@ -76,6 +76,19 @@ export class AggregateQueryHelper<T> {
     this.model = model;
     this.query = query;
   }
+  search(searchFields: string[]): this {
+    //ex:["phoneNumber","orderId"]
+    const search = this.query?.search;
+    if (search) {
+      const searchConditions = searchFields.map((field) => ({
+        [field]: { $regex: new RegExp(search as string, "i") },
+      }));
+      this.model = this.model.match({
+        $or: searchConditions,
+      } as FilterQuery<T>);
+    }
+    return this;
+  }
   sort(): this {
     const sort = this.query?.sort;
     if (sort) {

@@ -126,10 +126,12 @@ export const ordersPipeline = (): PipelineStage[] => [
       followUpDate: 1,
       orderSource: 1,
       product: {
+        itemId: "$productDetails._id",
         title: "$productInfo.title",
         unitPrice: "$productDetails.unitPrice",
         quantity: "$productDetails.quantity",
         total: "$productDetails.total",
+        iSWarranty: "$productInfo.warranty",
       },
     },
   },

@@ -195,7 +195,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
           },
         ],
         // Define sub-pipeline 2: For other operations
-        otherData: [
+        products: [
           {
             $project: {
               _id: 1,
@@ -246,7 +246,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
   const total = (await ProductModel.aggregate(pipeline)).length;
   const meta = productQuery.metaData(total);
 
-  return { meta, data };
+  return { meta, data: data[0] };
 };
 const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
