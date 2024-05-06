@@ -9,37 +9,50 @@ import { TWarrantyClaim } from "./warrantyClaim.interface";
 
 const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
   {
+    phoneNumber: {
+      type: String,
+      required: true,
+    },
     shipping: ShippingSchema,
     problemInDetails: {
       type: String,
       required: true,
     },
-    videosAndImages: [
-      {
-        path: {
-          type: String,
+    videosAndImages: {
+      type: [
+        {
+          path: {
+            type: String,
+          },
+          fileType: {
+            type: String,
+          },
         },
-        fileType: {
-          type: String,
+      ],
+      required: true,
+    },
+    warrantyClaimReqData: {
+      type: [
+        {
+          order_id: {
+            type: mongoose.Types.ObjectId,
+            required: true,
+          },
+          orderItemId: {
+            type: mongoose.Types.ObjectId,
+            required: true,
+          },
+          claimedCodes: {
+            type: [String],
+            required: true,
+          },
         },
-      },
-    ],
-    warrantyClaimReqData: [
-      {
-        order_id: {
-          type: mongoose.Types.ObjectId,
-          required: true,
-        },
-        orderItemId: {
-          type: mongoose.Types.ObjectId,
-          required: true,
-        },
-        claimedCodes: {
-          type: [String],
-          required: true,
-        },
-      },
-    ],
+      ],
+      required: true,
+    },
+    officialNotes: {
+      type: String,
+    },
     contactStatus: {
       type: String,
       enum: warrantyClaimedContactStatus,

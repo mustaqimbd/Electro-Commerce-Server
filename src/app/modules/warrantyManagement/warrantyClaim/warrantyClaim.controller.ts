@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
+import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { WarrantyClaimServices } from "./warrantyClaim.service";
 
 const getAllWarrantyClaimReq = catchAsync(
@@ -44,6 +46,7 @@ const createWarrantyClaimReq = catchAsync(
       ...req.body,
       videosAndImages: filesInfo,
     };
+
     const warranty =
       await WarrantyClaimServices.createWarrantyClaimIntoDB(payload);
     successResponse(res, {
@@ -54,8 +57,25 @@ const createWarrantyClaimReq = catchAsync(
   }
 );
 
+const updateWarrantyClaimReq = catchAsync(
+  async (req: Request, res: Response) => {
+    const warranty = await WarrantyClaimServices.updateWarrantyClaimReqIntoDB(
+      new Types.ObjectId(req.params.id),
+      req.body,
+      req.user as TJwtPayload
+    );
+
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Warranty claim request updated successfully",
+      data: warranty,
+    });
+  }
+);
+
 export const WarrantyClaimController = {
   getAllWarrantyClaimReq,
   checkWarranty,
   createWarrantyClaimReq,
+  updateWarrantyClaimReq,
 };

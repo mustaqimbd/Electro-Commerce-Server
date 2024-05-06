@@ -2,8 +2,9 @@ import httpStatus from "http-status";
 import { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { Order } from "../../orderManagement/order/order.model";
+import { WarrantyClaim } from "./warrantyClaim.model";
 
-export const getWarrantyData = async (
+const getWarrantyData = async (
   phoneNumber: string,
   warrantyCodes: string[]
 ) => {
@@ -110,7 +111,7 @@ export const getWarrantyData = async (
     },
     {
       $match: {
-        "product.warranty.warrantyCodes": { $in: warrantyCodes },
+        "product.warranty.warrantyCodes.code": { $in: warrantyCodes },
       },
     },
     {
@@ -136,4 +137,22 @@ export const getWarrantyData = async (
   if (!order)
     throw new ApiError(httpStatus.BAD_REQUEST, "No warranty data found");
   return order;
+};
+
+const ifAlreadyClaimRequestPending = async (phoneNumber: string) => {
+  const result = await WarrantyClaim.countDocuments({
+    phoneNumber,
+    contactStatus: "pending",
+  });
+  if (result) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Dear valued customer, your another warranty claim request has already been pending. After completing that request, you can claim a new warranty."
+    );
+  }
+};
+
+export const WarrantyClaimUtils = {
+  ifAlreadyClaimRequestPending,
+  getWarrantyData,
 };

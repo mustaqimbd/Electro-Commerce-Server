@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { warrantyDuration } from "../../../utilities/warrantyDuration";
 import { Order } from "../../orderManagement/order/order.model";
@@ -16,13 +16,14 @@ const createWarrantyIntoDB = async (
   try {
     session.startTransaction();
 
-    const pipeline = findOrderWithWarrantyPipeline(order_id);
+    const pipeline: PipelineStage[] = findOrderWithWarrantyPipeline(order_id);
 
     const order = (await Order.aggregate(pipeline))[0];
 
     if (!order) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No order found with");
     }
+
     for (const item of order?.products || []) {
       if (item?.product?.warranty) {
         const findWarrantyInput = warrantyInfo.find(
@@ -49,7 +50,6 @@ const createWarrantyIntoDB = async (
             `Warranty for product: '${item?.product?.title}' is already exist`
           );
         }
-
         const { startDate, endDate } = warrantyDuration(
           item?.product?.warrantyInfo?.duration
         );
@@ -68,7 +68,7 @@ const createWarrantyIntoDB = async (
           duration: item?.product?.warrantyInfo?.duration,
           startDate,
           endsDate: endDate as string,
-          warrantyCodes: findWarrantyInput?.codes as string[],
+          warrantyCodes: findWarrantyInput?.codes,
         };
 
         const warrantyRes = (
@@ -108,13 +108,6 @@ const updateWarrantyIntoDB = async (
     const pipeline = findOrderWithWarrantyPipeline(order_id);
 
     const order = (await Order.aggregate(pipeline))[0];
-
-    if (["delivered", "partial_delivered"].includes(order.deliveryStatus)) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "This order is delivered, cannot change the warranty."
-      );
-    }
 
     if (!order) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No order found");

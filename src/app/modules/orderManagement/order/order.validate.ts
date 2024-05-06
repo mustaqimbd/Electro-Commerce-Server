@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { genericPhoneNumberZodSchema } from "../../userManagement/user/user.validation";
 import { paymentZodSchema } from "../orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../shipping/shipping.validation";
 import { orderSources, orderStatus } from "./order.const";
@@ -105,13 +104,7 @@ const updateOrderDetailsByAdmin = z.object({
     officialNotes: z.string().optional(),
     invoiceNotes: z.string().optional(),
     courierNotes: z.string().optional(),
-    shipping: z
-      .object({
-        fullName: z.string().optional(),
-        phoneNumber: genericPhoneNumberZodSchema(true),
-        fullAddress: z.string().optional(),
-      })
-      .optional(),
+    shipping: shippingValidationZodSchema(true),
   }),
 });
 

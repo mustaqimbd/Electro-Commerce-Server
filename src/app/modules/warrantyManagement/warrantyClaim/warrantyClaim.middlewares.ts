@@ -3,21 +3,27 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import catchAsync from "../../../utilities/catchAsync";
-import { getWarrantyData } from "./warrantyClaim.utils";
+import { WarrantyClaimUtils } from "./warrantyClaim.utils";
 
 const validateWarranty = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { phoneNumber, warrantyCodes } = req.body;
-    const warranties = await getWarrantyData(phoneNumber, warrantyCodes);
+    await WarrantyClaimUtils.ifAlreadyClaimRequestPending(phoneNumber);
+    const warranties = await WarrantyClaimUtils.getWarrantyData(
+      phoneNumber,
+      warrantyCodes
+    );
+    // console.log(16, warranties);
     if (!warranties.length) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request");
     }
     const warrantyClaimReqData: Record<string, unknown>[] = [];
+
     warranties.forEach((warranty) => {
       (
         warranty.products as {
           _id: Types.ObjectId;
-          warranty: { warrantyCodes: string[]; endsDate: string };
+          warranty: { warrantyCodes: { code: string }[]; endsDate: string };
         }[]
       ).map((product) => {
         const endsDate = new Date(product?.warranty?.endsDate);
@@ -35,11 +41,14 @@ const validateWarranty = catchAsync(
         };
         data.orderItemId = product._id;
         data.claimedCodes = product?.warranty?.warrantyCodes
-          .map((item) => (warrantyCodes.includes(item) ? item : undefined))
+          .map((item) =>
+            warrantyCodes.includes(item.code) ? item.code : undefined
+          )
           .filter(Boolean);
         warrantyClaimReqData.push(data);
       });
     });
+
     req.anyData = warrantyClaimReqData;
     next();
   }
