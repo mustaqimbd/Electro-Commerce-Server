@@ -360,11 +360,14 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     $match: matchQuery,
   });
 
-  if (query.phoneNumber) {
+  if (query.search) {
     pipeline.push({
       $match: {
         $expr: {
-          $eq: ["$shipping.phoneNumber", query.phoneNumber],
+          $or: [
+            { $eq: ["$shipping.phoneNumber", query.search] },
+            { $eq: ["$orderId", query.search] },
+          ],
         },
       },
     });
