@@ -6,7 +6,7 @@ import {
 
 export const warrantyClaimedContactStatus: TWarrantyClaimedContactStatus[] = [
   "pending",
-  "confirm",
+  "confirmed",
   "retry required",
 ];
 

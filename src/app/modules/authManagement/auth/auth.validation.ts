@@ -1,12 +1,12 @@
 import { z } from "zod";
 import {
-  genericPhoneNumberZodSchema,
   passwordZodSchema,
+  phoneNumberValidationZodSchema,
 } from "../../userManagement/user/user.validation";
 
 const login = z.object({
   body: z.object({
-    phoneNumber: genericPhoneNumberZodSchema(),
+    phoneNumber: phoneNumberValidationZodSchema(),
     password: passwordZodSchema,
   }),
 });
@@ -32,7 +32,7 @@ const forgetPassword = z.object({
 
 const resetPassword = z.object({
   body: z.object({
-    phoneNumber: genericPhoneNumberZodSchema(),
+    phoneNumber: phoneNumberValidationZodSchema(),
     otp: z.string({ required_error: "Otp is must required." }),
     newPassword: z.string({ required_error: "New password is required" }),
   }),

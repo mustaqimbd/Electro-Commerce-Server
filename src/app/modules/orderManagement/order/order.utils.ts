@@ -110,6 +110,28 @@ export const ordersPipeline = (): PipelineStage[] => [
     $unwind: "$productInfo",
   },
   {
+    $lookup: {
+      from: "warranties",
+      localField: "productDetails.warranty",
+      foreignField: "_id",
+      as: "warranty",
+    },
+  },
+  {
+    $addFields: {
+      warranty: {
+        $cond: {
+          if: { $eq: [{ $size: "$warranty" }, 0] },
+          then: {
+            warrantyCodes: null,
+            createdAt: null,
+          },
+          else: { $arrayElemAt: ["$warranty", 0] },
+        },
+      },
+    },
+  },
+  {
     $project: {
       _id: 1,
       orderId: 1,
@@ -126,8 +148,16 @@ export const ordersPipeline = (): PipelineStage[] => [
       followUpDate: 1,
       orderSource: 1,
       product: {
-        itemId: "$productDetails._id",
+        _id: "$productDetails._id",
+        productId: "$productInfo._id",
         title: "$productInfo.title",
+        warranty: {
+          _id: "$warranty._id",
+          duration: "$warranty.duration",
+          startDate: "$warranty.startDate",
+          endsDate: "$warranty.endsDate",
+          warrantyCodes: "$warranty.warrantyCodes",
+        },
         unitPrice: "$productDetails.unitPrice",
         quantity: "$productDetails.quantity",
         total: "$productDetails.total",

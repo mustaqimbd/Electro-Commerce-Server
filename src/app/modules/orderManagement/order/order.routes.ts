@@ -1,5 +1,5 @@
 import { Router } from "express";
-// import authGuard from "../../../middlewares/authGuard";
+import authGuard from "../../../middlewares/authGuard";
 import optionalAuthGuard from "../../../middlewares/optionalAuthGuard";
 import limitRequest from "../../../middlewares/requestLimitHandler";
 import validateRequest from "../../../middlewares/validateRequest";
@@ -22,7 +22,14 @@ router.post(
 
 router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
 
-router.get("/admin/order-id/:id", OrderController.getOrderInfoByOrderIdAdmin);
+router.get(
+  "/admin/order-id/:id",
+  // authGuard({
+  //   requiredRoles: ["admin", "staff"],
+  //   //   requiredPermission: "manage orders",
+  // }),
+  OrderController.getOrderInfoByOrderIdAdmin
+);
 
 router.get(
   "/customer",
@@ -62,52 +69,52 @@ router.get(
 
 router.patch(
   "/update-status",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    // requiredPermission: "manage orders",
+  }),
   validateRequest(OrderValidation.updateOrderStatus),
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   // requiredPermission: "manage orders",
-  // }),
   OrderController.updateStatus
 );
 
 router.patch(
   "/update-processing-status",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    // requiredPermission: "manage orders",
+  }),
   validateRequest(OrderValidation.updateProcessingStatus),
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   // requiredPermission: "manage orders",
-  // }),
   OrderController.updateProcessingStatus
 );
 
 router.patch(
   "/book-courier-and-update-status",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    // requiredPermission: "manage orders",
+  }),
   validateRequest(OrderValidation.bookCourierAndUpdateStatus),
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   // requiredPermission: "manage orders",
-  // }),
   OrderController.bookCourierAndUpdateStatus
 );
 
 router.patch(
   "/update-order/:id",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.updateOrderDetailsByAdmin
 );
 
 router.delete(
   "/delete-many",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.deleteOrders),
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.deleteOrdersById
 );
 
 router.patch(
   "/update-quantity/:id",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(OrderValidation.updateQuantity),
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.updateOrderedProductQuantityByAdmin
 );
 
@@ -117,9 +124,9 @@ router.get(
   OrderController.orderCountsByStatus
 );
 
-router.get(
+router.post(
   "/update-order-delivery-status",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   OrderController.updateOrdersDeliveryStatus
 );
 

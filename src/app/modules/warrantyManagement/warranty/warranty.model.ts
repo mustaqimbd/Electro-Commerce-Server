@@ -28,10 +28,14 @@ const WarrantySchema = new Schema<TWarranty>(
       type: String,
       required: true,
     },
-    warrantyCodes: {
-      type: [String],
-      required: true,
-    },
+    warrantyCodes: [
+      {
+        code: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

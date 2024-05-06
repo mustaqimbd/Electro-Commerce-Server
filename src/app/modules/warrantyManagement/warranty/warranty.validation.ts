@@ -8,7 +8,12 @@ const createWarranty = z.object({
         {
           itemId: z.string({ required_error: "Item id is required" }),
           codes: z
-            .string({ required_error: "Warranty codes is required" })
+            .object(
+              {
+                code: z.string({ required_error: "Code is required" }),
+              },
+              { required_error: "Codes is required" }
+            )
             .array(),
         },
         { required_error: "Warranty info is required." }

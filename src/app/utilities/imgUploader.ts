@@ -55,8 +55,8 @@ const imgUploader = multer({
 });
 
 export const imageAndVideoUploader = multer({
-  storage: storage("warranty"),
-  limits: { fileSize: Number(config.upload_image_size) }, // 1MB
+  storage: storage("warranty_claim"),
+  limits: { fileSize: Number(config.upload_video_size) },
   fileFilter(req, file, cb) {
     const ext = path.extname(file.originalname);
     const allowedExts = [

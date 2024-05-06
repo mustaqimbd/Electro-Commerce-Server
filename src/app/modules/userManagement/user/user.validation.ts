@@ -3,21 +3,22 @@ const phoneNumberRegex = /^(?!.*[a-zA-Z])01\d{9}$/;
 const passwordValidatorRegex =
   /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@#$%&*]).{8,}$/;
 
-export const genericPhoneNumberZodSchema = (isOptional: boolean = false) =>
-  isOptional
+export const phoneNumberValidationZodSchema = (isOptional: boolean = false) => {
+  const ValidationErrorMessage =
+    "Please provide a valid mobile number starting with 01 and with a total of 11 digits.";
+  return isOptional
     ? z
-        .string({ required_error: "Phone number is required." })
+        .string()
         .refine((value) => phoneNumberRegex.test(value), {
-          message:
-            "Please provide a valid mobile number starting with 01 and with a total of 11 digits.",
+          message: ValidationErrorMessage,
         })
         .optional()
     : z
         .string({ required_error: "Phone number is required." })
         .refine((value) => phoneNumberRegex.test(value), {
-          message:
-            "Please provide a valid mobile number starting with 01 and with a total of 11 digits.",
+          message: ValidationErrorMessage,
         });
+};
 
 export const passwordZodSchema = z
   .string({ required_error: "Password is required" })
@@ -38,7 +39,7 @@ const createAddressSchema = (fullAddressRequired = false) =>
 
 const createCustomer = z.object({
   body: z.object({
-    phoneNumber: genericPhoneNumberZodSchema(),
+    phoneNumber: phoneNumberValidationZodSchema(),
     email: z.string().email().optional(),
     password: passwordZodSchema,
     address: createAddressSchema(),
@@ -50,7 +51,7 @@ const createCustomer = z.object({
 
 const createStaffOrAdmin = z.object({
   body: z.object({
-    phoneNumber: genericPhoneNumberZodSchema(),
+    phoneNumber: phoneNumberValidationZodSchema(),
     email: z.string({ required_error: "Email is required." }).email(),
     password: passwordZodSchema,
     role: z.enum(["staff", "admin"], { required_error: "Role is required" }),
