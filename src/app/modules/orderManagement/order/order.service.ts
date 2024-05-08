@@ -292,7 +292,9 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     "processing",
     "follow up",
   ];
-
+  if (query.search) {
+    acceptableStatus.push("canceled");
+  }
   if (
     ![...acceptableStatus, "canceled", "deleted", "all", undefined].includes(
       query.status as never
@@ -308,10 +310,10 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     matchQuery.status = query?.status as string;
   }
 
-  // if there is no status or status is all and no phone number provided
-  if ((!query.status || query.status === "all") && !query.phoneNumber) {
+  // if there is no status or status is all and no search query provided
+  if ((!query.status || query.status === "all") && !query.search) {
     matchQuery.status = {
-      $in: [...acceptableStatus],
+      $in: acceptableStatus,
     };
   }
 
@@ -354,7 +356,9 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     .paginate();
 
   const data = await orderQuery.model;
-  const total = (await Order.aggregate(pipeline)).length;
+  const total =
+    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))[0]
+      .total || 0;
   const meta = orderQuery.metaData(total);
 
   return { meta, data };
@@ -374,13 +378,9 @@ const getProcessingOrdersAdminFromDB = async (
     matchQuery.status = query?.status as string;
   }
 
-  if (query.orderId) {
-    matchQuery.orderId = query.orderId;
-  }
-
-  if ((!query.status || query.status === "all") && !query.orderId) {
+  if ((!query.status || query.status === "all") && !query.search) {
     matchQuery.status = {
-      $in: [...acceptableStatus],
+      $in: acceptableStatus,
     };
   }
 
@@ -397,12 +397,27 @@ const getProcessingOrdersAdminFromDB = async (
     $match: matchQuery,
   });
 
+  if (query.search) {
+    pipeline.push({
+      $match: {
+        $expr: {
+          $or: [
+            { $eq: ["$shipping.phoneNumber", query.search] },
+            { $eq: ["$orderId", query.search] },
+          ],
+        },
+      },
+    });
+  }
+
   const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
     .sort()
     .paginate();
 
   const data = await orderQuery.model;
-  const total = (await Order.aggregate(pipeline)).length;
+  const total =
+    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))[0]
+      .total || 0;
   const meta = orderQuery.metaData(total);
 
   // Orders counts
@@ -447,13 +462,9 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     matchQuery.status = query?.status as string;
   }
 
-  if (query.orderId) {
-    matchQuery.orderId = query.orderId;
-  }
-
-  if ((!query.status || query.status === "all") && !query.orderId) {
+  if ((!query.status || query.status === "all") && !query.search) {
     matchQuery.status = {
-      $in: [...acceptableStatus],
+      $in: acceptableStatus,
     };
   }
 
@@ -470,12 +481,27 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     $match: matchQuery,
   });
 
+  if (query.search) {
+    pipeline.push({
+      $match: {
+        $expr: {
+          $or: [
+            { $eq: ["$shipping.phoneNumber", query.search] },
+            { $eq: ["$orderId", query.search] },
+          ],
+        },
+      },
+    });
+  }
+
   const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
     .sort()
     .paginate();
 
   const data = await orderQuery.model;
-  const total = (await Order.aggregate(pipeline)).length;
+  const total =
+    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))[0]
+      .total || 0;
   const meta = orderQuery.metaData(total);
 
   // Orders counts

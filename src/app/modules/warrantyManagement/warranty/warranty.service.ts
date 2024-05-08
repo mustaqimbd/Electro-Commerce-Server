@@ -80,7 +80,10 @@ const createWarrantyIntoDB = async (
             "productDetails._id": item._id,
           },
           {
-            $set: { "productDetails.$.warranty": warrantyRes._id },
+            $set: {
+              "productDetails.$.warranty": warrantyRes._id,
+              status: "warranty added",
+            },
           },
           { session }
         );
