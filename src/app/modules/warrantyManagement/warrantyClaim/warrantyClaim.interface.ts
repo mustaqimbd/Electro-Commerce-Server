@@ -20,6 +20,7 @@ export type TWarrantyClaimReqData = {
 };
 
 export type TWarrantyClaimData = {
+  reqId: string;
   phoneNumber: string;
   shipping: TShipping;
   problemInDetails: string;

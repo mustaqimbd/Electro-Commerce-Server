@@ -28,7 +28,8 @@ export type TOrderSourceName =
   | "App"
   | "Phone Call"
   | "Social Media"
-  | "From Office";
+  | "From Office"
+  | "Warranty Claimed";
 
 export type TCourierProviders = "steadfast";
 
@@ -85,6 +86,7 @@ export type TOrder = TOrderData & Document;
 export type TSanitizedOrProduct = {
   product: {
     _id: mongoose.Types.ObjectId;
+    title: string;
     price: TPrice;
     inventory: TInventory;
     isDeleted: boolean;

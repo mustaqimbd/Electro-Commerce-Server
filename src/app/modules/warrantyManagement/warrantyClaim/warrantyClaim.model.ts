@@ -9,6 +9,10 @@ import { TWarrantyClaim } from "./warrantyClaim.interface";
 
 const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
   {
+    reqId: {
+      type: String,
+      required: true,
+    },
     phoneNumber: {
       type: String,
       required: true,
@@ -73,6 +77,10 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
     finalCheckedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    orderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Order",
     },
   },
   { timestamps: true }

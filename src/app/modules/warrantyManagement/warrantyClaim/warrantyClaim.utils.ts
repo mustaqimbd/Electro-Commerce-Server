@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { Order } from "../../orderManagement/order/order.model";
+import { createOrderId } from "../../orderManagement/order/order.utils";
 import { WarrantyClaim } from "./warrantyClaim.model";
 
 const getWarrantyData = async (
@@ -152,7 +153,10 @@ const ifAlreadyClaimRequestPending = async (phoneNumber: string) => {
   }
 };
 
+const createReqID = () => createOrderId();
+
 export const WarrantyClaimUtils = {
   ifAlreadyClaimRequestPending,
   getWarrantyData,
+  createReqID,
 };

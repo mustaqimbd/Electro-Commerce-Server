@@ -34,6 +34,7 @@ const sanitizeOrderedProducts = async (
         },
         {
           $project: {
+            title: 1,
             price: {
               regularPrice: "$price.regularPrice",
               salePrice: "$price.salePrice",
