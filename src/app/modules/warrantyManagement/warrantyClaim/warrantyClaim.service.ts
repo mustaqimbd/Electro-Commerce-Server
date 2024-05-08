@@ -23,6 +23,7 @@ const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
         contactStatus: 1,
         result: 1,
         approvalStatus: 1,
+        officialNotes: 1,
         createdAt: 1,
       },
     },
@@ -55,7 +56,8 @@ const checkWarrantyFromDB = async (
 };
 
 const createWarrantyClaimIntoDB = async (payload: TWarrantyClaim) => {
-  const result = await WarrantyClaim.create(payload);
+  const reqId = WarrantyClaimUtils.createReqID();
+  const result = await WarrantyClaim.create({ ...payload, reqId });
   return result;
 };
 
@@ -70,10 +72,9 @@ const updateWarrantyClaimReqIntoDB = async (
       httpStatus.BAD_REQUEST,
       "No warranty claim request found"
     );
-
   const updatedDoc: Record<string, unknown> = {};
-  if (payload.contactStatus) {
-    updatedDoc.contactStatus = payload.contactStatus;
+
+  if (payload.result) {
     updatedDoc.result = payload.result;
     updatedDoc.identifiedBy = user.id;
   }
@@ -86,10 +87,6 @@ const updateWarrantyClaimReqIntoDB = async (
     updatedDoc.officialNotes = payload.officialNotes;
   }
 
-  if (payload.approvalStatus) {
-    updatedDoc.approvalStatus = payload.approvalStatus;
-    updatedDoc.finalCheckedBy = user.id;
-  }
   await WarrantyClaim.findByIdAndUpdate(
     id,
     { $set: updatedDoc },
@@ -97,9 +94,28 @@ const updateWarrantyClaimReqIntoDB = async (
   );
 };
 
+const updateContactStatusIntoDB = async (
+  warrantyClaimedReqIds: Types.ObjectId[],
+  contactStatus: string
+) => {
+  const result = await WarrantyClaim.updateMany(
+    { _id: { $in: warrantyClaimedReqIds } },
+    { contactStatus },
+    { upsert: true }
+  );
+
+  return result;
+};
+
+// const approveReqAndCreateNewOrderIntoDB = async (
+//   id: Types.ObjectId,
+//   user: TJwtPayload
+// ) => {};
+
 export const WarrantyClaimServices = {
   getAllWarrantyClaimReqFromDB,
   checkWarrantyFromDB,
   createWarrantyClaimIntoDB,
   updateWarrantyClaimReqIntoDB,
+  updateContactStatusIntoDB,
 };

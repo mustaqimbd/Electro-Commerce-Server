@@ -20,4 +20,5 @@ export const orderSources: TOrderSourceName[] = [
   "Phone Call",
   "Social Media",
   "From Office",
+  "Warranty Claimed",
 ];

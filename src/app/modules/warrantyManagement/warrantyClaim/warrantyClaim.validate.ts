@@ -33,9 +33,6 @@ const updateWarrantyClaimReq = z.object({
   body: z.object({
     shipping: shippingValidationZodSchema(true).optional(),
     officialNotes: z.string().optional(),
-    contactStatus: z
-      .enum([...warrantyClaimedContactStatus] as [string, ...string[]])
-      .optional(),
     result: z
       .enum([...warrantyClaimedProductCondition] as [string, ...string[]])
       .optional(),
@@ -45,8 +42,18 @@ const updateWarrantyClaimReq = z.object({
   }),
 });
 
+const updateContactStatus = z.object({
+  body: z.object({
+    warrantyClaimedReqIds: z
+      .string({ required_error: "Warranty claim ids is required" })
+      .array(),
+    status: z.enum([...warrantyClaimedContactStatus] as [string, ...string[]]),
+  }),
+});
+
 export const WarrantyClaimValidation = {
   checkWarranty,
   createWarrantyClaimReq,
   updateWarrantyClaimReq,
+  updateContactStatus,
 };

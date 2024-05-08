@@ -31,10 +31,17 @@ router.post(
 );
 
 router.patch(
-  "/:id",
+  "/update-request/:id",
   authGuard({ requiredRoles: ["admin", "staff"] }),
   validateRequest(WarrantyClaimValidation.updateWarrantyClaimReq),
   WarrantyClaimController.updateWarrantyClaimReq
+);
+
+router.patch(
+  "/update-contact-status",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(WarrantyClaimValidation.updateContactStatus),
+  WarrantyClaimController.updateContactStatus
 );
 
 export const WarrantyClaimRoutes = router;
