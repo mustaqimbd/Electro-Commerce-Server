@@ -16,6 +16,7 @@ export type TWarrantyClaimedVideosAndImages = {
 export type TWarrantyClaimReqData = {
   order_id: Types.ObjectId;
   orderItemId: Types.ObjectId | TProductDetails;
+  productId: Types.ObjectId;
   claimedCodes: string[];
 };
 

@@ -31,256 +31,21 @@ import {
 const maxOrderStatusChangeAtATime = 20;
 
 const createOrderIntoDB = async (req: Request) => {
-  const { body } = req;
-  const response = await createNewOrder(body, req);
-  // const {
-  //   payment,
-  //   shipping,
-  //   shippingCharge,
-  //   orderFrom,
-  //   orderNotes,
-  //   eventId,
-  //   orderSource,
-  //   custom,
-  //   salesPage,
-  //   orderedProducts,
-  // } = body as {
-  //   payment: TPaymentData;
-  //   shipping: TShippingData;
-  //   shippingCharge: mongoose.Types.ObjectId;
-  //   orderFrom: string;
-  //   orderNotes: string;
-  //   eventId: string;
-  //   orderSource: TOrderSource;
-  //   custom: boolean;
-  //   salesPage: boolean;
-  //   orderedProducts: TProductDetails[];
-  // };
-  // let { courierNotes, officialNotes, invoiceNotes, advance } = body as {
-  //   courierNotes?: string;
-  //   officialNotes?: string;
-  //   invoiceNotes?: string;
-  //   advance?: number;
-  // };
-  // const user = req?.user as TOptionalAuthGuardPayload;
-  // const userQuery = optionalAuthUserQuery(user);
-  // let response;
-  // const session = await mongoose.startSession();
-  // let singleOrder: { product: string; quantity: number } = {
-  //   product: "",
-  //   quantity: 0,
-  // };
-  // let totalCost = 0;
-  // try {
-  //   session.startTransaction();
-  //   const orderData: Partial<TOrder> = {};
-  //   let onlyProductsCosts = 0;
-  //   const orderId = createOrderId();
-  //   let orderedProductInfo: TSanitizedOrProduct[] = [];
-  //   if (custom) {
-  //     //TODO: Enable auth protection
-  //     // if (!user.isAuthenticated) {
-  //     //   throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
-  //     // }
-  //     // if (!["admin", "staff"]?.includes(String(user?.role))) {
-  //     //   throw new ApiError(
-  //     //     httpStatus.BAD_REQUEST,
-  //     //     "Only staff or admin can create custom orders."
-  //     //   );
-  //     // }
-  //     orderedProductInfo =
-  //       await OrderHelper.sanitizeOrderedProducts(orderedProducts);
-  //   } else if (salesPage) {
-  //     orderedProductInfo = await OrderHelper.sanitizeOrderedProducts([
-  //       orderedProducts[0],
-  //     ]);
-  //   } else {
-  //     const cart = await Cart.findOne(userQuery)
-  //       .populate({
-  //         path: "cartItems.item",
-  //         select: "product attributes quantity -_id",
-  //         populate: {
-  //           path: "product",
-  //           select: "price title isDeleted inventory",
-  //           populate: [
-  //             {
-  //               path: "price",
-  //               select: "salePrice regularPrice -_id",
-  //             },
-  //             {
-  //               path: "inventory",
-  //               select: "stockQuantity",
-  //             },
-  //           ],
-  //         },
-  //       })
-  //       .exec();
-  //     if (!cart) {
-  //       throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
-  //     }
-  //     orderedProductInfo = cart?.cartItems?.map(({ item }) => {
-  //       const cartItem = item as TCartItem;
-  //       const product = cartItem.product as TProduct;
-  //       return {
-  //         product: {
-  //           _id: product._id,
-  //           title: product.title,
-  //           price: product.price as TPrice,
-  //           inventory: product.inventory as TInventory,
-  //           isDeleted: product.isDeleted,
-  //         },
-  //         quantity: cartItem.quantity,
-  //         attributes: cartItem.attributes,
-  //       };
-  //     });
-  //   }
-  //   if (!custom) {
-  //     courierNotes = undefined;
-  //     officialNotes = undefined;
-  //     invoiceNotes = undefined;
-  //     advance = 0;
-  //   }
-  //   const quantityUpdateData: {
-  //     productInventoryId: string;
-  //     quantity: number;
-  //   }[] = [];
-  //   const orderedProductData = orderedProductInfo?.map((item) => {
-  //     if (item.product.isDeleted) {
-  //       throw new ApiError(
-  //         httpStatus.BAD_REQUEST,
-  //         `The product ${item.product.title} is no longer available`
-  //       );
-  //     }
-  //     if (item?.product.inventory?.stockQuantity < item.quantity) {
-  //       throw new ApiError(
-  //         httpStatus.BAD_REQUEST,
-  //         `The product ${item.product.title} is out of stock, Please contact to the support team`
-  //       );
-  //     }
-  //     quantityUpdateData.push({
-  //       productInventoryId: item.product.inventory?._id,
-  //       quantity: item.quantity,
-  //     });
-  //     const result = {
-  //       product: item?.product?._id,
-  //       unitPrice:
-  //         item?.product?.price?.salePrice || item?.product?.price?.regularPrice,
-  //       quantity: item?.quantity,
-  //       total: Math.round(
-  //         item?.quantity *
-  //           Number(
-  //             item?.product?.price?.salePrice ||
-  //               item?.product?.price?.regularPrice
-  //           )
-  //       ),
-  //       // attributes: productItem?.attributes, //TODO: Enable if attributes is need
-  //     };
-  //     onlyProductsCosts += result.total;
-  //     return result;
-  //   });
-  //   //  [costs] calculation ends here
-  //   // decrease the quantity
-  //   for (const item of quantityUpdateData) {
-  //     await InventoryModel.updateOne(
-  //       { _id: item.productInventoryId },
-  //       { $inc: { stockQuantity: -item.quantity } }
-  //     ).session(session);
-  //   }
-  //   orderData.productDetails = orderedProductData as TProductDetails[];
-  //   singleOrder = {
-  //     product: String(orderedProductInfo[0]?.product?._id),
-  //     quantity: orderedProductInfo[0].quantity,
-  //   };
-  //   // create payment document
-  //   const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
-  //   if (!paymentMethod) {
-  //     {
-  //       throw new ApiError(httpStatus.BAD_REQUEST, "No payment found");
-  //     }
-  //   }
-  //   if (paymentMethod?.isPaymentDetailsNeeded) {
-  //     if (!payment.phoneNumber || !payment.transactionId) {
-  //       throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request.");
-  //     }
-  //   }
-  //   payment.orderId = orderId;
-  //   orderData.payment = (
-  //     await OrderPayment.create([payment], { session })
-  //   )[0]._id;
-  //   // Create Shipping data
-  //   shipping.orderId = orderId;
-  //   orderData.shipping = (
-  //     await Shipping.create([shipping], { session })
-  //   )[0]._id;
-  //   // create status document
-  //   orderData.statusHistory = (
-  //     await OrderStatusHistory.create([{ orderId, history: [{}] }], {
-  //       session,
-  //     })
-  //   )[0]._id;
-  //   // get shipping charge
-  //   const shippingCharges = await ShippingCharge.findById(shippingCharge);
-  //   if (!shippingCharges) {
-  //     throw new ApiError(
-  //       httpStatus.BAD_REQUEST,
-  //       "Failed to find shipping charges"
-  //     );
-  //   }
-  //   totalCost =
-  //     onlyProductsCosts +
-  //     Number(shippingCharges?.amount) -
-  //     Number(advance || 0);
-  //   orderData.orderId = orderId;
-  //   orderData.userId = userQuery.userId as mongoose.Types.ObjectId;
-  //   orderData.sessionId = userQuery.sessionId as string;
-  //   orderData.subtotal = onlyProductsCosts;
-  //   orderData.shippingCharge = shippingCharges?._id;
-  //   orderData.total = totalCost;
-  //   orderData.status = "pending";
-  //   orderData.orderFrom = orderFrom;
-  //   orderData.orderNotes = orderNotes;
-  //   orderData.courierNotes = courierNotes;
-  //   orderData.officialNotes = officialNotes;
-  //   orderData.invoiceNotes = invoiceNotes;
-  //   orderData.orderSource = {
-  //     name: orderSource?.name,
-  //     url: orderSource?.url,
-  //     lpNo: orderSource?.lpNo,
-  //   };
-  //   orderData.advance = advance;
-  //   const [orderRes] = await Order.create([orderData], { session });
-  //   if (!orderRes) {
-  //     throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
-  //   }
-  //   if (user.id) {
-  //     await Address.updateOne({ uid: user.uid }, shipping).session(session);
-  //   }
-  //   // clear cart and cart items
-  //   if (!salesPage || !custom) {
-  //     await Cart.deleteOne(userQuery).session(session);
-  //     await CartItem.deleteMany(userQuery).session(session);
-  //   }
-  //   response = orderRes;
-  //   await session.commitTransaction();
-  //   await session.endSession();
-  // } catch (error) {
-  //   await session.abortTransaction();
-  //   await session.endSession();
-  //   throw error;
-  // }
-  // if (!custom) {
-  //   purchaseEventHelper(
-  //     shipping,
-  //     {
-  //       productId: singleOrder.product,
-  //       quantity: singleOrder.quantity,
-  //       totalCost,
-  //     },
-  //     orderSource,
-  //     req,
-  //     eventId
-  //   );
-  // }
+  let response;
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    response = await createNewOrder(
+      req as unknown as Record<string, unknown>,
+      session
+    );
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
   return response;
 };
 
@@ -370,6 +135,7 @@ const getProcessingOrdersAdminFromDB = async (
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderStatus[] = [
     "processing",
+    "wco processing",
     "warranty added",
     "processing done",
   ];
@@ -423,6 +189,7 @@ const getProcessingOrdersAdminFromDB = async (
   // Orders counts
   const statusMap = {
     processing: 0,
+    "wco processing": 0,
     "warranty added": 0,
     "processing done": 0,
   };

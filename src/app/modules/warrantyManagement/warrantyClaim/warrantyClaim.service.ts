@@ -1,8 +1,10 @@
 import httpStatus from "http-status";
-import { PipelineStage, Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
+import { TProductDetails } from "../../orderManagement/order/order.interface";
+import { createNewOrder } from "../../orderManagement/order/order.utils";
 import { TWarrantyClaim } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
@@ -107,10 +109,89 @@ const updateContactStatusIntoDB = async (
   return result;
 };
 
-// const approveReqAndCreateNewOrderIntoDB = async (
-//   id: Types.ObjectId,
-//   user: TJwtPayload
-// ) => {};
+const createNewWarrantyClaimOrderIntoDB = async (
+  id: Types.ObjectId,
+  payload: Record<string, unknown>,
+  user: TJwtPayload
+) => {
+  const claimReq = await WarrantyClaim.findById(id);
+  if (claimReq?.orderId) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "This request is already approved and also created an order"
+    );
+  }
+
+  if (!claimReq) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "No warranty claim request found"
+    );
+  }
+
+  if (claimReq?.contactStatus !== "confirmed") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Please contact with the customer first"
+    );
+  }
+
+  if (claimReq?.result !== "problem") {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Only problematic products will accept"
+    );
+  }
+
+  const body = {
+    ...payload,
+    shipping: {
+      fullName: claimReq?.shipping?.fullName,
+      phoneNumber: claimReq?.shipping?.phoneNumber,
+      fullAddress: claimReq?.shipping?.fullAddress,
+    },
+    orderSource: {
+      name: "Warranty Claimed",
+    },
+  };
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+
+  const order = await createNewOrder({ body, user }, session, {
+    warrantyClaim: true,
+    productsDetails: claimReq?.warrantyClaimReqData?.map(
+      ({
+        productId,
+        claimedCodes,
+      }: {
+        productId: Types.ObjectId;
+        claimedCodes: string[];
+      }) => ({
+        product: productId,
+        quantity: claimedCodes?.length,
+      })
+    ) as Partial<TProductDetails[]>,
+  });
+
+  await WarrantyClaim.findOneAndUpdate(
+    { _id: id },
+    { orderId: order._id, approvalStatus: "approved", finalCheckedBy: user.id },
+    { session }
+  );
+
+  return order;
+};
 
 export const WarrantyClaimServices = {
   getAllWarrantyClaimReqFromDB,
@@ -118,4 +199,5 @@ export const WarrantyClaimServices = {
   createWarrantyClaimIntoDB,
   updateWarrantyClaimReqIntoDB,
   updateContactStatusIntoDB,
+  createNewWarrantyClaimOrderIntoDB,
 };

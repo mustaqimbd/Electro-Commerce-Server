@@ -20,8 +20,8 @@ const globalErrorhandler: ErrorRequestHandler = (err, req, res, next) => {
     message = modifiedError.message;
     statusCode = modifiedError.statusCode;
     errorMessages = modifiedError.errorMessages;
-  } else if (err.name === "CastError") {
-    const modifiedError: TIErrorResponse = handleMongooseCastError(err);
+  } else if (err.name === "CastError" || err.name === "BSONError") {
+    const modifiedError: TIErrorResponse = handleMongooseCastError();
     message = modifiedError.message;
     statusCode = modifiedError.statusCode;
     errorMessages = modifiedError.errorMessages;
