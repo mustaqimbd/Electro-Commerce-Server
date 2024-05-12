@@ -1,6 +1,8 @@
 import { Router } from "express";
 import authGuard from "../../../middlewares/authGuard";
+import validateRequest from "../../../middlewares/validateRequest";
 import { PermissionController } from "./permission.controller";
+import { PermissionValidation } from "./permission.validate";
 
 const router = Router();
 
@@ -16,9 +18,19 @@ router.post(
   "/",
   authGuard({
     requiredRoles: ["admin"],
+  }),
+  validateRequest(PermissionValidation.createPermission),
+  PermissionController.createPermission
+);
+
+router.post(
+  "/add-permission-to-user/:id",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
     requiredPermission: "manage permission",
   }),
-  PermissionController.createPermission
+  validateRequest(PermissionValidation.addPermissionToUser),
+  PermissionController.addPermissionToUser
 );
 
 export const PermissionRoutes = router;
