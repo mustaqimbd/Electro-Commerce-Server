@@ -1,19 +1,20 @@
 import httpStatus from "http-status";
 import { TErrorMessages, TIErrorResponse } from "../types/error";
 
-const handleMongooseCastError = (): TIErrorResponse => {
-  const message = "Invalid id";
+const handleBSONError = (): TIErrorResponse => {
+  const message = "Please provide a valid ID";
   const errorMessages: TErrorMessages[] = [
     {
       path: "",
       message,
     },
   ];
+
   return {
     statusCode: httpStatus.BAD_REQUEST,
-    message,
+    message: "Invalid ID",
     errorMessages,
   };
 };
 
-export default handleMongooseCastError;
+export default handleBSONError;

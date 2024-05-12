@@ -136,34 +136,113 @@ const createAdminOrStaffIntoDB = async (
   return newUser;
 };
 
-const geUserProfileFromDB = async (
-  id: Types.ObjectId
-): Promise<TUser | null> => {
-  const propsForAdminANdStaff = "fullName profilePicture -_id";
-  const result = await User.findById(id, {
-    role: 1,
-    phoneNumber: 1,
-    email: 1,
-    permissions: 1,
-    status: 1,
-    customer: 1,
-    admin: 1,
-    staff: 1,
-  }).populate([
-    { path: "customer" },
-    {
-      path: "staff",
-      select: propsForAdminANdStaff,
-    },
-    {
-      path: "admin",
-      select: propsForAdminANdStaff,
-    },
-    {
-      path: "permissions",
-      select: "name -_id",
-    },
-  ]);
+const geUserProfileFromDB = async (id: Types.ObjectId) => {
+  const result = (
+    await User.aggregate([
+      { $match: { _id: new Types.ObjectId(id) } },
+      {
+        $lookup: {
+          from: "admins",
+          localField: "admin",
+          foreignField: "_id",
+          as: "admin",
+        },
+      },
+      {
+        $lookup: {
+          from: "staffs",
+          localField: "staff",
+          foreignField: "_id",
+          as: "staff",
+        },
+      },
+      {
+        $lookup: {
+          from: "customers",
+          localField: "customer",
+          foreignField: "_id",
+          as: "customer",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          role: 1,
+          phoneNumber: 1,
+          email: 1,
+          status: 1,
+          fullName: {
+            $cond: {
+              if: { $eq: ["$role", "admin"] },
+              then: { $arrayElemAt: ["$admin.fullName", 0] },
+              else: {
+                $cond: {
+                  if: { $eq: ["$role", "staff"] },
+                  then: { $arrayElemAt: ["$staff.fullName", 0] },
+                  else: { $arrayElemAt: ["$customer.fullName", 0] },
+                },
+              },
+            },
+          },
+          profilePicture: {
+            $cond: {
+              if: { $eq: ["$role", "admin"] },
+              then: { $arrayElemAt: ["$admin.profilePicture", 0] },
+              else: {
+                $cond: {
+                  if: { $eq: ["$role", "staff"] },
+                  then: { $arrayElemAt: ["$staff.profilePicture", 0] },
+                  else: { $arrayElemAt: ["$customer.profilePicture", 0] },
+                },
+              },
+            },
+          },
+          permissions: 1,
+        },
+      },
+      {
+        $unwind: "$permissions",
+      },
+      {
+        $lookup: {
+          from: "permissions",
+          localField: "permissions",
+          foreignField: "_id",
+          as: "permissionsData",
+        },
+      },
+      {
+        $unwind: "$permissionsData",
+      },
+      {
+        $group: {
+          _id: {
+            _id: "$_id",
+            role: "$role",
+            phoneNumber: "$phoneNumber",
+            email: "$email",
+            status: "$status",
+            fullName: "$fullName",
+            profilePicture: "$profilePicture",
+          },
+          permissions: { $addToSet: "$permissionsData.name" },
+        },
+      },
+      {
+        $project: {
+          _id: "$_id._id",
+          role: "$_id.role",
+          phoneNumber: "$_id.phoneNumber",
+          email: "$_id.email",
+          status: "$_id.status",
+          fullName: "$_id.fullName",
+          profilePicture: "$_id.profilePicture",
+          permissions: 1,
+        },
+      },
+    ])
+  )[0];
+
   return result;
 };
 

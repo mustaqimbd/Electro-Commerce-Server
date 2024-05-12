@@ -37,10 +37,6 @@ const authGuard =
         config.token_data.access_token_secret as Secret
       );
 
-      // if (verifiedUser.sessionId !== req.sessionID) {
-      //   throw new ApiError(httpStatus.FORBIDDEN, "Forbidden");
-      // }
-
       if (
         requiredRoles.length &&
         !requiredRoles.includes(verifiedUser?.role as TRoles)
@@ -48,22 +44,21 @@ const authGuard =
         throw new ApiError(httpStatus.FORBIDDEN, "Not valid user");
       }
 
-      // if any staff try to perform any action by their previous token, after deleting or banding them
       if (verifiedUser.role !== "customer") {
         const user = await User.isUserExist({ _id: verifiedUser.id });
         if (user?.role !== verifiedUser.role) {
           throw new ApiError(httpStatus.FORBIDDEN, "Not valid user");
         }
+
         if (requiredPermission) {
           if (
             !user?.permissions.some(
-              (item) => (item as TPermission).name === requiredPermission
+              (item) =>
+                (item as TPermission).name === requiredPermission ||
+                (item as TPermission).name === "super admin"
             )
           ) {
-            throw new ApiError(
-              httpStatus.FORBIDDEN,
-              "You don't have permission"
-            );
+            throw new ApiError(httpStatus.FORBIDDEN, "Permission denied");
           }
         }
       }

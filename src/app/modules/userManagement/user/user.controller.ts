@@ -46,7 +46,7 @@ const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
 const getUserProfile = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.user as TJwtPayload;
   const result = await UserServices.geUserProfileFromDB(id);
-  successResponse<TUser>(res, {
+  successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Profile retrieved successfully",
     data: result,

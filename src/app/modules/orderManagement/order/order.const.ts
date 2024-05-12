@@ -4,12 +4,15 @@ export const orderStatus: TOrderStatus[] = [
   "pending",
   "confirmed",
   "processing",
+  "wco processing",
   "follow up",
   "processing done",
   "warranty added",
   "On courier",
   "canceled",
   "returned",
+  "partly returned",
+  "completed",
   "deleted",
 ];
 

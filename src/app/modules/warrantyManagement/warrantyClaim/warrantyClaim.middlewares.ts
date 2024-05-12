@@ -13,7 +13,6 @@ const validateWarranty = catchAsync(
       phoneNumber,
       warrantyCodes
     );
-    // console.log(16, warranties);
     if (!warranties.length) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request");
     }
@@ -23,6 +22,7 @@ const validateWarranty = catchAsync(
       (
         warranty.products as {
           _id: Types.ObjectId;
+          productId: Types.ObjectId;
           warranty: { warrantyCodes: { code: string }[]; endsDate: string };
         }[]
       ).map((product) => {
@@ -40,6 +40,7 @@ const validateWarranty = catchAsync(
           order_id: warranty._id,
         };
         data.orderItemId = product._id;
+        data.productId = product.productId;
         data.claimedCodes = product?.warranty?.warrantyCodes
           .map((item) =>
             warrantyCodes.includes(item.code) ? item.code : undefined

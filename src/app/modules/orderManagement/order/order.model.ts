@@ -91,6 +91,9 @@ const OrderSchema = new Schema<TOrder>(
       type: Number,
       default: 0,
     },
+    warrantyAmount: {
+      type: Number,
+    },
     total: {
       type: Number,
       required: true,

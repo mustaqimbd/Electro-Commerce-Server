@@ -15,10 +15,13 @@ export type TOrderStatus =
   | "confirmed"
   | "follow up"
   | "processing"
+  | "wco processing"
   | "processing done"
   | "warranty added"
   | "On courier"
   | "returned"
+  | "partly returned"
+  | "completed"
   | "canceled"
   | "deleted";
 
@@ -64,6 +67,7 @@ export type TOrderData = {
   shippingCharge: mongoose.Types.ObjectId | TShippingCharge;
   discount?: number;
   advance?: number;
+  warrantyAmount: number;
   total: number;
   payment: mongoose.Types.ObjectId;
   status: TOrderStatus;

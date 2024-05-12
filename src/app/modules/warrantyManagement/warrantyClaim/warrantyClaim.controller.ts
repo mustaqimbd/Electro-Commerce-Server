@@ -87,10 +87,28 @@ const updateContactStatus = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const createNewWarrantyClaimOrder = catchAsync(
+  async (req: Request, res: Response) => {
+    const warranty =
+      await WarrantyClaimServices.createNewWarrantyClaimOrderIntoDB(
+        req.params.id as unknown as Types.ObjectId,
+        req.body,
+        req.user as TJwtPayload
+      );
+
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "New warranty clam order created successfully",
+      data: warranty,
+    });
+  }
+);
+
 export const WarrantyClaimController = {
   getAllWarrantyClaimReq,
   checkWarranty,
   createWarrantyClaimReq,
   updateWarrantyClaimReq,
   updateContactStatus,
+  createNewWarrantyClaimOrder,
 };

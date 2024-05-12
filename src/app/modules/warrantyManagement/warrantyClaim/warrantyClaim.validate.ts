@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paymentZodSchema } from "../../orderManagement/orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../../orderManagement/shipping/shipping.validation";
 import { phoneNumberValidationZodSchema } from "../../userManagement/user/user.validation";
 import {
@@ -51,9 +52,19 @@ const updateContactStatus = z.object({
   }),
 });
 
+const approveAndCreateOrder = z.object({
+  body: z.object({
+    payment: paymentZodSchema,
+    shippingCharge: z.string({
+      required_error: "Shipping charge id is required",
+    }),
+  }),
+});
+
 export const WarrantyClaimValidation = {
   checkWarranty,
   createWarrantyClaimReq,
   updateWarrantyClaimReq,
   updateContactStatus,
+  approveAndCreateOrder,
 };

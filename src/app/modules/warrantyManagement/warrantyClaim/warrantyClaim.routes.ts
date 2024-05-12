@@ -44,4 +44,11 @@ router.patch(
   WarrantyClaimController.updateContactStatus
 );
 
+router.post(
+  "/create-order/:id",
+  authGuard({ requiredRoles: ["admin", "staff"] }),
+  validateRequest(WarrantyClaimValidation.approveAndCreateOrder),
+  WarrantyClaimController.createNewWarrantyClaimOrder
+);
+
 export const WarrantyClaimRoutes = router;

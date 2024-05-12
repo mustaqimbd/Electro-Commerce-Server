@@ -96,6 +96,7 @@ const getWarrantyData = async (
         orderId: 1,
         product: {
           _id: "$productDetails._id",
+          productId: "$productInfo._id",
           title: "$productInfo.title",
           image: { src: "$productThumb.src", alt: "$productThumb.alt" },
           warranty: {

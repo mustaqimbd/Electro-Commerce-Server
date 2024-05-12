@@ -75,7 +75,8 @@ export const purchaseEventHelper = (
   shipping: TShippingData,
   orderInfo: { productId: string; quantity: number; totalCost: number },
   orderSource: TOrderSource,
-  req: Request,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  req: any,
   eventId: string
 ) => {
   if (config.c_api_access_token && config.pixel_id) {

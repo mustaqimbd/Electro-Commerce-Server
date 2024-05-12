@@ -46,6 +46,10 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
             type: mongoose.Types.ObjectId,
             required: true,
           },
+          productId: {
+            type: mongoose.Types.ObjectId,
+            required: true,
+          },
           claimedCodes: {
             type: [String],
             required: true,
