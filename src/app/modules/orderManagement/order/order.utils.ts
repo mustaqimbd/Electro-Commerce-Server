@@ -1,10 +1,12 @@
 import httpStatus from "http-status";
-import mongoose, { ClientSession, PipelineStage } from "mongoose";
+import mongoose, { ClientSession, PipelineStage, Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import steedFastApi from "../../../utilities/steedfastApi";
 import { Address } from "../../addressManagement/address/address.model";
+import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
@@ -18,7 +20,7 @@ import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
-import { TShippingData } from "../shipping/shipping.interface";
+import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { OrderHelper } from "./order.helper";
@@ -212,6 +214,7 @@ export const ordersPipeline = (): PipelineStage[] => [
 // This function will delete warranty information from warranty collection and update order product details
 export const deleteWarrantyFromOrder = async (
   productDetails: TProductDetails[],
+  orderId: Types.ObjectId,
   session: mongoose.mongo.ClientSession
 ) => {
   const deleteQuery = {
@@ -224,9 +227,9 @@ export const deleteWarrantyFromOrder = async (
     },
   };
   await Warranty.deleteMany(deleteQuery).session(session);
-  await Order.updateMany(
-    { "productDetails.warranty": { $exists: true } },
-    { $unset: { "productDetails.$[].warranty": 1 } }
+  await Order.updateOne(
+    { _id: orderId, "productDetails.warranty": { $exists: true } },
+    { $unset: { "productDetails.$.warranty": 1 } }
   ).session(session);
 };
 
@@ -507,4 +510,53 @@ export const createNewOrder = async (
   }
 
   return orderRes;
+};
+
+type TOrderDataForCourier = {
+  orderId: string;
+  shippingData: TShipping;
+  total: number;
+  courierNotes: string;
+};
+// create order on 'steed fast' courier
+export const createOrderOnSteedFast = async (
+  orders: TOrderDataForCourier[],
+  courier: TCourier
+) => {
+  const payload = orders.map(
+    ({ orderId, shippingData, total, courierNotes }) => ({
+      invoice: orderId,
+      recipient_name: shippingData.fullName,
+      recipient_address: shippingData.fullAddress,
+      recipient_phone: shippingData.phoneNumber,
+      cod_amount: total,
+      note: courierNotes,
+    })
+  );
+  const { data } = await steedFastApi({
+    credentials: courier.credentials,
+    endpoints: "/create_order/bulk-order",
+    method: "POST",
+    payload: payload as unknown as Record<string, string>[],
+  });
+  const sanitizedData = data.map(
+    ({
+      invoice,
+      tracking_code,
+      status,
+    }: {
+      invoice: string;
+      tracking_code: string;
+      status: string;
+    }) => ({
+      orderId: invoice,
+      trackingId: tracking_code,
+      status,
+    })
+  );
+
+  return {
+    success: sanitizedData.filter((item) => item.status === "success"),
+    error: sanitizedData.filter((item) => item.status === "error"),
+  };
 };

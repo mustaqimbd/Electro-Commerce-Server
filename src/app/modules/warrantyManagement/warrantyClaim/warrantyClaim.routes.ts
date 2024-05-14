@@ -11,11 +11,11 @@ const router = Router();
 
 router.get(
   "/",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   WarrantyClaimController.getAllWarrantyClaimReq
 );
 
-router.get(
+router.post(
   "/check-warranty",
   validateRequest(WarrantyClaimValidation.checkWarranty),
   WarrantyClaimController.checkWarranty

@@ -1,6 +1,6 @@
 import { Request } from "express";
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import updateCourierStatus from "../../../helper/updateCourierStatus";
@@ -8,21 +8,18 @@ import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { convertIso } from "../../../utilities/ISOConverter";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
+import { Courier } from "../../courier/courier.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import ProductModel from "../../productManagement/product/product.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
 import { TShipping } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
-import {
-  TCourierProviders,
-  TOrder,
-  TOrderStatus,
-  TProductDetails,
-} from "./order.interface";
+import { TOrder, TOrderStatus, TProductDetails } from "./order.interface";
 import { Order } from "./order.model";
 import {
   createNewOrder,
+  createOrderOnSteedFast,
   deleteWarrantyFromOrder,
   ordersPipeline,
   updateStockOnOrderCancelOrDeleteOrRetrieve,
@@ -833,7 +830,7 @@ const updateProcessingStatusIntoDB = async (
             order.productDetails,
             session
           ),
-          deleteWarrantyFromOrder(order.productDetails, session),
+          deleteWarrantyFromOrder(order.productDetails, order._id, session),
         ]);
       }
     }
@@ -850,7 +847,7 @@ const updateProcessingStatusIntoDB = async (
 const bookCourierAndUpdateStatusIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
   status: Partial<TOrderStatus>,
-  courierProvider: TCourierProviders,
+  courierProvider: Types.ObjectId,
   user: TJwtPayload
 ) => {
   if (!["On courier", "canceled"].includes(status)) {
@@ -863,27 +860,75 @@ const bookCourierAndUpdateStatusIntoDB = async (
     );
   }
 
+  let courierResponse: {
+    orderId?: string;
+    trackingId?: string;
+    status?: string;
+  }[] = [];
+  let failedCourierOrders = [];
+
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
 
-    const orders = await Order.find(
-      { _id: { $in: orderIds }, status: "processing done" },
-      { statusHistory: 1, status: 1, orderId: 1, productDetails: 1 }
-    ).session(session);
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          _id: { $in: orderIds.map((item) => new Types.ObjectId(item)) },
+          status: "processing done",
+        },
+      },
+      {
+        $lookup: {
+          from: "shippings",
+          localField: "shipping",
+          foreignField: "_id",
+          as: "shippingData",
+        },
+      },
+      {
+        $unwind: "$shippingData",
+      },
+      {
+        $project: {
+          status: 1,
+          orderId: 1,
+          total: 1,
+          courierNotes: 1,
+          productDetails: 1,
+          shippingData: 1,
+          shipping: 1,
+          statusHistory: 1,
+        },
+      },
+    ]);
 
-    for (const order of orders) {
-      const updatedDoc = {
-        status,
-        courierDetails: { courierProvider },
-      };
-      await Order.updateOne({ _id: order._id }, updatedDoc, {
-        session,
-        upsert: true,
-      });
+    const courier = await Courier.findById(courierProvider, {
+      name: 1,
+      credentials: 1,
+      isActive: 1,
+    });
+    if (!courier)
+      throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
+    if (!courier.isActive)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Courier '${courier.name}' is not active`
+      );
 
-      await OrderStatusHistory.updateOne(
-        { _id: order.statusHistory },
+    // courier booking request
+
+    if (courier.name === "steedfast") {
+      const { success: successRequests, error: failedRequests } =
+        await createOrderOnSteedFast(orders, courier);
+      courierResponse = successRequests;
+      failedCourierOrders = failedRequests.map((item) => item.orderId);
+    }
+
+    if (status === "On courier") {
+      // const findSuccessOrders=orders.filter((item)=>courierResponse)
+      const res = await OrderStatusHistory.updateMany(
+        { _id: { $in: courierResponse.map((item) => item.orderId) } },
         {
           $push: {
             history: {
@@ -894,25 +939,53 @@ const bookCourierAndUpdateStatusIntoDB = async (
         },
         { session }
       );
+      // eslint-disable-next-line no-console
+      console.log(res);
+    }
+
+    for (const { orderId, trackingId } of courierResponse) {
+      const updatedDoc = {
+        status,
+        courierDetails: { courierProvider, trackingId },
+        deliveryStatus: "in_review",
+      };
+      await Order.updateOne({ orderId }, updatedDoc, {
+        session,
+        upsert: true,
+      });
+
+      const order = (orders as TOrder[]).find(
+        (order) => order.orderId === orderId
+      );
 
       if (status === "canceled") {
         await updateStockOnOrderCancelOrDeleteOrRetrieve(
-          order.productDetails,
+          order?.productDetails || [],
           session
         );
-        if (order.productDetails.map((item) => item.warranty).length) {
-          await deleteWarrantyFromOrder(order.productDetails, session);
+
+        if (order?.productDetails.map((item) => item.warranty)) {
+          await deleteWarrantyFromOrder(
+            order?.productDetails || [],
+            order._id,
+            session
+          );
         }
       }
     }
 
     await session.commitTransaction();
-    await session.endSession();
   } catch (error) {
     await session.abortTransaction();
-    await session.endSession();
     throw error;
+  } finally {
+    await session.endSession();
   }
+
+  return {
+    success: courierResponse?.length,
+    error: failedCourierOrders?.length,
+  };
 };
 
 const updateOrderDetailsByAdminIntoDB = async (
@@ -1003,11 +1076,11 @@ const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
       }
     }
     await session.commitTransaction();
-    await session.endSession();
   } catch (error) {
     await session.abortTransaction();
-    await session.endSession();
     throw error;
+  } finally {
+    await session.endSession();
   }
 };
 

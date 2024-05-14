@@ -43,6 +43,9 @@ const CourierDetailsSchema = new Schema<TCourierDetails>(
     courierProvider: {
       type: mongoose.Schema.Types.ObjectId,
     },
+    trackingId: {
+      type: String,
+    },
   },
   { _id: false }
 );
