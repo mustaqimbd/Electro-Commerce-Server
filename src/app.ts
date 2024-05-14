@@ -6,7 +6,6 @@ import express, { Application } from "express";
 import session, { SessionOptions } from "express-session";
 import userAgent from "express-useragent";
 import helmet from "helmet";
-import mongoose from "mongoose";
 import morgan from "morgan";
 import path from "path";
 import requestIp from "request-ip";
@@ -16,7 +15,6 @@ import enableCrossOriginResourcePolicy from "./app/middlewares/enableCrossOrigin
 import globalErrorhandler from "./app/middlewares/globalErrorHandler";
 import { notFoundRoute } from "./app/middlewares/notFoundRoute";
 import router from "./app/routes";
-import successResponse from "./app/utilities/successResponse";
 const app: Application = express();
 
 const corsOptions: CorsOptions = {
@@ -62,11 +60,8 @@ if (config.env === "development") {
 }
 
 // Root route
-app.get("/api/v1", (req, res) => {
-  successResponse(res, {
-    statusCode: 200,
-    message: "Server sunning successfully.",
-  });
+app.get("/", (req, res) => {
+  res.redirect(`http://${config.main_domain}`);
 });
 
 // static files
@@ -76,13 +71,6 @@ app.use(
   enableCrossOriginResourcePolicy,
   express.static(uploadsPath)
 );
-
-// fake user id for testing
-app.use("/api/v1", (req, res, next) => {
-  req.user = {};
-  req.user.id = new mongoose.Types.ObjectId("5f8f4cb272e4b01d9c23cd58");
-  next();
-});
 
 // api endpoints
 app.use("/api/v1", router);

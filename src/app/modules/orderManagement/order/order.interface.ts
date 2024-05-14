@@ -53,6 +53,7 @@ export type TProductDetails = {
 
 export type TCourierDetails = {
   courierProvider: mongoose.Types.ObjectId;
+  trackingId: string;
 } & Document;
 
 export type TOrderData = {

@@ -140,7 +140,7 @@ const updateProcessingStatus = catchAsync(
 const bookCourierAndUpdateStatus = catchAsync(
   async (req: Request, res: Response) => {
     const { status, orderIds, courierProvider } = req.body;
-    await OrderServices.bookCourierAndUpdateStatusIntoDB(
+    const result = await OrderServices.bookCourierAndUpdateStatusIntoDB(
       orderIds,
       status,
       courierProvider,
@@ -149,6 +149,7 @@ const bookCourierAndUpdateStatus = catchAsync(
     successResponse<TOrderStatusHistory>(res, {
       statusCode: httpStatus.CREATED,
       message: "Courier booked successfully",
+      data: result,
     });
   }
 );
