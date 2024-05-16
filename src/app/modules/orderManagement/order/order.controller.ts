@@ -63,14 +63,18 @@ const getAllOrderCustomers = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getAllOrdersAdmin = catchAsync(async (req: Request, res: Response) => {
-  const { meta, data } = await OrderServices.getAllOrdersAdminFromDB(
-    req.query as unknown as Record<string, string>
-  );
+  const { meta, data, countsByStatus } =
+    await OrderServices.getAllOrdersAdminFromDB(
+      req.query as unknown as Record<string, string>
+    );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All orders retrieved successfully",
     meta,
-    data,
+    data: {
+      countsByStatus,
+      data,
+    },
   });
 });
 

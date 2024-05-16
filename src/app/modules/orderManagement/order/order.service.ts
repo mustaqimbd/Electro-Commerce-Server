@@ -123,7 +123,47 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
       ?.total || 0;
   const meta = orderQuery.metaData(total);
 
-  return { meta, data };
+  // get counts
+  const statusMap = {
+    all: 0,
+    pending: 0,
+    confirmed: 0,
+    processing: 0,
+    "follow up": 0,
+    canceled: 0,
+    deleted: 0,
+  };
+  const statusPipeline = [
+    {
+      $match: {
+        status: {
+          $in: Object.keys(statusMap).filter((status) => status !== "all"),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ];
+
+  const result = await Order.aggregate(statusPipeline);
+
+  result.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+    if (!["canceled", "deleted"].includes(_id)) {
+      statusMap.all += total;
+    }
+  });
+
+  const formattedResult = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
+
+  return { countsByStatus: formattedResult, meta, data };
 };
 
 const getProcessingOrdersAdminFromDB = async (
