@@ -4,7 +4,7 @@ export const orderStatus: TOrderStatus[] = [
   "pending",
   "confirmed",
   "processing",
-  "wco processing",
+  "warranty processing",
   "follow up",
   "processing done",
   "warranty added",

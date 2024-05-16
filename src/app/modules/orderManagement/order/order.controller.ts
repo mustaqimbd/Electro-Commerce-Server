@@ -146,7 +146,7 @@ const bookCourierAndUpdateStatus = catchAsync(
       courierProvider,
       req.user as TJwtPayload
     );
-    successResponse<TOrderStatusHistory>(res, {
+    successResponse(res, {
       statusCode: httpStatus.CREATED,
       message: "Courier booked successfully",
       data: result,

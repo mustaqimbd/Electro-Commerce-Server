@@ -45,6 +45,7 @@ export const findOrderWithWarrantyPipeline = (
       _id: 1,
       orderId: 1,
       deliveryStatus: 1,
+      statusHistory: 1,
       product: {
         _id: "$productDetails._id",
         product: {
@@ -69,6 +70,7 @@ export const findOrderWithWarrantyPipeline = (
     $group: {
       _id: "$_id",
       orderId: { $first: "$orderId" },
+      statusHistory: { $first: "$statusHistory" },
       products: { $push: "$product" },
       deliveryStatus: { $first: "$deliveryStatus" },
       createdAt: { $first: "$createdAt" },
