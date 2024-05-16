@@ -119,8 +119,8 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
 
   const data = await orderQuery.model;
   const total =
-    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))[0]
-      .total || 0;
+    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
+      ?.total || 0;
   const meta = orderQuery.metaData(total);
 
   return { meta, data };
@@ -655,35 +655,75 @@ const updateOrderStatusIntoDB = async (
       { orderId: 1, status: 1, statusHistory: 1, productDetails: 1 }
     ).session(session);
 
+    const statusUpdateQuery: {
+      updateOne: {
+        filter: {
+          _id: Types.ObjectId;
+        };
+        update: {
+          status: TOrderStatus;
+          isDeleted: boolean;
+        };
+      };
+    }[] = [];
+
+    const historyUpdateQuery: {
+      updateOne: {
+        filter: {
+          _id: Types.ObjectId;
+        };
+        update: {
+          $push: {
+            history: {
+              status: TOrderStatus;
+              updatedBy: Types.ObjectId;
+            };
+          };
+        };
+      };
+    }[] = [];
+
+    orders?.forEach((order) => {
+      if (order.status !== payload.status) {
+        const statusUpdateData = {
+          updateOne: {
+            filter: { _id: order._id },
+            update: {
+              status: payload.status,
+              isDeleted: payload.status === "deleted",
+            },
+          },
+        };
+        statusUpdateQuery?.push(statusUpdateData);
+        const historyUpdateData = {
+          updateOne: {
+            filter: { _id: order.statusHistory as Types.ObjectId },
+            update: {
+              $push: {
+                history: {
+                  status: payload.status,
+                  updatedBy: user.id,
+                },
+              },
+            },
+          },
+        };
+        historyUpdateQuery.push(historyUpdateData);
+      }
+    });
+
+    if (statusUpdateQuery.length) {
+      await Order.bulkWrite(statusUpdateQuery, { session });
+    }
+
+    if (historyUpdateQuery.length) {
+      await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
+    }
     // Change the orders one by one
     for (const order of orders) {
       // If this order's previous status is not same as the current
       if (order.status !== payload.status) {
         const orderPreviousStatus = order.status;
-
-        const updatedDoc: Record<string, unknown> = {
-          status: payload.status,
-        };
-        if (payload.status === "deleted") {
-          updatedDoc.isDeleted = true;
-        }
-
-        await Order.updateOne({ _id: order._id }, updatedDoc, {
-          upsert: true,
-        }).session(session);
-
-        await OrderStatusHistory.updateOne(
-          { _id: order.statusHistory },
-          {
-            $push: {
-              history: {
-                status: payload.status,
-                updatedBy: user.id,
-              },
-            },
-          },
-          { session }
-        );
 
         const orderedProducts = order?.productDetails;
 
@@ -713,11 +753,11 @@ const updateOrderStatusIntoDB = async (
     }
 
     await session.commitTransaction();
-    await session.endSession();
   } catch (error) {
     await session.abortTransaction();
-    await session.endSession();
     throw error;
+  } finally {
+    await session.endSession();
   }
 };
 
