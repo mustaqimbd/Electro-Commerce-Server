@@ -28,6 +28,7 @@ import {
   TCourierResponse,
   TOrder,
   TOrderSource,
+  TOrderStatus,
   TProductDetails,
   TSanitizedOrProduct,
 } from "./order.interface";
@@ -276,7 +277,9 @@ export const createNewOrder = async (
     invoiceNotes?: string;
     advance?: number;
   };
-
+  const status: TOrderStatus = warrantyClaimOrderData?.warrantyClaim
+    ? "warranty processing"
+    : "pending";
   const user = payload?.user as TOptionalAuthGuardPayload;
   const userQuery = optionalAuthUserQuery(user);
 
@@ -436,7 +439,7 @@ export const createNewOrder = async (
   orderData.shipping = (await Shipping.create([shipping], { session }))[0]._id;
   // create status document
   orderData.statusHistory = (
-    await OrderStatusHistory.create([{ orderId, history: [{}] }], {
+    await OrderStatusHistory.create([{ orderId, history: [{ status }] }], {
       session,
     })
   )[0]._id;
@@ -471,9 +474,7 @@ export const createNewOrder = async (
   orderData.shippingCharge = shippingCharges?._id;
   orderData.total = totalCost;
   orderData.warrantyAmount = warrantyAmount;
-  orderData.status = warrantyClaimOrderData?.warrantyClaim
-    ? "warranty processing"
-    : "pending";
+  orderData.status = status;
 
   orderData.orderFrom = orderFrom;
   orderData.orderNotes = orderNotes;
