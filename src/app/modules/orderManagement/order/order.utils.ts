@@ -25,6 +25,7 @@ import { Shipping } from "../shipping/shipping.model";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { OrderHelper } from "./order.helper";
 import {
+  TCourierResponse,
   TOrder,
   TOrderSource,
   TProductDetails,
@@ -116,6 +117,7 @@ export const ordersPipeline = (): PipelineStage[] => [
       invoiceNotes: 1,
       courierNotes: 1,
       orderSource: 1,
+      reasonNotes: 1,
       followUpDate: 1,
       productDetails: 1,
     },
@@ -172,6 +174,7 @@ export const ordersPipeline = (): PipelineStage[] => [
       courierNotes: 1,
       followUpDate: 1,
       orderSource: 1,
+      reasonNotes: 1,
       product: {
         _id: "$productDetails._id",
         productId: "$productInfo._id",
@@ -204,6 +207,7 @@ export const ordersPipeline = (): PipelineStage[] => [
       officialNotes: { $first: "$officialNotes" },
       invoiceNotes: { $first: "$invoiceNotes" },
       courierNotes: { $first: "$courierNotes" },
+      reasonNotes: { $first: "$reasonNotes" },
       followUpDate: { $first: "$followUpDate" },
       orderSource: { $first: "$orderSource" },
       products: { $push: "$product" },
@@ -468,7 +472,7 @@ export const createNewOrder = async (
   orderData.total = totalCost;
   orderData.warrantyAmount = warrantyAmount;
   orderData.status = warrantyClaimOrderData?.warrantyClaim
-    ? "wco processing"
+    ? "warranty processing"
     : "pending";
 
   orderData.orderFrom = orderFrom;
@@ -518,12 +522,13 @@ type TOrderDataForCourier = {
   total: number;
   courierNotes: string;
 };
+
 // create order on 'steed fast' courier
 export const createOrderOnSteedFast = async (
-  orders: TOrderDataForCourier[],
+  orders: Partial<TOrder[]>,
   courier: TCourier
 ) => {
-  const payload = orders.map(
+  const payload = (orders as unknown as TOrderDataForCourier[]).map(
     ({ orderId, shippingData, total, courierNotes }) => ({
       invoice: orderId,
       recipient_name: shippingData.fullName,
@@ -539,16 +544,8 @@ export const createOrderOnSteedFast = async (
     method: "POST",
     payload: payload as unknown as Record<string, string>[],
   });
-  const sanitizedData = data.map(
-    ({
-      invoice,
-      tracking_code,
-      status,
-    }: {
-      invoice: string;
-      tracking_code: string;
-      status: string;
-    }) => ({
+  const sanitizedData = (data as TCourierResponse[]).map(
+    ({ invoice, tracking_code, status }) => ({
       orderId: invoice,
       trackingId: tracking_code,
       status,

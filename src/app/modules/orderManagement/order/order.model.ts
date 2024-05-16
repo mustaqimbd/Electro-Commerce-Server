@@ -147,6 +147,9 @@ const OrderSchema = new Schema<TOrder>(
     courierNotes: {
       type: String,
     },
+    reasonNotes: {
+      type: String,
+    },
     courierDetails: CourierDetailsSchema,
     orderSource: {
       name: {

@@ -132,7 +132,7 @@ const getProcessingOrdersAdminFromDB = async (
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderStatus[] = [
     "processing",
-    "wco processing",
+    "warranty processing",
     "warranty added",
     "processing done",
   ];
@@ -186,7 +186,7 @@ const getProcessingOrdersAdminFromDB = async (
   // Orders counts
   const statusMap = {
     processing: 0,
-    "wco processing": 0,
+    "warranty processing": 0,
     "warranty added": 0,
     "processing done": 0,
   };
@@ -772,10 +772,11 @@ const updateProcessingStatusIntoDB = async (
           statusHistory: 1,
           product: {
             _id: "$productDetails._id",
-            productId: "$productInfo._id",
+            product: "$productInfo._id",
             productTitle: "$productInfo.title",
             warranty: "$productDetails.warranty",
             productWarranty: "$productInfo.warranty",
+            quantity: "$productDetails.quantity",
           },
         },
       },
@@ -823,7 +824,6 @@ const updateProcessingStatusIntoDB = async (
         },
         { session }
       );
-
       if (status === "canceled") {
         await Promise.all([
           updateStockOnOrderCancelOrDeleteOrRetrieve(
@@ -860,7 +860,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
     );
   }
 
-  let courierResponse: {
+  let successCourierOrders: {
     orderId?: string;
     trackingId?: string;
     status?: string;
@@ -871,7 +871,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
   try {
     session.startTransaction();
 
-    const orders = await Order.aggregate([
+    const orders = (await Order.aggregate([
       {
         $match: {
           _id: { $in: orderIds.map((item) => new Types.ObjectId(item)) },
@@ -901,13 +901,14 @@ const bookCourierAndUpdateStatusIntoDB = async (
           statusHistory: 1,
         },
       },
-    ]);
+    ])) as Partial<TOrder[]>;
 
     const courier = await Courier.findById(courierProvider, {
       name: 1,
       credentials: 1,
       isActive: 1,
     });
+
     if (!courier)
       throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
     if (!courier.isActive)
@@ -917,62 +918,85 @@ const bookCourierAndUpdateStatusIntoDB = async (
       );
 
     // courier booking request
-
+    //Steed fast
     if (courier.name === "steedfast") {
       const { success: successRequests, error: failedRequests } =
         await createOrderOnSteedFast(orders, courier);
-      courierResponse = successRequests;
+      successCourierOrders = successRequests;
       failedCourierOrders = failedRequests.map((item) => item.orderId);
     }
+    let successOrders = orders;
+    if (failedCourierOrders.length) {
+      const courierOrdersOrderId = successCourierOrders.map(
+        (item) => item.orderId
+      );
+      successOrders = orders.filter((item) =>
+        courierOrdersOrderId.includes(item?.orderId)
+      );
+    }
 
-    if (status === "On courier") {
-      // const findSuccessOrders=orders.filter((item)=>courierResponse)
-      const res = await OrderStatusHistory.updateMany(
-        { _id: { $in: courierResponse.map((item) => item.orderId) } },
-        {
-          $push: {
-            history: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const orderUpdateQuery: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const historyUpdateQuery: any[] = [];
+    successOrders.forEach((order) => {
+      if (status === "On courier") {
+        const trackingId = successCourierOrders.find(
+          (item) => item.orderId === order?.orderId
+        )?.trackingId;
+        orderUpdateQuery.push({
+          updateOne: {
+            filter: { _id: order?._id },
+            update: {
               status,
-              updatedBy: user.id,
+              courierDetails: { courierProvider, trackingId },
+              deliveryStatus: "in_review",
+            },
+          },
+        });
+      }
+      historyUpdateQuery.push({
+        updateOne: {
+          filter: { _id: order?.statusHistory },
+          update: {
+            $push: {
+              history: {
+                status,
+                updatedBy: user.id,
+              },
             },
           },
         },
+      });
+    });
+
+    if (status === "canceled") {
+      await Order.updateMany(
+        { _id: orders.map((item) => new Types.ObjectId(item?._id)) },
+        { $set: { status: "canceled" } },
         { session }
       );
-      // eslint-disable-next-line no-console
-      console.log(res);
-    }
-
-    for (const { orderId, trackingId } of courierResponse) {
-      const updatedDoc = {
-        status,
-        courierDetails: { courierProvider, trackingId },
-        deliveryStatus: "in_review",
-      };
-      await Order.updateOne({ orderId }, updatedDoc, {
-        session,
-        upsert: true,
-      });
-
-      const order = (orders as TOrder[]).find(
-        (order) => order.orderId === orderId
-      );
-
-      if (status === "canceled") {
+      for (const order of orders) {
         await updateStockOnOrderCancelOrDeleteOrRetrieve(
           order?.productDetails || [],
           session
         );
-
-        if (order?.productDetails.map((item) => item.warranty)) {
+        if (
+          (order?.productDetails as TProductDetails[]).map(
+            (item) => item.warranty
+          ).length
+        ) {
           await deleteWarrantyFromOrder(
             order?.productDetails || [],
-            order._id,
+            order?._id,
             session
           );
         }
       }
+    } else if (status === "On courier") {
+      await Order.bulkWrite(orderUpdateQuery, { session });
     }
+    await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
 
     await session.commitTransaction();
   } catch (error) {
@@ -983,7 +1007,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
   }
 
   return {
-    success: courierResponse?.length,
+    success: successCourierOrders?.length,
     error: failedCourierOrders?.length,
   };
 };

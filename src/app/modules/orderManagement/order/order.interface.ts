@@ -15,7 +15,7 @@ export type TOrderStatus =
   | "confirmed"
   | "follow up"
   | "processing"
-  | "wco processing"
+  | "warranty processing"
   | "processing done"
   | "warranty added"
   | "On courier"
@@ -82,6 +82,7 @@ export type TOrderData = {
   officialNotes?: string;
   invoiceNotes?: string;
   courierNotes?: string;
+  reasonNotes?: string;
   courierDetails?: TCourierDetails;
   orderSource: TOrderSource;
 };
@@ -98,4 +99,10 @@ export type TSanitizedOrProduct = {
   };
   quantity: number;
   attributes?: TSelectedAttributes[];
+};
+
+export type TCourierResponse = {
+  invoice: string;
+  tracking_code: string;
+  status: string;
 };

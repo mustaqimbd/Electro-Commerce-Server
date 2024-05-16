@@ -1,12 +1,15 @@
 import httpStatus from "http-status";
+import mongoose from "mongoose";
 import { TErrorMessages, TIErrorResponse } from "../types/error";
 
-const handleMongooseCastError = (): TIErrorResponse => {
-  const message = "Invalid id";
+const handleMongooseCastError = (
+  err: mongoose.Error.ValidationError
+): TIErrorResponse => {
+  const message = err.name;
   const errorMessages: TErrorMessages[] = [
     {
       path: "",
-      message,
+      message: err.message,
     },
   ];
   return {

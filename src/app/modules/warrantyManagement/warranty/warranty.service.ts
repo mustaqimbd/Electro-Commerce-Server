@@ -2,14 +2,17 @@ import httpStatus from "http-status";
 import mongoose, { PipelineStage } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { warrantyDuration } from "../../../utilities/warrantyDuration";
+import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { Order } from "../../orderManagement/order/order.model";
+import { OrderStatusHistory } from "../../orderManagement/orderStatusHistory/orderStatusHistory.model";
 import { TWarrantyData, TWarrantyInfoInput } from "./warranty.interface";
 import { Warranty } from "./warranty.model";
 import { findOrderWithWarrantyPipeline } from "./warranty.utils";
 
 const createWarrantyIntoDB = async (
   order_id: mongoose.Types.ObjectId,
-  warrantyInfo: TWarrantyInfoInput[]
+  warrantyInfo: TWarrantyInfoInput[],
+  user: TJwtPayload
 ) => {
   const session = await mongoose.startSession();
 
@@ -89,6 +92,19 @@ const createWarrantyIntoDB = async (
         );
       }
     }
+
+    await OrderStatusHistory.updateOne(
+      { _id: order.statusHistory },
+      {
+        $push: {
+          history: {
+            status: "warranty added",
+            updatedBy: user.id,
+          },
+        },
+      },
+      { session }
+    );
 
     await session.commitTransaction();
   } catch (error) {
