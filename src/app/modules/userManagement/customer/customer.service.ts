@@ -1,41 +1,59 @@
-import { PaginationHelper } from "../../../helper/pagination.helper";
-import { TMetaAndDataRes } from "../../../types/common";
-import { TPaginationOption } from "../../../types/pagination.types";
+import { PipelineStage } from "mongoose";
+import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
-import { TUser } from "../user/user.interface";
 import { User } from "../user/user.model";
 import { TCustomer } from "./customer.interface";
 import { Customer } from "./customer.model";
 
-const getAllCustomerFromDB = async (
-  paginationFields: TPaginationOption
-): Promise<TMetaAndDataRes<TUser[]>> => {
-  const { page, skip, limit, sortOption } =
-    PaginationHelper.calculatePagination(paginationFields);
-
-  const customers = await User.find(
-    { role: "customer" },
+const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
+  const pipeline: PipelineStage[] = [
     {
-      uid: 1,
-      phoneNumber: 1,
-      email: 1,
-      status: 1,
-    }
-  )
-    .populate({ path: "customer", select: "fullName fullAddress" })
-    .sort(sortOption)
-    .skip(skip)
-    .limit(limit);
+      $lookup: {
+        from: "customers",
+        localField: "customer",
+        foreignField: "_id",
+        as: "customerData",
+      },
+    },
+    {
+      $unwind: "$customerData",
+    },
+    {
+      $project: {
+        uid: 1,
+        phoneNumber: 1,
+        email: 1,
+        name: "$customerData.fullName",
+        address: "$customerData.address",
+        status: 1,
+        createdAt: 1,
+      },
+    },
+  ];
 
-  const total = await User.find({ role: "customer" }).countDocuments().lean();
+  const matchQuery = {
+    $match: {
+      role: "customer",
+    },
+  };
+
+  pipeline.unshift(matchQuery);
+
+  const customerQuery = new AggregateQueryHelper(
+    User.aggregate(pipeline),
+    query
+  )
+    .sort()
+    .paginate();
+
+  const data = await customerQuery.model;
+  const total =
+    (await User.aggregate([matchQuery, { $count: "total" }]))![0]?.total || 0;
+  const meta = customerQuery.metaData(total);
 
   return {
-    meta: {
-      page,
-      limit,
-      total,
-    },
-    data: customers,
+    meta,
+    data,
   };
 };
 

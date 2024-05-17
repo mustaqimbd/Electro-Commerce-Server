@@ -24,7 +24,8 @@ const steedFastApi = async (config: {
     } else {
       throw new Error(res.statusText);
     }
-  } catch (error: { message: string }) {
+  } catch (err) {
+    const error = err as { message: string };
     throw new Error(error.message);
   }
 };
