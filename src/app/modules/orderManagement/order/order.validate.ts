@@ -95,6 +95,9 @@ const bookCourierAndUpdateStatus = z.object({
       required_error: "Status is required",
     }),
     orderIds: validateOrderIds(),
+    // courierProvider: z.string({
+    //   required_error: "Courier provider is required",
+    // }),
   }),
 });
 

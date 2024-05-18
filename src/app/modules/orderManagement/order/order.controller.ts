@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
+import config from "../../../config/config";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
@@ -143,7 +144,8 @@ const updateProcessingStatus = catchAsync(
 
 const bookCourierAndUpdateStatus = catchAsync(
   async (req: Request, res: Response) => {
-    const { status, orderIds, courierProvider } = req.body;
+    const { status, orderIds } = req.body;
+    const courierProvider = new Types.ObjectId(config.courier_provider_id);
     const result = await OrderServices.bookCourierAndUpdateStatusIntoDB(
       orderIds,
       status,
