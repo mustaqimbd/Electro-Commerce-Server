@@ -24,7 +24,8 @@ const steedFastApi = async (config: {
     } else {
       throw new Error(res.statusText);
     }
-  } catch (error: { message: string }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     throw new Error(error.message);
   }
 };

@@ -143,7 +143,11 @@ const updateProcessingStatus = catchAsync(
 
 const bookCourierAndUpdateStatus = catchAsync(
   async (req: Request, res: Response) => {
-    const { status, orderIds, courierProvider } = req.body;
+    const {
+      status,
+      orderIds,
+      courierProvider = "662c947b0d094dfd99a83082",
+    } = req.body;
     const result = await OrderServices.bookCourierAndUpdateStatusIntoDB(
       orderIds,
       status,
