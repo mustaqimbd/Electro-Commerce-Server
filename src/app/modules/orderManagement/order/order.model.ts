@@ -132,9 +132,6 @@ const OrderSchema = new Schema<TOrder>(
       required: true,
       default: false,
     },
-    orderFrom: {
-      type: String,
-    },
     orderNotes: {
       type: String,
     },

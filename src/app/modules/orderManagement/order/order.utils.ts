@@ -251,7 +251,6 @@ export const createNewOrder = async (
     payment,
     shipping,
     shippingCharge,
-    orderFrom,
     orderNotes,
     eventId,
     orderedProducts,
@@ -476,7 +475,6 @@ export const createNewOrder = async (
   orderData.warrantyAmount = warrantyAmount;
   orderData.status = status;
 
-  orderData.orderFrom = orderFrom;
   orderData.orderNotes = orderNotes;
   orderData.courierNotes = courierNotes;
   orderData.officialNotes = officialNotes;
