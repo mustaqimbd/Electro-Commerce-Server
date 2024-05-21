@@ -534,7 +534,7 @@ export const createOrderOnSteedFast = async (
       recipient_address: shippingData.fullAddress,
       recipient_phone: shippingData.phoneNumber,
       cod_amount: total,
-      note: courierNotes,
+      note: courierNotes || "",
     })
   );
   const { data } = await steedFastApi({

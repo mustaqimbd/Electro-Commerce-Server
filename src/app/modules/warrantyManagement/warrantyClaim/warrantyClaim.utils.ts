@@ -94,6 +94,7 @@ const getWarrantyData = async (
       $project: {
         _id: 1,
         orderId: 1,
+        shipping: 1,
         product: {
           _id: "$productDetails._id",
           productId: "$productInfo._id",
@@ -120,6 +121,7 @@ const getWarrantyData = async (
       $group: {
         _id: "$_id",
         orderId: { $first: "$orderId" },
+        shipping: { $first: "$shipping" },
         products: { $push: "$product" },
         createdAt: { $first: "$createdAt" },
       },
@@ -132,6 +134,7 @@ const getWarrantyData = async (
         _id: 1,
         orderId: 1,
         products: 1,
+        shipping: 1,
       },
     },
   ];
