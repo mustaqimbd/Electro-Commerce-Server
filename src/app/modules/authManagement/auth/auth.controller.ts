@@ -50,7 +50,7 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
   const refreshToken = req.headers.authorization || req.cookies.refreshToken;
   const { accessToken } = await AuthServices.refreshToken(
     req.clientIp as string,
-    req.sessionID,
+    req.ecSID.id,
     refreshToken
   );
   // const accessToken=refreshToken
@@ -84,7 +84,7 @@ const changePassword = catchAsync(async (req: Request, res: Response) => {
 const logoutUser = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   await AuthServices.logoutUser(refreshToken);
-  req.session.destroy(() => {});
+  req.ecSID.newId();
   res.cookie("refreshToken", "", { expires: new Date(0) });
   res.cookie("accessToken", "", { expires: new Date(0) });
   successResponse(res, {
@@ -112,7 +112,7 @@ const forgetPassword = catchAsync(async (req: Request, res: Response) => {
 });
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  await AuthServices.resetPassword(req.sessionID, req.body);
+  await AuthServices.resetPassword(req.ecSID.id, req.body);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "The password was reset successfully..",

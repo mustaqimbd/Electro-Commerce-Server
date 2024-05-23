@@ -8,6 +8,10 @@ declare global {
       user: JwtPayload;
       useragent: UserAgent;
       anyData: any | any[];
+      ecSID: {
+        id: string;
+        newId: () => void;
+      };
     }
   }
 }

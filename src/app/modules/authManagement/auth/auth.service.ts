@@ -142,7 +142,7 @@ const forgetPassword = async (req: Request): Promise<void> => {
     userId: user?._id,
     phoneNumber,
     requestedIP: req.clientIp as string,
-    requestedSession: req.sessionID,
+    requestedSession: req.ecSID.id,
     otp,
   };
   const storeOtp = await PasswordResetOtp.create(otpData);
