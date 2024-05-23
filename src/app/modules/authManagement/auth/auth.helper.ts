@@ -11,18 +11,9 @@ import { TRefreshTokenData } from "../refreshToken/refreshToken.interface";
 import { RefreshToken } from "../refreshToken/refreshToken.model";
 
 const loginUser = async (req: Request, user: Partial<TUser | null>) => {
-  const previousSessionId = req.sessionID;
-  let sessionId = req.sessionID;
-  await new Promise((resolve, reject) => {
-    req.session.regenerate((err) => {
-      if (!err) {
-        sessionId = req.sessionID;
-        resolve(() => {});
-      } else {
-        reject(err);
-      }
-    });
-  });
+  const previousSessionId = req.ecSID.id;
+  req.ecSID.newId();
+  const sessionId = req.ecSID.id;
 
   const useragent = req.useragent;
   const customerRfExpires = config.token_data

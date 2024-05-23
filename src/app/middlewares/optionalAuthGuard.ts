@@ -20,7 +20,7 @@ const optionalAuthGuard: RequestHandler = async (req, res, next) => {
     } else {
       userInfo = {
         isAuthenticated: false,
-        sessionId: req.sessionID,
+        sessionId: req.ecSID.id,
       };
     }
     req.user = userInfo;
