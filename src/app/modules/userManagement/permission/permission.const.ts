@@ -9,4 +9,5 @@ export const permissionEnums: TPermissionNames[] = [
   "manage orders",
   "manage warehouse",
   "manage courier",
+  "manage warranty claim",
 ];
