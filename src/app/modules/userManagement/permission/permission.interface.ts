@@ -8,7 +8,8 @@ export type TPermissionNames =
   | "manage shipping charges"
   | "manage orders"
   | "manage warehouse"
-  | "manage courier";
+  | "manage courier"
+  | "manage warranty claim";
 
 export type TPermissionData = {
   name: TPermissionNames;

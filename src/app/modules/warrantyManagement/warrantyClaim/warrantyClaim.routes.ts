@@ -32,21 +32,30 @@ router.post(
 
 router.patch(
   "/update-request/:id",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage warranty claim",
+  }),
   validateRequest(WarrantyClaimValidation.updateWarrantyClaimReq),
   WarrantyClaimController.updateWarrantyClaimReq
 );
 
 router.patch(
   "/update-contact-status",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage warranty claim",
+  }),
   validateRequest(WarrantyClaimValidation.updateContactStatus),
   WarrantyClaimController.updateContactStatus
 );
 
 router.post(
   "/create-order/:id",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage warranty claim",
+  }),
   validateRequest(WarrantyClaimValidation.approveAndCreateOrder),
   WarrantyClaimController.createNewWarrantyClaimOrder
 );
