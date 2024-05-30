@@ -12,8 +12,15 @@ import { WarrantyClaimUtils } from "./warrantyClaim.utils";
 const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
   const pipeline: PipelineStage[] = [
     {
+      $match: {
+        approvalStatus: { $ne: "approved" },
+        result: { $ne: "solved" },
+      },
+    },
+    {
       $project: {
         _id: 1,
+        reqId: 1,
         shipping: {
           fullName: "$shipping.fullName",
           phoneNumber: "$shipping.phoneNumber",
@@ -85,7 +92,7 @@ const updateWarrantyClaimReqIntoDB = async (
     updatedDoc.shipping = payload.shipping;
   }
 
-  if (payload.officialNotes) {
+  if (payload.officialNotes || payload.officialNotes === "") {
     updatedDoc.officialNotes = payload.officialNotes;
   }
 
@@ -156,10 +163,34 @@ const createNewWarrantyClaimOrderIntoDB = async (
   };
 
   const session = await mongoose.startSession();
-
+  let order;
   try {
     session.startTransaction();
+    order = await createNewOrder({ body, user }, session, {
+      warrantyClaim: true,
+      productsDetails: claimReq?.warrantyClaimReqData?.map(
+        ({
+          productId,
+          claimedCodes,
+        }: {
+          productId: Types.ObjectId;
+          claimedCodes: string[];
+        }) => ({
+          product: productId,
+          quantity: claimedCodes?.length,
+        })
+      ) as Partial<TProductDetails[]>,
+    });
 
+    await WarrantyClaim.findOneAndUpdate(
+      { _id: id },
+      {
+        orderId: order._id,
+        approvalStatus: "approved",
+        finalCheckedBy: user.id,
+      },
+      { session }
+    );
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -167,28 +198,6 @@ const createNewWarrantyClaimOrderIntoDB = async (
   } finally {
     await session.endSession();
   }
-
-  const order = await createNewOrder({ body, user }, session, {
-    warrantyClaim: true,
-    productsDetails: claimReq?.warrantyClaimReqData?.map(
-      ({
-        productId,
-        claimedCodes,
-      }: {
-        productId: Types.ObjectId;
-        claimedCodes: string[];
-      }) => ({
-        product: productId,
-        quantity: claimedCodes?.length,
-      })
-    ) as Partial<TProductDetails[]>,
-  });
-
-  await WarrantyClaim.findOneAndUpdate(
-    { _id: id },
-    { orderId: order._id, approvalStatus: "approved", finalCheckedBy: user.id },
-    { session }
-  );
 
   return order;
 };
