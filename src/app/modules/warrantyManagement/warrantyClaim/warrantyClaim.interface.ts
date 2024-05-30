@@ -7,7 +7,7 @@ export type TWarrantyClaimedContactStatus =
   | "pending"
   | "confirmed"
   | "retry required";
-export type TWarrantyClaimedProductCondition = "solved" | "problem";
+export type TWarrantyClaimedProductCondition = "pending" | "solved" | "problem";
 export type TWarrantyApprovalStatus = "approved";
 export type TWarrantyClaimedVideosAndImages = {
   path: string;

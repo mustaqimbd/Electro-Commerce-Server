@@ -59,6 +59,18 @@ app.use(
   express.static(uploadsPath)
 );
 
+// Warranty claim request videos and images
+const warrantyclaimVideosImages = path.join(
+  __dirname,
+  "..",
+  "uploads/warranty_claim"
+);
+app.use(
+  "/uploads/warranty_claim",
+  enableCrossOriginResourcePolicy,
+  express.static(warrantyclaimVideosImages)
+);
+
 // api endpoints
 app.use("/api/v1", router);
 

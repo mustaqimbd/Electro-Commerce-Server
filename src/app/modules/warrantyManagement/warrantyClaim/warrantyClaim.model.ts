@@ -73,6 +73,7 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
     result: {
       type: String,
       enum: warrantyClaimedProductCondition,
+      default: "pending",
     },
     approvalStatus: {
       type: String,

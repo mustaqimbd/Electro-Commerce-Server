@@ -11,6 +11,6 @@ export const warrantyClaimedContactStatus: TWarrantyClaimedContactStatus[] = [
 ];
 
 export const warrantyClaimedProductCondition: TWarrantyClaimedProductCondition[] =
-  ["problem", "solved"];
+  ["pending", "problem", "solved"];
 
 export const warrantyApprovalStatus: TWarrantyApprovalStatus[] = ["approved"];
