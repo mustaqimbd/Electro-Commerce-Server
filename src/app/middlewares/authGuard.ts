@@ -26,7 +26,7 @@ const authGuard =
       if (token) {
         token = token?.split(" ")[1];
       } else {
-        token = req?.cookies["accessToken"];
+        token = req?.cookies["__app.ec.at"];
       }
       if (!token) {
         throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
