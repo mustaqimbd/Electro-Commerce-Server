@@ -1,16 +1,20 @@
 import express from "express";
+import authGuard from "../../../middlewares/authGuard";
+import validateRequest from "../../../middlewares/validateRequest";
 import { CustomerControllers } from "./customer.controller";
+import { CustomerValidation } from "./customer.validation";
 const router = express.Router();
 
 router.get(
   "/",
-  // authGuard(ENUM_USER_ROLE.ADMIN),
+  authGuard({ requiredRoles: ["admin", "staff"] }),
   CustomerControllers.getAllCustomer
 );
 
 router.patch(
   "/",
-  // authGuard(ENUM_USER_ROLE.CUSTOMER),
+  authGuard({ requiredRoles: ["customer"] }),
+  validateRequest(CustomerValidation.updateUser),
   CustomerControllers.updateCustomer
 );
 

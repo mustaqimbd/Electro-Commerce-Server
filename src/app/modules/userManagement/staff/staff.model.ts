@@ -31,7 +31,6 @@ const StaffSchema = new Schema<TStaff>(
     },
     profilePicture: {
       type: String,
-      required: true,
     },
   },
   { timestamps: true }

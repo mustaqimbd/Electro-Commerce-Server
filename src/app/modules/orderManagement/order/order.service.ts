@@ -112,7 +112,6 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
       },
     });
   }
-
   const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
     .sort()
     .paginate();

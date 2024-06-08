@@ -77,4 +77,22 @@ export const imageAndVideoUploader = multer({
   },
 });
 
+export const employPhotoUploader = multer({
+  storage: storage("employ"),
+  limits: { fileSize: 500 * 1024 }, // 500kb
+  fileFilter(req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const allowedExts = JSON.parse(config.upload_image_format as string);
+    if (!allowedExts.includes(ext)) {
+      return cb(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Only ${allowedExts} format is allowed`
+        )
+      );
+    }
+    cb(null, true);
+  },
+});
+
 export default imgUploader;
