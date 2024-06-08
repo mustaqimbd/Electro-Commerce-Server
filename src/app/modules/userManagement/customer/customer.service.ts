@@ -3,6 +3,7 @@ import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { User } from "../user/user.model";
+import { isEmailOrNumberTaken } from "../user/user.util";
 import { Customer } from "./customer.model";
 
 const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
@@ -66,12 +67,32 @@ const updateCustomerIntoDB = async (
     session.startTransaction();
 
     const userData = await User.findById(user.id).session(session);
-    const { address, fullName } = payload as {
+    const { address, fullName, phoneNumber, email } = payload as {
       fullName: string;
+      phoneNumber: string;
+      email: string;
       address: {
         fullAddress: string;
       };
     };
+
+    if (phoneNumber || email) {
+      await isEmailOrNumberTaken({
+        phoneNumber: phoneNumber,
+        email: email,
+      });
+
+      await User.findOneAndUpdate(
+        { _id: userData?._id },
+        { phoneNumber, email },
+        {
+          new: true,
+          runValidators: true,
+          session,
+        }
+      );
+    }
+
     if (fullName) {
       await Customer.findOneAndUpdate(
         { _id: userData?.customer },
@@ -84,7 +105,7 @@ const updateCustomerIntoDB = async (
       );
     }
 
-    if (payload.address) {
+    if (address) {
       await Address.findOneAndUpdate({ _id: userData?.address }, address, {
         new: true,
         runValidators: true,

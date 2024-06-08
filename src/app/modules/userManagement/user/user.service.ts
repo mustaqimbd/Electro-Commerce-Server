@@ -16,7 +16,11 @@ import { Staff } from "../staff/staff.model";
 import { UserHelpers } from "./user.helper";
 import { TUser } from "./user.interface";
 import { User } from "./user.model";
-import { createCustomerId, createSwitchField } from "./user.util";
+import {
+  createCustomerId,
+  createSwitchField,
+  isEmailOrNumberTaken,
+} from "./user.util";
 
 const getAllAdminAndStaffFromDB = async (
   query: Record<string, string>,
@@ -158,16 +162,11 @@ const createCustomerIntoDB = async (
   req: Request
 ) => {
   // check that the phone number is already registered
-  const isExist = await User.find({
-    $or: [{ phoneNumber: userInfo.phoneNumber }, { email: userInfo.email }],
+  await isEmailOrNumberTaken({
+    phoneNumber: userInfo.phoneNumber,
+    email: userInfo.email,
   });
 
-  if (isExist.length) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "A user already registered with this number or email"
-    );
-  }
   // change user role
   userInfo.role = "customer";
   let newUser = null;

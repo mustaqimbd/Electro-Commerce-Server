@@ -1,3 +1,5 @@
+import httpStatus from "http-status";
+import ApiError from "../../../errorHandlers/ApiError";
 import { User } from "./user.model";
 
 const findLastCustomer = async (): Promise<string | undefined> => {
@@ -60,3 +62,32 @@ export const createSwitchField = (fieldName: string) => ({
     },
   },
 });
+
+export const isEmailOrNumberTaken = async (data: {
+  phoneNumber?: string;
+  email?: string;
+}) => {
+  const { phoneNumber, email } = data;
+  const searchQuery: Record<string, unknown> = {};
+  if (phoneNumber) {
+    searchQuery.phoneNumber = phoneNumber;
+  }
+  if (email) {
+    searchQuery.phoneNumber = email;
+  }
+
+  const isExist = (
+    await User.find({
+      $or: [searchQuery],
+    })
+  )[0];
+
+  if (isExist) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "A user already registered with this number or email"
+    );
+  }
+
+  return;
+};

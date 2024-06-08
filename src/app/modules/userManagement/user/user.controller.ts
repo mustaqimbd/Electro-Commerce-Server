@@ -34,7 +34,7 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
     secure: config.env === "production",
     httpOnly: true,
   };
-  res.cookie("refreshToken", authData.refreshToken, cookieOption);
+  res.cookie("__app.ec.rt", authData.refreshToken, cookieOption);
 
   successResponse(res, {
     statusCode: httpStatus.CREATED,
