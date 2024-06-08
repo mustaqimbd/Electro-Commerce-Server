@@ -36,3 +36,27 @@ export const createAdminOrStaffId = async (isStaff: boolean) => {
   const newId = `${isStaff ? "S" : "A"}${date.getFullYear().toString().substring(2)}${incrementedId}`;
   return newId;
 };
+
+//
+
+export const createSwitchField = (fieldName: string) => ({
+  [fieldName]: {
+    $switch: {
+      branches: [
+        {
+          case: { $eq: ["$role", "admin"] },
+          then: { $arrayElemAt: [`$admin.${fieldName}`, 0] },
+        },
+        {
+          case: { $eq: ["$role", "staff"] },
+          then: { $arrayElemAt: [`$staff.${fieldName}`, 0] },
+        },
+        {
+          case: { $eq: ["$role", "customer"] },
+          then: { $arrayElemAt: [`$customer.${fieldName}`, 0] },
+        },
+      ],
+      default: null,
+    },
+  },
+});

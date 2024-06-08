@@ -7,6 +7,20 @@ import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { TUser } from "./user.interface";
 import { UserServices } from "./user.service";
 
+const getAllAdminAndStaff = catchAsync(async (req: Request, res: Response) => {
+  const { data, meta } = await UserServices.getAllAdminAndStaffFromDB(
+    req.query as unknown as Record<string, string>,
+    req.user as unknown as TJwtPayload
+  );
+
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "All admin and staff retrieved successfully",
+    meta,
+    data,
+  });
+});
+
 const createCustomer = catchAsync(async (req: Request, res: Response) => {
   const { personalInfo, address, ...userInfo } = req.body;
   const result = await UserServices.createCustomerIntoDB(
@@ -30,6 +44,9 @@ const createCustomer = catchAsync(async (req: Request, res: Response) => {
 });
 
 const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
+  req.body.personalInfo.profilePicture = (req.files as {
+    path: string;
+  }[])![0]?.path;
   const { personalInfo, address, ...userInfo } = req.body;
   const result = await UserServices.createAdminOrStaffIntoDB(
     personalInfo,
@@ -54,6 +71,7 @@ const getUserProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const UserControllers = {
+  getAllAdminAndStaff,
   createCustomer,
   createAdminOrStaff,
   getUserProfile,

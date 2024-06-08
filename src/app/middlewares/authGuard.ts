@@ -9,7 +9,7 @@ import {
   TPermission,
   TPermissionNames,
 } from "../modules/userManagement/permission/permission.interface";
-import { TRoles } from "../modules/userManagement/user/user.interface";
+import { TRoles, TUser } from "../modules/userManagement/user/user.interface";
 import { User } from "../modules/userManagement/user/user.model";
 
 const authGuard =
@@ -46,6 +46,7 @@ const authGuard =
 
       if (verifiedUser.role !== "customer") {
         const user = await User.isUserExist({ _id: verifiedUser.id });
+        verifiedUser.data = user as unknown as TUser;
         if (user?.role !== verifiedUser.role) {
           throw new ApiError(httpStatus.FORBIDDEN, "Not valid user");
         }

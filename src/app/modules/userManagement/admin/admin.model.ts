@@ -31,7 +31,6 @@ const AdminSchema = new Schema<TAdmin>(
     },
     profilePicture: {
       type: String,
-      required: true,
     },
   },
   { timestamps: true }

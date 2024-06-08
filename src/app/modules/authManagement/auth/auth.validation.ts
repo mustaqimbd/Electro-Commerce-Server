@@ -6,7 +6,9 @@ import {
 
 const login = z.object({
   body: z.object({
-    phoneNumber: phoneNumberValidationZodSchema(),
+    phoneEmailOrUid: z.string({
+      required_error: "Phone number email or UID is required",
+    }),
     password: passwordZodSchema,
   }),
 });

@@ -59,6 +59,13 @@ app.use(
   express.static(uploadsPath)
 );
 
+const employProfilePicture = path.join(__dirname, "..", "uploads/employ");
+app.use(
+  "/uploads/employ",
+  enableCrossOriginResourcePolicy,
+  express.static(employProfilePicture)
+);
+
 // Warranty claim request videos and images
 const warrantyclaimVideosImages = path.join(
   __dirname,

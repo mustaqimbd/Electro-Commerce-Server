@@ -3,7 +3,6 @@ import httpStatus from "http-status";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
-import { TCustomer } from "./customer.interface";
 import { CustomerServices } from "./customer.service";
 
 const getAllCustomer = catchAsync(async (req: Request, res: Response) => {
@@ -21,7 +20,7 @@ const updateCustomer = catchAsync(async (req: Request, res: Response) => {
     req.user as TJwtPayload,
     req.body
   );
-  successResponse<TCustomer>(res, {
+  successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Updated successfully",
     data: result,
