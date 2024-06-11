@@ -35,9 +35,9 @@ const login = catchAsync(async (req: Request, res: Response) => {
     maxAge: Number(config.token_data.access_token_cookie_expires),
   };
 
-  res.cookie("accessToken", accessToken, cookieOption);
+  res.cookie("__app.ec.at", accessToken, cookieOption);
   cookieOption.maxAge = Number(refreshExpires);
-  res.cookie("refreshToken", refreshToken, cookieOption);
+  res.cookie("__app.ec.rt", refreshToken, cookieOption);
 
   successResponse(res, {
     statusCode: httpStatus.OK,
@@ -47,7 +47,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
 });
 
 const refreshToken = catchAsync(async (req: Request, res: Response) => {
-  const refreshToken = req.headers.authorization || req.cookies.refreshToken;
+  const refreshToken = req.headers.authorization || req.cookies["__app.ec.rt"];
   const { accessToken } = await AuthServices.refreshToken(
     req.clientIp as string,
     req.ecSID.id,
@@ -62,9 +62,9 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     sameSite: "lax",
     maxAge: Number(config.token_data.access_token_cookie_expires),
   };
-  // res.cookie("accessToken", "", { expires: new Date(0) });
-  // console.log("accessToken", accessToken, Date.now())
-  res.cookie("accessToken", accessToken, cookieOption);
+  // res.cookie("__app.ec.at", "", { expires: new Date(0) });
+  // console.log("__app.ec.at", accessToken, Date.now())
+  res.cookie("__app.ec.at", accessToken, cookieOption);
   successResponse<TRefreshTokenResponse>(res, {
     statusCode: httpStatus.OK,
     message: "Access token retrieved successfully!",
@@ -85,8 +85,8 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   await AuthServices.logoutUser(refreshToken);
   req.ecSID.newId();
-  res.cookie("refreshToken", "", { expires: new Date(0) });
-  res.cookie("accessToken", "", { expires: new Date(0) });
+  res.cookie("__app.ec.rt", "", { expires: new Date(0) });
+  res.cookie("__app.ec.at", "", { expires: new Date(0) });
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Logged out successfully.",

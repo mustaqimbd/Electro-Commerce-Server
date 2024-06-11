@@ -16,14 +16,24 @@ import { authHelpers } from "./auth.helper";
 import {
   TChangePasswordPayload,
   TJwtPayload,
-  TLogin,
   TRefreshTokenResponse,
 } from "./auth.interface";
 
-const login = async (req: Request, payload: TLogin) => {
-  const { phoneNumber, password } = payload;
+const login = async (
+  req: Request,
+  payload: { phoneEmailOrUid: string; password: string }
+) => {
+  const { phoneEmailOrUid, password } = payload;
 
-  const user = await User.isUserExist({ phoneNumber });
+  const user = await User.isUserExist({
+    $or: [
+      {
+        phoneNumber: phoneEmailOrUid,
+      },
+      { email: phoneEmailOrUid },
+      { uid: phoneEmailOrUid },
+    ],
+  });
 
   if (!(await User.isPasswordMatch(password, user?.password as string))) {
     throw new ApiError(

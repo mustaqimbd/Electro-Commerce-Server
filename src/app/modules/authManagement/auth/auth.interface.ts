@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { TUser } from "../../userManagement/user/user.interface";
 
 export type TLogin = {
   phoneNumber: string;
@@ -15,6 +16,7 @@ export type TJwtPayload = {
   uid: string;
   role: string;
   sessionId: string;
+  data: TUser;
 };
 
 export type TRefreshTokenResponse = {

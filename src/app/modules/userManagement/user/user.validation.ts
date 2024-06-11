@@ -59,13 +59,12 @@ const createStaffOrAdmin = z.object({
     personalInfo: z.object(
       {
         fullName: z.string({ required_error: "Full name is required." }),
-        profilePicture: z.string().optional(), // TODO: Make image uploading system.
-        emergencyContact: z.string({
-          required_error: "Emergency contact is required",
-        }),
+        profilePicture: z.string().optional(),
+        emergencyContact: phoneNumberValidationZodSchema(true),
         NIDNo: z.string().optional(),
         birthCertificateNo: z.string().optional(),
         joiningDate: z.string().optional(),
+        dateOfBirth: z.string().optional(),
       },
       { required_error: "Some properties from personal info is required" }
     ),

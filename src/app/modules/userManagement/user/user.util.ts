@@ -1,3 +1,5 @@
+import httpStatus from "http-status";
+import ApiError from "../../../errorHandlers/ApiError";
 import { User } from "./user.model";
 
 const findLastCustomer = async (): Promise<string | undefined> => {
@@ -35,4 +37,57 @@ export const createAdminOrStaffId = async (isStaff: boolean) => {
   const date = new Date();
   const newId = `${isStaff ? "S" : "A"}${date.getFullYear().toString().substring(2)}${incrementedId}`;
   return newId;
+};
+
+//
+
+export const createSwitchField = (fieldName: string) => ({
+  [fieldName]: {
+    $switch: {
+      branches: [
+        {
+          case: { $eq: ["$role", "admin"] },
+          then: { $arrayElemAt: [`$admin.${fieldName}`, 0] },
+        },
+        {
+          case: { $eq: ["$role", "staff"] },
+          then: { $arrayElemAt: [`$staff.${fieldName}`, 0] },
+        },
+        {
+          case: { $eq: ["$role", "customer"] },
+          then: { $arrayElemAt: [`$customer.${fieldName}`, 0] },
+        },
+      ],
+      default: null,
+    },
+  },
+});
+
+export const isEmailOrNumberTaken = async (data: {
+  phoneNumber?: string;
+  email?: string;
+}) => {
+  const { phoneNumber, email } = data;
+  const searchQuery: Record<string, unknown> = {};
+  if (phoneNumber) {
+    searchQuery.phoneNumber = phoneNumber;
+  }
+  if (email) {
+    searchQuery.phoneNumber = email;
+  }
+
+  const isExist = (
+    await User.find({
+      $or: [searchQuery],
+    })
+  )[0];
+
+  if (isExist) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "A user already registered with this number or email"
+    );
+  }
+
+  return;
 };

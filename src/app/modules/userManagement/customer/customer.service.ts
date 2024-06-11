@@ -1,8 +1,9 @@
-import { PipelineStage } from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
+import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { User } from "../user/user.model";
-import { TCustomer } from "./customer.interface";
+import { isEmailOrNumberTaken } from "../user/user.util";
 import { Customer } from "./customer.model";
 
 const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
@@ -59,13 +60,66 @@ const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
 
 const updateCustomerIntoDB = async (
   user: TJwtPayload,
-  payload: TCustomer
-): Promise<TCustomer | null> => {
-  const result = await Customer.findOneAndUpdate({ uid: user.uid }, payload, {
-    new: true,
-    runValidators: true,
-  });
-  return result;
+  payload: Record<string, unknown>
+) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const userData = await User.findById(user.id).session(session);
+    const { address, fullName, phoneNumber, email } = payload as {
+      fullName: string;
+      phoneNumber: string;
+      email: string;
+      address: {
+        fullAddress: string;
+      };
+    };
+
+    if (phoneNumber || email) {
+      await isEmailOrNumberTaken({
+        phoneNumber: phoneNumber,
+        email: email,
+      });
+
+      await User.findOneAndUpdate(
+        { _id: userData?._id },
+        { phoneNumber, email },
+        {
+          new: true,
+          runValidators: true,
+          session,
+        }
+      );
+    }
+
+    if (fullName) {
+      await Customer.findOneAndUpdate(
+        { _id: userData?.customer },
+        { fullName },
+        {
+          new: true,
+          runValidators: true,
+          session,
+        }
+      );
+    }
+
+    if (address) {
+      await Address.findOneAndUpdate({ _id: userData?.address }, address, {
+        new: true,
+        runValidators: true,
+        session,
+      });
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };
 
 export const CustomerServices = {
