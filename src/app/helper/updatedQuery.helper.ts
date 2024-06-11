@@ -76,7 +76,7 @@ type CustomPipelineStage = {
 
 type ExtendedPipelineStage = PipelineStage & CustomPipelineStage;
 
-export class UpdateAggregateQueryHelper<T> {
+export class UpdatedAggregateQueryHelper<T> {
   model: Model<T>;
   pipeline: ExtendedPipelineStage[];
   query: Record<string, unknown>;
@@ -87,7 +87,7 @@ export class UpdateAggregateQueryHelper<T> {
     query: Record<string, unknown>
   ) {
     this.model = model;
-    this.pipeline = pipeline; // No need for type assertion here
+    this.pipeline = pipeline;
     this.query = query;
   }
 
@@ -97,7 +97,6 @@ export class UpdateAggregateQueryHelper<T> {
       const searchConditions = searchableFields.map((field) => ({
         [field]: { $regex: new RegExp(search as string, "i") },
       }));
-
       // Check if the pipeline already includes a $facet stage
       const facetStageIndex = this.pipeline.findIndex(
         (stage) => stage.$facet !== undefined
@@ -114,13 +113,24 @@ export class UpdateAggregateQueryHelper<T> {
   sort(): this {
     const sort = this.query?.sort;
     if (sort) {
-      // this.model = this.model.sort((sort as string).split(",").join(" "));
       const facetStageIndex = this.pipeline.findIndex(
         (stage) => stage.$facet !== undefined
       );
+
+      /**
+       * Convert a string sort specification to a MongoDB sort object.
+       * @param sortStr - The sort string, e.g., "-createdAt".
+       * @returns The MongoDB sort object, e.g., { createdAt: -1 }.
+       */
+      const convertSortStringToObject = (sortStr: string) => {
+        const sortOrder = sortStr.startsWith("-") ? -1 : 1;
+        const field = sortStr.startsWith("-") ? sortStr.substring(1) : sortStr;
+        return { [field]: sortOrder };
+      };
       if (facetStageIndex !== -1) {
+        // Push the $match stage into the existing $facet stage
         this.pipeline[facetStageIndex].$facet!.data.push({
-          $sort: (sort as string).split(",").join(" "),
+          $sort: convertSortStringToObject(sort as string),
         });
       }
     }
@@ -130,7 +140,6 @@ export class UpdateAggregateQueryHelper<T> {
     const page = Number(this.query?.page) || 1;
     const limit = Number(this.query?.limit) || 10;
     const skip = (page - 1) * limit;
-    // this.model = this.model.skip(skip).limit(limit);
     const facetStageIndex = this.pipeline.findIndex(
       (stage) => stage.$facet !== undefined
     );
@@ -149,11 +158,11 @@ export class UpdateAggregateQueryHelper<T> {
   }
   async metaData() {
     const result = await this.model.aggregate(this.pipeline);
-    const { data, total } = result[0];
+    const { data = [], total = 0 } = result[0] || {};
     const page = Number(this.query?.page) || 1;
     const limit = Number(this.query?.limit) || 10;
     const totalPage = Math.ceil(total / limit);
-    const meta = { page, limit, total: total, totalPage };
-    return { data, meta };
+    const meta = { page, limit, total, totalPage };
+    return { meta, data };
   }
 }
