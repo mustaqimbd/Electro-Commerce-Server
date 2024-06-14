@@ -10,6 +10,7 @@ import { publishedStatusQuery, visibilityStatusQuery } from "./product.const";
 import { TProduct } from "./product.interface";
 import ProductModel from "./product.model";
 import { PipelineStage } from "mongoose";
+import { UpdatedAggregateQueryHelper } from "../../../helper/updatedQuery.helper";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
@@ -251,6 +252,10 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
 const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
 
+  if (query.status && query.status !== "all") {
+    const statusRegex = new RegExp(`\\b${query.status}\\b`, "i");
+    filterQuery["publishedStatus.status"] = statusRegex;
+  }
   if (query.category) {
     filterQuery["category._id"] = new mongoose.Types.ObjectId(
       query.category as string
@@ -328,108 +333,102 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     },
     { $match: filterQuery },
     {
-      $project: {
-        title: 1,
-        price: "$price.regularPrice",
-        sku: "$inventory.sku",
-        stock: "$inventory.stockStatus",
-        stockAvailable: "$inventory.stockAvailable",
-        totalReview: { $size: "$review" },
-        averageRating: { $avg: "$review.rating" },
-        image: {
-          _id: "$thumbnail._id",
-          src: "$thumbnail.src",
-          alt: "$thumbnail.alt",
-        },
-        category: {
-          _id: "$category._id",
-          name: "$category.name",
-        },
-        // subCategory: {
-        //   $map: {
-        //     input: "$subcategory",
-        //     as: "sub",
-        //     in: {
-        //       _id: "$$sub._id",
-        //       name: "$$sub.name",
-        //     },
-        //   },
-        // },
-        published: "$publishedStatus.date",
+      $facet: {
+        // Define sub-pipeline 2: For other operations
+        data: [
+          {
+            $project: {
+              title: 1,
+              price: "$price.regularPrice",
+              sku: "$inventory.sku",
+              stock: "$inventory.stockStatus",
+              stockAvailable: "$inventory.stockAvailable",
+              totalReview: { $size: "$review" },
+              averageRating: { $avg: "$review.rating" },
+              image: {
+                _id: "$thumbnail._id",
+                src: "$thumbnail.src",
+                alt: "$thumbnail.alt",
+              },
+              category: {
+                _id: "$category._id",
+                name: "$category.name",
+              },
+              // subCategory: {
+              //   $map: {
+              //     input: "$subcategory",
+              //     as: "sub",
+              //     in: {
+              //       _id: "$$sub._id",
+              //       name: "$$sub.name",
+              //     },
+              //   },
+              // },
+              published: "$publishedStatus.date",
+            },
+          },
+        ],
+        // Define sub-pipeline 1: For getting total count
+        total: [
+          {
+            $count: "total",
+          },
+        ],
       },
     },
-    // when uses update query helper, need to use facet
-    // {
-    //   $facet: {
-    //     // Define sub-pipeline 2: For other operations
-    //     data: [
-    //       {
-    //         $project: {
-    //           title: 1,
-    //           price: "$price.regularPrice",
-    //           sku: "$inventory.sku",
-    //           stock: "$inventory.stockStatus",
-    //           stockAvailable: "$inventory.stockAvailable",
-    //           totalReview: { $size: "$review" },
-    //           averageRating: { $avg: "$review.rating" },
-    //           image: {
-    //             _id: "$thumbnail._id",
-    //             src: "$thumbnail.src",
-    //             alt: "$thumbnail.alt",
-    //           },
-    //           category: {
-    //             _id: "$category._id",
-    //             name: "$category.name",
-    //           },
-    //           // subCategory: {
-    //           //   $map: {
-    //           //     input: "$subcategory",
-    //           //     as: "sub",
-    //           //     in: {
-    //           //       _id: "$$sub._id",
-    //           //       name: "$$sub.name",
-    //           //     },
-    //           //   },
-    //           // },
-    //           published: "$publishedStatus.date",
-    //         },
-    //       },
-    //     ],
-    //     // Define sub-pipeline 1: For getting total count
-    //     total: [
-    //       {
-    //         $count: "total"
-    //       }
-    //     ],
-
-    //   }
-    // },
-    // { $unwind: "$total" },
-    // {
-    //   $project: {
-    //     data: 1,
-    //     total: "$total.total"
-    //   }
-    // }
+    { $unwind: "$total" },
+    {
+      $project: {
+        data: 1,
+        total: "$total.total",
+      },
+    },
   ];
 
-  const productQuery = new AggregateQueryHelper(
-    ProductModel.aggregate(pipeline),
-    query
-  ).paginate();
-  const data = await productQuery.model;
-  const total = (await ProductModel.aggregate(pipeline)).length;
-  const meta = productQuery.metaData(total);
+  // get counts
+  const statusMap = {
+    all: 0,
+    published: 0,
+    draft: 0,
+    // Deleted: 0,
+  };
+  const statusPipeline = [
+    {
+      $match: {
+        "publishedStatus.status": {
+          $in: Object.keys(statusMap).filter((status) => status !== "all"),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$publishedStatus.status",
+        total: { $sum: 1 },
+      },
+    },
+  ];
+  const result = await ProductModel.aggregate(statusPipeline);
+  result.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+    statusMap.all += total;
+  });
+  const formattedResult = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
 
-  return { meta, data };
-  // updated query helper usage
-  // const productQuery = new UpdateAggregateQueryHelper(
-  //   ProductModel,
-  //   pipeline,
-  //   query
-  // ).sort().paginate();
-  // const data = await productQuery.metaData();
-  // return data
+  const productQuery = new UpdatedAggregateQueryHelper(
+    ProductModel,
+    pipeline,
+    query
+  )
+    .search(["title", "price", "sku"])
+    .sort()
+    .paginate();
+
+  const data = await productQuery.metaData();
+
+  return { ...data, countsByStatus: formattedResult };
 };
 
 const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {

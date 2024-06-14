@@ -5,5 +5,11 @@
     "source.organizeImports": "explicit",
     "source.fixAll.eslint": "explicit"
   },
-  "cSpell.words": ["changable", "warrantyclaim"]
+  "cSpell.words": ["changable", "warrantyclaim"],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ]
 }

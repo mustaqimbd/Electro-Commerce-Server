@@ -53,14 +53,16 @@ const getAllProductsCustomer = catchAsync(async (req, res) => {
 });
 
 const getAllProductsAdmin = catchAsync(async (req, res) => {
-  const { meta, data } = await ProductServices.getAllProductsAdminFromDB(
-    req.query
-  );
+  const { meta, countsByStatus, data } =
+    await ProductServices.getAllProductsAdminFromDB(req.query);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "All Products retrieved successfully",
     meta,
-    data,
+    data: {
+      countsByStatus,
+      data,
+    },
   });
 });
 
