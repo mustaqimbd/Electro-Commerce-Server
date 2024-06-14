@@ -25,12 +25,23 @@ router.post(
 router.post(
   "/create-staff-or-admin",
   authGuard({
-    requiredRoles: ["admin"],
+    requiredRoles: ["admin", "staff"],
     requiredPermission: "manage admin or staff",
   }),
   employPhotoUploader.array("image", 1),
   validateRequest(UserValidation.createStaffOrAdmin),
   UserControllers.createAdminOrStaff
+);
+
+router.patch(
+  "/update-admin-or-staff/:id",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage admin or staff",
+  }),
+  employPhotoUploader.array("image", 1),
+  validateRequest(UserValidation.updateStaffOrAdmin),
+  UserControllers.updateAdminOrStaff
 );
 
 router.get(

@@ -1,9 +1,11 @@
 import { Request } from "express";
+import fsEx from "fs-extra";
 import httpStatus from "http-status";
 import mongoose, { PipelineStage, Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TAddressData } from "../../../types/address";
+import isPermitted from "../../../utilities/isPermitted";
 import { Address } from "../../addressManagement/address/address.model";
 import { authHelpers } from "../../authManagement/auth/auth.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
@@ -11,6 +13,7 @@ import { TAdmin } from "../admin/admin.interface";
 import { Admin } from "../admin/admin.model";
 import { TCustomer } from "../customer/customer.interface";
 import { Customer } from "../customer/customer.model";
+import { TPermission } from "../permission/permission.interface";
 import { TStaff } from "../staff/staff.interface";
 import { Staff } from "../staff/staff.model";
 import { UserHelpers } from "./user.helper";
@@ -22,18 +25,34 @@ import {
   isEmailOrNumberTaken,
 } from "./user.util";
 
+import path from "path";
+
 const getAllAdminAndStaffFromDB = async (
   query: Record<string, string>,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   user: TJwtPayload
 ) => {
   const matchQuery = {
     role: { $in: ["admin", "staff"] },
     status: { $ne: "deleted" },
   };
+  const fields = [
+    "fullName",
+    "emergencyContact",
+    "profilePicture",
+    "NIDNo",
+    "birthCertificateNo",
+    "dateOfBirth",
+    "joiningDate",
+  ];
+  const addFieldsStage = fields.reduce((acc, field) => {
+    return { ...acc, ...createSwitchField(field) };
+  }, {});
 
+  const isSuperAdmin = isPermitted(
+    (user.data.permissions as TPermission[]).map((item) => item.name)
+  );
   const pipeline: PipelineStage[] = [
-    { $match: { ...matchQuery } },
+    { $match: matchQuery },
     {
       $lookup: {
         from: "admins",
@@ -58,6 +77,24 @@ const getAllAdminAndStaffFromDB = async (
         as: "customer",
       },
     },
+
+    {
+      $lookup: {
+        from: "addresses",
+        localField: "address",
+        foreignField: "_id",
+        as: "addressData",
+      },
+    },
+    {
+      $addFields: {
+        ...addFieldsStage,
+        permissions: isSuperAdmin ? "$permissionsData.name" : 0,
+        address: {
+          $arrayElemAt: ["$addressData", 0],
+        },
+      },
+    },
     {
       $project: {
         _id: 1,
@@ -66,84 +103,33 @@ const getAllAdminAndStaffFromDB = async (
         phoneNumber: 1,
         email: 1,
         status: 1,
-        fullName: {
-          $cond: {
-            if: { $eq: ["$role", "admin"] },
-            then: { $arrayElemAt: ["$admin.fullName", 0] },
-            else: {
-              $cond: {
-                if: { $eq: ["$role", "staff"] },
-                then: { $arrayElemAt: ["$staff.fullName", 0] },
-                else: { $arrayElemAt: ["$customer.fullName", 0] },
-              },
-            },
-          },
-        },
-        profilePicture: {
-          $cond: {
-            if: { $eq: ["$role", "admin"] },
-            then: { $arrayElemAt: ["$admin.profilePicture", 0] },
-            else: {
-              $cond: {
-                if: { $eq: ["$role", "staff"] },
-                then: { $arrayElemAt: ["$staff.profilePicture", 0] },
-                else: { $arrayElemAt: ["$customer.profilePicture", 0] },
-              },
-            },
-          },
-        },
+        fullName: 1,
+        emergencyContact: 1,
+        profilePicture: 1,
+        NIDNo: 1,
+        birthCertificateNo: 1,
+        dateOfBirth: 1,
+        joiningDate: 1,
         permissions: 1,
+        address: {
+          fullAddress: "$address.fullAddress",
+        },
+        createdAt: 1,
       },
     },
-    {
-      $unwind: {
-        path: "$permissions",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
+  ];
+
+  if (isSuperAdmin) {
+    pipeline.splice(4, 0, {
       $lookup: {
         from: "permissions",
         localField: "permissions",
         foreignField: "_id",
         as: "permissionsData",
       },
-    },
-    {
-      $unwind: {
-        path: "$permissionsData",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $group: {
-        _id: {
-          _id: "$_id",
-          uid: "$uid",
-          role: "$role",
-          phoneNumber: "$phoneNumber",
-          email: "$email",
-          status: "$status",
-          fullName: "$fullName",
-          profilePicture: "$profilePicture",
-        },
-        permissions: { $addToSet: "$permissionsData.name" },
-      },
-    },
-    {
-      $project: {
-        _id: "$_id._id",
-        uid: "$_id.uid",
-        role: "$_id.role",
-        phoneNumber: "$_id.phoneNumber",
-        email: "$_id.email",
-        status: "$_id.status",
-        fullName: "$_id.fullName",
-        profilePicture: "$_id.profilePicture",
-        permissions: 1,
-      },
-    },
-  ];
+    });
+  }
+
   const usersQuery = new AggregateQueryHelper(User.aggregate(pipeline), query)
     .sort()
     .paginate();
@@ -225,16 +211,11 @@ const createAdminOrStaffIntoDB = async (
   userInfo: TUser
 ): Promise<TUser | null> => {
   // check that the phone number is already registered
-  const isExist = await User.find({
-    $or: [{ phoneNumber: userInfo.phoneNumber }, { email: userInfo.email }],
+  await isEmailOrNumberTaken({
+    phoneNumber: userInfo.phoneNumber,
+    email: userInfo.email,
   });
 
-  if (isExist.length) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "A user already registered with this email or number"
-    );
-  }
   let newUser = null;
   const session = await mongoose.startSession();
   try {
@@ -260,11 +241,11 @@ const createAdminOrStaffIntoDB = async (
       );
     }
     await session.commitTransaction();
-    await session.endSession();
   } catch (error) {
     await session.abortTransaction();
-    await session.endSession();
     throw error;
+  } finally {
+    await session.endSession();
   }
   newUser = await User.findById(newUser?._id).populate([
     {
@@ -274,6 +255,87 @@ const createAdminOrStaffIntoDB = async (
     { path: "address", select: "-createdAt -updatedAt" },
   ]);
   return newUser;
+};
+
+const updateAdminOrStaffIntDB = async (
+  id: Types.ObjectId,
+  personalInfo: TAdmin | TStaff,
+  address: TAddressData,
+  userInfo: TUser
+) => {
+  const isExist = await User.findOne({ _id: id }).populate([
+    {
+      path: "admin",
+      select: "profilePicture",
+    },
+    {
+      path: "staff",
+      select: "profilePicture",
+    },
+  ]);
+  if (!isExist) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No user found");
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    if (userInfo.phoneNumber || userInfo.email) {
+      await isEmailOrNumberTaken({
+        phoneNumber: userInfo.phoneNumber,
+        email: userInfo.email,
+      });
+      await User.findOneAndUpdate(
+        { _id: isExist._id },
+        { phoneNumber: userInfo.phoneNumber, email: userInfo.email }
+      );
+    }
+
+    if (address) {
+      await Address.findOneAndUpdate({ _id: isExist.address }, address, {
+        session,
+      });
+    }
+
+    if (personalInfo) {
+      if (isExist.role === "admin") {
+        await Admin.findOneAndUpdate({ _id: isExist.admin }, personalInfo, {
+          session,
+        });
+      } else if (isExist.role === "staff") {
+        await Staff.findOneAndUpdate({ _id: isExist.staff }, personalInfo, {
+          session,
+        });
+      }
+    }
+
+    const filePathToDelete = (isExist?.admin as TAdmin)?.profilePicture
+      ? (isExist?.admin as TAdmin)?.profilePicture
+      : (isExist?.staff as TStaff)?.profilePicture
+        ? (isExist?.staff as TStaff)?.profilePicture
+        : undefined;
+
+    if (filePathToDelete) {
+      try {
+        const folderPath = path.parse(filePathToDelete).dir;
+
+        await fsEx.remove(folderPath);
+      } catch (error) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Failed to delete previous image"
+        );
+      }
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
 };
 
 const geUserProfileFromDB = async (id: Types.ObjectId) => {
@@ -338,13 +400,14 @@ const geUserProfileFromDB = async (id: Types.ObjectId) => {
           ...addFieldsStage,
           permissions: "$permissionsData.name",
           address: {
-            $arrayElemAt: ["$addressData.fullAddress", 0],
+            $arrayElemAt: ["$addressData", 0],
           },
         },
       },
       {
         $project: {
           _id: 1,
+          uid: 1,
           role: 1,
           phoneNumber: 1,
           email: 1,
@@ -357,7 +420,9 @@ const geUserProfileFromDB = async (id: Types.ObjectId) => {
           dateOfBirth: 1,
           joiningDate: 1,
           permissions: 1,
-          address: 1,
+          address: {
+            fullAddress: "$address.fullAddress",
+          },
         },
       },
     ])
@@ -369,5 +434,6 @@ export const UserServices = {
   getAllAdminAndStaffFromDB,
   createCustomerIntoDB,
   createAdminOrStaffIntoDB,
+  updateAdminOrStaffIntDB,
   geUserProfileFromDB,
 };

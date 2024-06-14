@@ -25,7 +25,7 @@ const addPermissionToUserIntoDB = async (
   const result = await User.findByIdAndUpdate(
     userId,
     {
-      $addToSet: { permissions: { $each: permissionIds } },
+      permissions: permissionIds,
     },
     { new: true }
   );

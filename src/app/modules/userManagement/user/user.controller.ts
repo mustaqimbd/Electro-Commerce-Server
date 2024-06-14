@@ -1,5 +1,6 @@
 import { CookieOptions, Request, Response } from "express";
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import config from "../../../config/config";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
@@ -60,6 +61,32 @@ const createAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
+  if (req.files) {
+    req.body = {
+      ...req.body,
+      personalInfo: {
+        ...req.body.personalInfo,
+        profilePicture: (req.files as {
+          path: string;
+        }[])![0]?.path,
+      },
+    };
+  }
+
+  const { personalInfo, address, ...userInfo } = req.body;
+  await UserServices.updateAdminOrStaffIntDB(
+    new Types.ObjectId(req.params.id),
+    personalInfo,
+    address,
+    userInfo
+  );
+  successResponse<TUser>(res, {
+    statusCode: httpStatus.OK,
+    message: `User updated successfully.`,
+  });
+});
+
 const getUserProfile = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.user as TJwtPayload;
   const result = await UserServices.geUserProfileFromDB(id);
@@ -71,6 +98,7 @@ const getUserProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const UserControllers = {
+  updateAdminOrStaff,
   getAllAdminAndStaff,
   createCustomer,
   createAdminOrStaff,

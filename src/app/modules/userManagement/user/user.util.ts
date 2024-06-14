@@ -68,25 +68,39 @@ export const isEmailOrNumberTaken = async (data: {
   email?: string;
 }) => {
   const { phoneNumber, email } = data;
-  const searchQuery: Record<string, unknown> = {};
+  const searchQuery: Record<string, unknown>[] = [];
+
   if (phoneNumber) {
-    searchQuery.phoneNumber = phoneNumber;
+    searchQuery.push({ phoneNumber });
   }
+
   if (email) {
-    searchQuery.phoneNumber = email;
+    searchQuery.push({ email });
   }
+  const query = {
+    $or: searchQuery,
+  };
 
-  const isExist = (
-    await User.find({
-      $or: [searchQuery],
-    })
-  )[0];
+  const isExist = await User.find(query);
 
-  if (isExist) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "A user already registered with this number or email"
-    );
+  if (isExist.length) {
+    if (phoneNumber) {
+      if (isExist.filter((item) => item.phoneNumber === phoneNumber).length) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "This 'Phone number' is already taken"
+        );
+      }
+    }
+
+    if (email) {
+      if (isExist.filter((item) => item.email === email).length) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "This 'Email' is already taken"
+        );
+      }
+    }
   }
 
   return;
