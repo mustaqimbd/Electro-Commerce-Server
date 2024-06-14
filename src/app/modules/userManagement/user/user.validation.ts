@@ -55,7 +55,7 @@ const createStaffOrAdmin = z.object({
     email: z.string({ required_error: "Email is required." }).email(),
     password: passwordZodSchema,
     role: z.enum(["staff", "admin"], { required_error: "Role is required" }),
-    address: createAddressSchema(),
+    address: createAddressSchema(true),
     personalInfo: z.object(
       {
         fullName: z.string({ required_error: "Full name is required." }),
@@ -70,8 +70,27 @@ const createStaffOrAdmin = z.object({
     ),
   }),
 });
+const updateStaffOrAdmin = z.object({
+  body: z.object({
+    phoneNumber: phoneNumberValidationZodSchema(true),
+    email: z.string().email().optional(),
+    address: createAddressSchema().optional(),
+    personalInfo: z
+      .object({
+        fullName: z.string().optional(),
+        profilePicture: z.string().optional(),
+        emergencyContact: phoneNumberValidationZodSchema(true),
+        NIDNo: z.string().optional(),
+        birthCertificateNo: z.string().optional(),
+        joiningDate: z.string().optional(),
+        dateOfBirth: z.string().optional(),
+      })
+      .optional(),
+  }),
+});
 
 export const UserValidation = {
+  updateStaffOrAdmin,
   createCustomer,
   createStaffOrAdmin,
 };
