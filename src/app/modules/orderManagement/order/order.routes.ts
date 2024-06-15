@@ -20,7 +20,11 @@ router.post(
   OrderController.createOrder
 );
 
-router.get("/customer/:orderId", OrderController.getOrderInfoByOrderIdCustomer);
+router.get(
+  "/customer/:id",
+  optionalAuthGuard,
+  OrderController.getOrderInfoByOrderIdCustomer
+);
 
 router.get(
   "/admin/order-id/:id",
@@ -71,7 +75,7 @@ router.patch(
   "/update-status",
   authGuard({
     requiredRoles: ["admin", "staff"],
-    // requiredPermission: "manage orders",
+    requiredPermission: "manage orders",
   }),
   validateRequest(OrderValidation.updateOrderStatus),
   OrderController.updateStatus
@@ -81,7 +85,7 @@ router.patch(
   "/update-processing-status",
   authGuard({
     requiredRoles: ["admin", "staff"],
-    // requiredPermission: "manage orders",
+    requiredPermission: "manage warehouse",
   }),
   validateRequest(OrderValidation.updateProcessingStatus),
   OrderController.updateProcessingStatus
@@ -91,7 +95,7 @@ router.patch(
   "/book-courier-and-update-status",
   authGuard({
     requiredRoles: ["admin", "staff"],
-    // requiredPermission: "manage orders",
+    requiredPermission: "manage courier",
   }),
   validateRequest(OrderValidation.bookCourierAndUpdateStatus),
   OrderController.bookCourierAndUpdateStatus
@@ -126,7 +130,10 @@ router.get(
 
 router.post(
   "/update-order-delivery-status",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage courier",
+  }),
   OrderController.updateOrdersDeliveryStatus
 );
 
