@@ -22,12 +22,14 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
 
 const getOrderInfoByOrderIdCustomer = catchAsync(
   async (req: Request, res: Response) => {
-    const { orderId } = req.params;
+    const { id } = req.params;
 
-    const result =
-      await OrderServices.getOrderInfoByOrderIdCustomerFromDB(orderId);
+    const result = await OrderServices.getOrderInfoByOrderIdCustomerFromDB(
+      req.user as TOptionalAuthGuardPayload,
+      id
+    );
 
-    successResponse<TOrder>(res, {
+    successResponse(res, {
       statusCode: httpStatus.OK,
       message: "Customers order info retrieved successfully",
       data: result,
