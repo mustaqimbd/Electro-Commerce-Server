@@ -9,7 +9,6 @@ import { SeoDataModel } from "../seoData/seoData.model";
 import { publishedStatusQuery, visibilityStatusQuery } from "./product.const";
 import { TProduct } from "./product.interface";
 import ProductModel from "./product.model";
-import { PipelineStage } from "mongoose";
 import { UpdatedAggregateQueryHelper } from "../../../helper/updatedQuery.helper";
 
 const createProductIntoDB = async (
@@ -111,7 +110,8 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
       query.brand as string
     );
   }
-  const pipeline: PipelineStage[] = [
+
+  const pipeline = [
     {
       $match: {
         isDeleted: false,
@@ -119,7 +119,6 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
         "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
-    // Populate the "price" field
     {
       $lookup: {
         from: "prices",
@@ -189,14 +188,8 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     { $match: filterQuery },
     {
       $facet: {
-        // Define sub-pipeline 1: For getting total count
-        totalCount: [
-          {
-            $count: "total",
-          },
-        ],
         // Define sub-pipeline 2: For other operations
-        products: [
+        data: [
           {
             $project: {
               _id: 1,
@@ -232,22 +225,35 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
             },
           },
         ],
+        // Define sub-pipeline 1: For getting total count
+        total: [
+          {
+            $count: "total",
+          },
+        ],
+      },
+    },
+    { $unwind: "$total" },
+    {
+      $project: {
+        data: 1,
+        total: "$total.total",
       },
     },
   ];
 
-  const productQuery = new AggregateQueryHelper(
-    ProductModel.aggregate(pipeline),
+  const productQuery = new UpdatedAggregateQueryHelper(
+    ProductModel,
+    pipeline,
     query
   )
+    .search(["title"])
     .sort()
     .paginate();
 
-  const data = await productQuery.model;
-  const total = (await ProductModel.aggregate(pipeline)).length;
-  const meta = productQuery.metaData(total);
+  const data = await productQuery.metaData();
 
-  return { meta, data: data[0] };
+  return { ...data };
 };
 const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
