@@ -30,6 +30,7 @@ const maxOrderStatusChangeAtATime = 20;
 const createOrderIntoDB = async (req: Request) => {
   let response;
   const session = await mongoose.startSession();
+
   try {
     session.startTransaction();
     response = await createNewOrder(
@@ -217,6 +218,7 @@ const getProcessingOrdersAdminFromDB = async (
     .paginate();
 
   const data = await orderQuery.model;
+
   const total =
     (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
       ?.total || 0;
@@ -251,7 +253,6 @@ const getProcessingOrdersAdminFromDB = async (
     name,
     total,
   }));
-
   return { countsByStatus: formattedCount, meta, data };
 };
 

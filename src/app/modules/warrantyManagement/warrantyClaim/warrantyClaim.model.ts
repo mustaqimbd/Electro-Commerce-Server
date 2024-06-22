@@ -33,7 +33,6 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
           },
         },
       ],
-      required: true,
     },
     warrantyClaimReqData: {
       type: [
