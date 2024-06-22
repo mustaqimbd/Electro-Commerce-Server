@@ -25,7 +25,7 @@ export type TWarrantyClaimData = {
   phoneNumber: string;
   shipping: TShipping;
   problemInDetails: string;
-  videosAndImages: TWarrantyClaimedVideosAndImages[];
+  videosAndImages?: TWarrantyClaimedVideosAndImages[];
   warrantyClaimReqData: TWarrantyClaimReqData[];
   officialNotes?: string;
   contactStatus: TWarrantyClaimedContactStatus;

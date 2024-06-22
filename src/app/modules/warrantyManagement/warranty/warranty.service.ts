@@ -24,7 +24,7 @@ const createWarrantyIntoDB = async (
     const order = (await Order.aggregate(pipeline))[0];
 
     if (!order) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No order found with");
+      throw new ApiError(httpStatus.BAD_REQUEST, "No order found.");
     }
 
     for (const item of order?.products || []) {

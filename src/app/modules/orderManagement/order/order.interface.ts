@@ -84,6 +84,7 @@ export type TOrderData = {
   reasonNotes?: string;
   courierDetails?: TCourierDetails;
   orderSource: TOrderSource;
+  userIp?: string;
 };
 
 export type TOrder = TOrderData & Document;
