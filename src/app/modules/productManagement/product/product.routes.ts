@@ -2,10 +2,9 @@ import express from "express";
 import { ProductControllers } from "./product.controller";
 import validateRequest from "../../../middlewares/validateRequest";
 import { ProductValidation } from "./product.validation";
+import authGuard from "../../../middlewares/authGuard";
 // import imgUploader from "../../../utilities/imgUploader";
 // import formDataParse from "../../../utilities/formDataParse";
-
-// import authGuard from '../../middlewares/authGuard';
 
 const router = express.Router();
 
@@ -44,8 +43,11 @@ router.patch(
 );
 
 router.delete(
-  "/:id",
-  // authGuard('admin'),
+  "/delete",
+  authGuard({
+    requiredRoles: ["admin", "superAdmin"],
+    requiredPermission: "super admin",
+  }),
   ProductControllers.deleteProduct
 );
 

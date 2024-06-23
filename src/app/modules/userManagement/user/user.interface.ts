@@ -5,7 +5,7 @@ import { TCustomer } from "../customer/customer.interface";
 import { TPermission } from "../permission/permission.interface";
 import { TStaff } from "../staff/staff.interface";
 
-export type TRoles = "customer" | "staff" | "admin";
+export type TRoles = "customer" | "staff" | "admin" | "superAdmin";
 export type TStatus = "active" | "banned" | "deleted";
 
 export type TUser = {

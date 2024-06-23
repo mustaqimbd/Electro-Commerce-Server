@@ -96,8 +96,8 @@ const updateProduct = catchAsync(async (req, res) => {
 
 const deleteProduct = catchAsync(async (req, res) => {
   const deletedBy = req.user.id;
-  const ProductId = req.params.id;
-  await ProductServices.deleteProductFromDB(deletedBy, ProductId);
+  const { productIds } = req.body;
+  await ProductServices.deleteProductFromDB(productIds, deletedBy);
 
   successResponse(res, {
     statusCode: httpStatus.OK,

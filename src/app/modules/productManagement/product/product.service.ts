@@ -394,8 +394,8 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   // get counts
   const statusMap = {
     all: 0,
-    published: 0,
-    draft: 0,
+    Published: 0,
+    Draft: 0,
     // Deleted: 0,
   };
   const statusPipeline = [
@@ -648,23 +648,36 @@ const updateProductIntoDB = async (
   }
 };
 
-const deleteProductFromDB = async (deletedBy: Types.ObjectId, id: string) => {
-  const isProductExist = await ProductModel.findById(id);
-  if (!isProductExist) {
-    throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
-  }
+const deleteProductFromDB = async (
+  productIds: string[],
+  deletedBy: Types.ObjectId
+) => {
+  // const isProductExist = await ProductModel.findById(id);
+  // if (!isProductExist) {
+  //   throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
+  // }
 
-  if (isProductExist.isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "The Product is already deleted!"
-    );
-  }
+  // if (isProductExist.isDeleted) {
+  //   throw new ApiError(
+  //     httpStatus.BAD_REQUEST,
+  //     "The Product is already deleted!"
+  //   );
+  // }
 
-  const result = await ProductModel.findByIdAndUpdate(id, {
-    deletedBy,
-    isDeleted: true,
-  });
+  // const result = await ProductModel.findByIdAndUpdate(id, {
+  //   deletedBy,
+  //   isDeleted: true,
+  // });
+
+  const result = await ProductModel.updateMany(
+    { _id: { $in: productIds } },
+    {
+      $set: {
+        deletedBy,
+        isDeleted: true,
+      },
+    }
+  );
 
   return result;
 };
