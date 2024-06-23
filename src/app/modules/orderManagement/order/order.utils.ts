@@ -479,6 +479,7 @@ export const createNewOrder = async (
   orderData.courierNotes = courierNotes;
   orderData.officialNotes = officialNotes;
   orderData.invoiceNotes = invoiceNotes;
+  orderData.userIp = payload.clientIp as string;
   orderData.orderSource = {
     name: orderSource?.name,
     url: orderSource?.url,

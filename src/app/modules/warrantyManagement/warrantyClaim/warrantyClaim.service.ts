@@ -1,5 +1,7 @@
+import fsEx from "fs-extra";
 import httpStatus from "http-status";
 import mongoose, { PipelineStage, Types } from "mongoose";
+import path from "path";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
@@ -8,7 +10,6 @@ import { createNewOrder } from "../../orderManagement/order/order.utils";
 import { TWarrantyClaim } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
-
 const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
   const pipeline: PipelineStage[] = [
     {
@@ -150,6 +151,17 @@ const createNewWarrantyClaimOrderIntoDB = async (
     );
   }
 
+  if (claimReq?.videosAndImages?.length) {
+    claimReq?.videosAndImages?.forEach((item) => {
+      try {
+        const folderPath = path.parse(item.path).dir;
+        fsEx.remove(folderPath);
+        // eslint-disable-next-line no-empty
+      } finally {
+      }
+    });
+  }
+
   const body = {
     ...payload,
     shipping: {
@@ -198,6 +210,8 @@ const createNewWarrantyClaimOrderIntoDB = async (
   } finally {
     await session.endSession();
   }
+  claimReq.videosAndImages = undefined;
+  await claimReq.save();
 
   return order;
 };

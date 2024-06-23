@@ -127,6 +127,9 @@ const OrderSchema = new Schema<TOrder>(
       ref: "Shipping",
       required: true,
     },
+    userIp: {
+      type: String,
+    },
     isDeleted: {
       type: Boolean,
       required: true,
