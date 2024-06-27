@@ -12,11 +12,7 @@ router.post(
   "/",
   validateRequest(OrderValidation.createOrderValidation),
   optionalAuthGuard,
-  limitRequest(
-    60,
-    3,
-    "For assistance with additional orders, please contact support. Thank you for your understanding!"
-  ),
+  limitRequest(1, 3),
   OrderController.createOrder
 );
 

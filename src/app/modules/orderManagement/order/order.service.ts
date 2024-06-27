@@ -35,7 +35,8 @@ const createOrderIntoDB = async (req: Request) => {
     session.startTransaction();
     response = await createNewOrder(
       req as unknown as Record<string, unknown>,
-      session
+      session,
+      { warrantyClaim: false }
     );
     await session.commitTransaction();
   } catch (error) {
