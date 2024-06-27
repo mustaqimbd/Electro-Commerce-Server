@@ -243,8 +243,8 @@ export const createNewOrder = async (
   payload: Record<string, unknown>,
   session: ClientSession,
   warrantyClaimOrderData?: {
-    warrantyClaim: boolean;
-    productsDetails: Partial<TProductDetails[]>;
+    warrantyClaim?: boolean;
+    productsDetails?: Partial<TProductDetails[]>;
   }
 ) => {
   const {
@@ -276,6 +276,7 @@ export const createNewOrder = async (
     invoiceNotes?: string;
     advance?: number;
   };
+
   const status: TOrderStatus = warrantyClaimOrderData?.warrantyClaim
     ? "warranty processing"
     : "pending";
@@ -304,7 +305,7 @@ export const createNewOrder = async (
       );
     }
   }
-
+  let fromWebsite = false;
   if (custom) {
     orderedProductInfo =
       await OrderHelper.sanitizeOrderedProducts(orderedProducts);
@@ -320,6 +321,7 @@ export const createNewOrder = async (
       warrantyClaimOrderData?.productsDetails as TProductDetails[]
     );
   } else {
+    fromWebsite = true;
     const cart = await Cart.findOne(userQuery)
       .populate({
         path: "cartItems.item",
@@ -358,6 +360,20 @@ export const createNewOrder = async (
         attributes: cartItem.attributes,
       };
     });
+  }
+
+  if (salesPage || fromWebsite) {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const orderCount = await Order.countDocuments({
+      ...userQuery,
+      createdAt: { $gte: oneHourAgo },
+    });
+    if (orderCount) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "For assistance with additional orders, please contact support. Thank you for your understanding!"
+      );
+    }
   }
 
   if (!custom) {
