@@ -369,10 +369,7 @@ export const createNewOrder = async (
       createdAt: { $gte: oneHourAgo },
     });
     if (orderCount) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "For assistance with additional orders, please contact support. Thank you for your understanding!"
-      );
+      throw new ApiError(httpStatus.BAD_REQUEST, "Reached order limit");
     }
   }
 
