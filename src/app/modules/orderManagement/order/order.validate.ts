@@ -38,6 +38,7 @@ const createOrderValidation = z.object({
       custom: z.boolean().optional(),
       salesPage: z.boolean().optional(),
       advance: z.number().optional(),
+      discount: z.number().optional(),
       orderNotes: z.string().optional(),
       officialNotes: z.string().optional(),
       invoiceNotes: z.string().optional(),

@@ -20,6 +20,7 @@ const limitRequest = (
       ],
     },
   });
+
   return (req: Request, res: Response, next: NextFunction) =>
     limiter(req, res, next);
 };
