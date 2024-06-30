@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import mongoose, { ClientSession, PipelineStage, Types } from "mongoose";
+import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
@@ -270,12 +271,14 @@ export const createNewOrder = async (
     orderedProducts: TProductDetails[];
   };
 
-  let { courierNotes, officialNotes, invoiceNotes, advance } = payload.body as {
-    courierNotes?: string;
-    officialNotes?: string;
-    invoiceNotes?: string;
-    advance?: number;
-  };
+  let { courierNotes, officialNotes, invoiceNotes, advance, discount } =
+    payload.body as {
+      courierNotes?: string;
+      officialNotes?: string;
+      invoiceNotes?: string;
+      advance?: number;
+      discount?: number;
+    };
 
   const status: TOrderStatus = warrantyClaimOrderData?.warrantyClaim
     ? "warranty processing"
@@ -362,14 +365,16 @@ export const createNewOrder = async (
     });
   }
 
-  if (salesPage || fromWebsite) {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const orderCount = await Order.countDocuments({
-      ...userQuery,
-      createdAt: { $gte: oneHourAgo },
-    });
-    if (orderCount) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Reached order limit");
+  if (config.env === "production") {
+    if (salesPage || fromWebsite) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const orderCount = await Order.countDocuments({
+        ...userQuery,
+        createdAt: { $gte: oneHourAgo },
+      });
+      if (orderCount) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Reached order limit");
+      }
     }
   }
 
@@ -378,6 +383,7 @@ export const createNewOrder = async (
     officialNotes = undefined;
     invoiceNotes = undefined;
     advance = 0;
+    discount = 0;
   }
 
   const quantityUpdateData: {
@@ -474,7 +480,9 @@ export const createNewOrder = async (
     onlyProductsCosts +
     Number(shippingCharges?.amount) -
     Number(advance || 0) -
-    warrantyAmount;
+    warrantyAmount -
+    Number(discount || 0);
+
   orderData.orderId = orderId;
   orderData.userId = !warrantyClaimOrderData?.warrantyClaim
     ? (userQuery.userId as mongoose.Types.ObjectId)
@@ -499,6 +507,7 @@ export const createNewOrder = async (
     lpNo: orderSource?.lpNo,
   };
   orderData.advance = advance;
+  orderData.discount = discount;
   const [orderRes] = await Order.create([orderData], { session });
   if (!orderRes) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
