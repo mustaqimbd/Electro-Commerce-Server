@@ -65,10 +65,6 @@ const OrderSchema = new Schema<TOrder>(
     sessionId: {
       type: String,
     },
-    orderedProductsDetails: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "OrderedProduct",
-    },
     productDetails: [ProductDetailsSchema],
     couponDetails: {
       type: mongoose.Schema.Types.ObjectId,

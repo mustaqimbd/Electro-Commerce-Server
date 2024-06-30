@@ -16,6 +16,39 @@ const createWarrantyIntoDB = async (
 ) => {
   const session = await mongoose.startSession();
 
+  const postedWarrantyCodes = warrantyInfo.flatMap((item) =>
+    item.codes.map((codeObj) => codeObj.code)
+  );
+  const previouslyAddedOrders =
+    (await Warranty.aggregate([
+      {
+        $unwind: "$warrantyCodes",
+      },
+      {
+        $match: {
+          "warrantyCodes.code": { $in: postedWarrantyCodes },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          matchedCodes: { $addToSet: "$warrantyCodes.code" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          matchedCodes: 1,
+        },
+      },
+    ]))![0]?.matchedCodes || [];
+  if (previouslyAddedOrders.length) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `The warranty code${previouslyAddedOrders.length > 1 ? "'s" : ""} ' ${previouslyAddedOrders} ' ${previouslyAddedOrders.length > 1 ? "are" : "is"} already in used`
+    );
+  }
+
   try {
     session.startTransaction();
 
