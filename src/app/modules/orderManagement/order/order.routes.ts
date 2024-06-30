@@ -133,4 +133,13 @@ router.post(
   OrderController.updateOrdersDeliveryStatus
 );
 
+router.get(
+  "/get-customer-order-count/:phoneNumber",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage orders",
+  }),
+  OrderController.getCustomersOrdersCountByPhone
+);
+
 export const OrderRoutes = router;

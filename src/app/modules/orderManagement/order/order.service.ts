@@ -1639,6 +1639,56 @@ const updateOrdersDeliveryStatusIntoDB = async () => {
   await updateCourierStatus();
 };
 
+const getCustomersOrdersCountByPhoneFromDB = async (phoneNumber: string) => {
+  const orders = await Order.aggregate([
+    {
+      $lookup: {
+        from: "shippings",
+        localField: "shipping",
+        foreignField: "_id",
+        as: "shippingData",
+      },
+    },
+    {
+      $unwind: "$shippingData",
+    },
+    {
+      $match: {
+        "shippingData.phoneNumber": phoneNumber,
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  const statusMap = {
+    pending: 0,
+    confirmed: 0,
+    processing: 0,
+    "warranty processing": 0,
+    "follow up": 0,
+    "processing done": 0,
+    "warranty added": 0,
+    "On courier": 0,
+    canceled: 0,
+    returned: 0,
+    "partly returned": 0,
+    completed: 0,
+    deleted: 0,
+  };
+  orders.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+  });
+  const formattedCount = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
+  return formattedCount;
+};
+
 // this will need later
 // const deleteOrderByIdFromBD = async (id: string) => {
 //   const session = await mongoose.startSession();
@@ -1706,4 +1756,5 @@ export const OrderServices = {
   updateOrdersDeliveryStatusIntoDB,
   getProcessingOrdersAdminFromDB,
   getProcessingDoneCourierOrdersAdminFromDB,
+  getCustomersOrdersCountByPhoneFromDB,
 };

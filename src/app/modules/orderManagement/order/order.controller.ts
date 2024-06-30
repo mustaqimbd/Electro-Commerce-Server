@@ -220,6 +220,19 @@ const updateOrdersDeliveryStatus = catchAsync(
   }
 );
 
+const getCustomersOrdersCountByPhone = catchAsync(
+  async (req: Request, res: Response) => {
+    const { phoneNumber } = req.params;
+    const result =
+      await OrderServices.getCustomersOrdersCountByPhoneFromDB(phoneNumber);
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order delivery status updated successfully",
+      data: result,
+    });
+  }
+);
+
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -236,4 +249,5 @@ export const OrderController = {
   updateProcessingStatus,
   bookCourierAndUpdateStatus,
   getProcessingDoneCourierOrdersAdmin,
+  getCustomersOrdersCountByPhone,
 };
