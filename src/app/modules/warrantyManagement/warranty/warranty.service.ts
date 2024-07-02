@@ -45,7 +45,7 @@ const createWarrantyIntoDB = async (
   if (previouslyAddedOrders.length) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      `The warranty code${previouslyAddedOrders.length > 1 ? "'s" : ""} ' ${previouslyAddedOrders} ' ${previouslyAddedOrders.length > 1 ? "are" : "is"} already in used`
+      `The warranty code${previouslyAddedOrders.length > 1 ? "s" : ""} ' ${previouslyAddedOrders} ' ${previouslyAddedOrders.length > 1 ? "are" : "is"} already in used`
     );
   }
 

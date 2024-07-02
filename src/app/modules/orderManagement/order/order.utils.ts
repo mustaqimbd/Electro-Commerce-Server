@@ -77,6 +77,7 @@ export const updateStockOnOrderCancelOrDeleteOrRetrieve = async (
 };
 
 // This pipeline will retrieve orders information
+
 export const ordersPipeline = (): PipelineStage[] => [
   {
     $lookup: {
@@ -120,12 +121,14 @@ export const ordersPipeline = (): PipelineStage[] => [
       courierNotes: 1,
       orderSource: 1,
       reasonNotes: 1,
+      orderNotes: 1,
       followUpDate: 1,
       productDetails: 1,
+      warrantyProductDetails: 1,
     },
   },
   {
-    $unwind: "$productDetails",
+    $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -136,7 +139,7 @@ export const ordersPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$productInfo",
+    $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -151,11 +154,83 @@ export const ordersPipeline = (): PipelineStage[] => [
       warranty: {
         $cond: {
           if: { $eq: [{ $size: "$warranty" }, 0] },
-          then: {
-            warrantyCodes: null,
-            createdAt: null,
-          },
+          then: null,
           else: { $arrayElemAt: ["$warranty", 0] },
+        },
+      },
+    },
+  },
+  {
+    $unwind: {
+      path: "$warrantyProductDetails",
+      preserveNullAndEmptyArrays: true,
+    },
+  },
+  {
+    $lookup: {
+      from: "products",
+      localField: "warrantyProductDetails.product",
+      foreignField: "_id",
+      as: "warrantyProductInfo",
+    },
+  },
+  {
+    $unwind: {
+      path: "$warrantyProductInfo",
+      preserveNullAndEmptyArrays: true,
+    },
+  },
+  {
+    $lookup: {
+      from: "warranties",
+      localField: "warrantyProductDetails.warranty",
+      foreignField: "_id",
+      as: "warrantyOrderWarranty",
+    },
+  },
+  {
+    $addFields: {
+      warrantyOrderWarranty: {
+        $cond: {
+          if: { $eq: [{ $size: "$warrantyOrderWarranty" }, 0] },
+          then: null,
+          else: { $arrayElemAt: ["$warrantyOrderWarranty", 0] },
+        },
+      },
+    },
+  },
+  {
+    $addFields: {
+      product: {
+        $cond: {
+          if: { $not: ["$productDetails"] },
+          then: null,
+          else: {
+            _id: "$productDetails._id",
+            productId: "$productInfo._id",
+            title: "$productInfo.title",
+            warranty: "$warranty",
+            unitPrice: "$productDetails.unitPrice",
+            quantity: "$productDetails.quantity",
+            total: "$productDetails.total",
+            iSWarranty: "$productInfo.warranty",
+          },
+        },
+      },
+      warrantyProduct: {
+        $cond: {
+          if: { $not: ["$warrantyProductDetails"] },
+          then: null,
+          else: {
+            _id: "$warrantyProductDetails._id",
+            productId: "$warrantyProductInfo._id",
+            title: "$warrantyProductInfo.title",
+            warranty: "$warrantyOrderWarranty",
+            unitPrice: "$warrantyProductDetails.unitPrice",
+            quantity: "$warrantyProductDetails.quantity",
+            total: "$warrantyProductDetails.total",
+            iSWarranty: "$warrantyProductInfo.warranty",
+          },
         },
       },
     },
@@ -174,25 +249,12 @@ export const ordersPipeline = (): PipelineStage[] => [
       officialNotes: 1,
       invoiceNotes: 1,
       courierNotes: 1,
+      orderNotes: 1,
       followUpDate: 1,
       orderSource: 1,
       reasonNotes: 1,
-      product: {
-        _id: "$productDetails._id",
-        productId: "$productInfo._id",
-        title: "$productInfo.title",
-        warranty: {
-          _id: "$warranty._id",
-          duration: "$warranty.duration",
-          startDate: "$warranty.startDate",
-          endsDate: "$warranty.endsDate",
-          warrantyCodes: "$warranty.warrantyCodes",
-        },
-        unitPrice: "$productDetails.unitPrice",
-        quantity: "$productDetails.quantity",
-        total: "$productDetails.total",
-        iSWarranty: "$productInfo.warranty",
-      },
+      product: 1,
+      warrantyProduct: 1,
     },
   },
   {
@@ -209,10 +271,46 @@ export const ordersPipeline = (): PipelineStage[] => [
       officialNotes: { $first: "$officialNotes" },
       invoiceNotes: { $first: "$invoiceNotes" },
       courierNotes: { $first: "$courierNotes" },
+      orderNotes: { $first: "$orderNotes" },
       reasonNotes: { $first: "$reasonNotes" },
       followUpDate: { $first: "$followUpDate" },
       orderSource: { $first: "$orderSource" },
-      products: { $push: "$product" },
+      products: {
+        $push: {
+          $cond: {
+            if: { $not: ["$product"] },
+            then: "$$REMOVE",
+            else: "$product",
+          },
+        },
+      },
+      warrantyProducts: {
+        $push: {
+          $cond: {
+            if: { $not: ["$warrantyProduct"] },
+            then: "$$REMOVE",
+            else: "$warrantyProduct",
+          },
+        },
+      },
+    },
+  },
+  {
+    $addFields: {
+      products: {
+        $cond: {
+          if: { $eq: [{ $size: "$products" }, 0] },
+          then: null,
+          else: "$products",
+        },
+      },
+      warrantyProducts: {
+        $cond: {
+          if: { $eq: [{ $size: "$warrantyProducts" }, 0] },
+          then: null,
+          else: "$warrantyProducts",
+        },
+      },
     },
   },
 ];
@@ -430,7 +528,12 @@ export const createNewOrder = async (
     ).session(session);
   }
 
-  orderData.productDetails = orderedProductData as TProductDetails[];
+  if (warrantyClaimOrderData?.warrantyClaim) {
+    orderData.warrantyProductDetails = orderedProductData as TProductDetails[];
+  } else {
+    orderData.productDetails = orderedProductData as TProductDetails[];
+  }
+
   singleOrder = {
     product: String(orderedProductInfo[0]?.product?._id),
     quantity: orderedProductInfo[0].quantity,
