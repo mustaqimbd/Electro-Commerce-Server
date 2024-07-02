@@ -1,4 +1,4 @@
-import mongoose, { Document } from "mongoose";
+import mongoose, { Document, Types } from "mongoose";
 import { TSelectedAttributes } from "../../../types/attribute";
 import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { TPrice } from "../../productManagement/price/price.interface";
@@ -6,7 +6,6 @@ import { TProduct } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TWarranty } from "../../warrantyManagement/warranty/warranty.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
-import { TOrderedProducts } from "../orderedProducts/orderedProducts.interface";
 import { TShipping } from "../shipping/shipping.interface";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 
@@ -58,24 +57,24 @@ export type TCourierDetails = {
 
 export type TOrderData = {
   orderId: string;
-  userId: mongoose.Types.ObjectId | TUser;
+  userId: Types.ObjectId | TUser;
   sessionId: string;
-  orderedProductsDetails: mongoose.Types.ObjectId | TOrderedProducts;
   productDetails: TProductDetails[];
-  couponDetails?: mongoose.Types.ObjectId;
+  warrantyProductDetails: TProductDetails[];
+  couponDetails?: Types.ObjectId;
   subtotal?: number;
   tax?: number;
-  shippingCharge: mongoose.Types.ObjectId | TShippingCharge;
+  shippingCharge: Types.ObjectId | TShippingCharge;
   discount?: number;
   advance?: number;
   warrantyAmount: number;
   total: number;
-  payment: mongoose.Types.ObjectId;
+  payment: Types.ObjectId;
   status: TOrderStatus;
   deliveryStatus: string;
   followUpDate?: string;
-  statusHistory: mongoose.Types.ObjectId | TOrderStatusHistory;
-  shipping: mongoose.Types.ObjectId | TShipping;
+  statusHistory: Types.ObjectId | TOrderStatusHistory;
+  shipping: Types.ObjectId | TShipping;
   isDeleted: boolean;
   orderNotes?: string;
   officialNotes?: string;

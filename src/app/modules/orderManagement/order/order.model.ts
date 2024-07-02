@@ -66,6 +66,7 @@ const OrderSchema = new Schema<TOrder>(
       type: String,
     },
     productDetails: [ProductDetailsSchema],
+    warrantyProductDetails: [ProductDetailsSchema],
     couponDetails: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coupon",
