@@ -48,6 +48,10 @@ export type TProductDetails = {
   quantity: number;
   total: number;
   warranty?: mongoose.Types.ObjectId | TWarranty;
+  isWarrantyClaim?: boolean;
+  claimedCodes?: {
+    code: string;
+  }[];
 } & Document;
 
 export type TCourierDetails = {

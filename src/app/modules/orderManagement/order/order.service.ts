@@ -10,11 +10,13 @@ import { convertIso } from "../../../utilities/ISOConverter";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { Courier } from "../../courier/courier.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
+import { TPrice } from "../../productManagement/price/price.interface";
 import ProductModel from "../../productManagement/product/product.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
 import { TShipping } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
+import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { TOrder, TOrderStatus, TProductDetails } from "./order.interface";
 import { Order } from "./order.model";
 import {
@@ -1471,19 +1473,24 @@ const bookCourierAndUpdateStatusIntoDB = async (
 
 const updateOrderDetailsByAdminIntoDB = async (
   id: mongoose.Types.ObjectId,
-  payload: Partial<TOrder>
+  payload: Record<string, unknown>
 ) => {
   const {
     discount,
+    advance,
     shipping,
     invoiceNotes,
     officialNotes,
     courierNotes,
     followUpDate,
-  } = payload;
+    productDetails: updatedProductDetails,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } = payload as any;
+  // const findOrder2=await Order.aggregate()
   const findOrder = await Order.findOne({ _id: id }).populate([
     { path: "shippingCharge", select: "amount -_id" },
   ]);
+  // console.log(findOrder);
   if (!findOrder) {
     throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
   }
@@ -1492,23 +1499,111 @@ const updateOrderDetailsByAdminIntoDB = async (
   try {
     session.startTransaction();
 
+    // Update -- shipping
     if (Object.keys((shipping as TShipping) || {}).length) {
       await Shipping.findOneAndUpdate(
         { _id: findOrder.shipping },
         shipping
       ).session(session);
     }
-    const updatedDoc: Record<string, unknown> = {};
-    const discountInNumber = Number(discount || 0);
 
-    if (discountInNumber || discountInNumber === 0) {
-      updatedDoc.discount = discountInNumber;
-      updatedDoc.total =
-        Number(findOrder?.subtotal || 0) -
-        discountInNumber +
-        Number((findOrder?.shippingCharge as TShippingCharge)?.amount || 0);
+    const updatedDoc: Partial<TOrder> = {};
+    let increments = 0;
+    let decrements = 0;
+
+    // Update -- product details and recalculate subtotal
+    let newSubtotal = 0;
+    if (
+      updatedProductDetails ||
+      (updatedProductDetails as unknown as TProductDetails[])?.length > 0
+    ) {
+      for (const updatedProduct of updatedProductDetails || []) {
+        const existingProductIndex = findOrder.productDetails.findIndex(
+          (product) => product._id.toString() === updatedProduct.id.toString()
+        );
+        if (existingProductIndex > -1) {
+          if (updatedProduct.isDelete) {
+            findOrder.productDetails.splice(existingProductIndex, 1);
+          } else {
+            // Update existing product details
+            findOrder.productDetails[existingProductIndex].quantity =
+              updatedProduct.quantity;
+            findOrder.productDetails[existingProductIndex].total =
+              findOrder.productDetails[existingProductIndex].unitPrice *
+              updatedProduct.quantity;
+          }
+        } else {
+          const productInfo = await ProductModel.findById(
+            updatedProduct.id
+          ).populate({ path: "price", select: "salePrice regularPrice -_id" });
+          if (!productInfo) {
+            throw new ApiError(
+              httpStatus.BAD_REQUEST,
+              "Failed to find product"
+            );
+          }
+          const { salePrice, regularPrice } = productInfo?.price as TPrice;
+          const unitPrice = salePrice || regularPrice;
+          const newProductDetails = {
+            product: productInfo?._id,
+            attributes: updatedProduct.attributes,
+            unitPrice,
+            quantity: updatedProduct.quantity,
+            total: unitPrice * updatedProduct.quantity,
+            warranty: updatedProduct.warranty,
+            isWarrantyClaim: updatedProduct.isWarrantyClaim,
+            claimedCodes: updatedProduct.claimedCodes,
+          };
+
+          findOrder.productDetails.push(
+            newProductDetails as unknown as TProductDetails
+          );
+        }
+      }
+      // Recalculate subtotal
+      newSubtotal = findOrder.productDetails.reduce(
+        (acc, product) => acc + product.total,
+        0
+      );
+      updatedDoc.productDetails = findOrder.productDetails;
+    } else {
+      newSubtotal = Number(findOrder.subtotal || 0);
+    }
+    updatedDoc.subtotal = newSubtotal;
+    // Update shipping chare
+    if (payload?.shippingCharge) {
+      const shippingMethod = await ShippingCharge.findById(
+        payload.shippingCharge
+      );
+      if (!shippingMethod) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Failed to find shipping charge"
+        );
+      }
+      updatedDoc.shippingCharge = shippingMethod?._id;
+      increments += Number(shippingMethod?.amount || 0);
+    } else {
+      increments += Number(
+        (findOrder.shippingCharge as TShippingCharge).amount
+      );
     }
 
+    // Update -- advance, If there is any advance or the advance is 0
+    if (advance || advance === 0) {
+      updatedDoc.advance = advance;
+      decrements += advance;
+    }
+
+    // Update -- discount, If there is any discount or the discount is 0
+    if (discount || discount === 0) {
+      updatedDoc.discount = discount;
+      decrements += discount;
+    }
+
+    const totalIncDec = increments - decrements;
+
+    updatedDoc.total = newSubtotal + totalIncDec;
     updatedDoc.invoiceNotes = invoiceNotes;
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
