@@ -1,6 +1,11 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import ProductModel from "../../productManagement/product/product.model";
-import { TProductDetails, TSanitizedOrProduct } from "./order.interface";
+import {
+  TOrder,
+  TProductDetails,
+  TSanitizedOrProduct,
+} from "./order.interface";
+import { Order } from "./order.model";
 
 const sanitizeOrderedProducts = async (
   orderedProducts: TProductDetails[]
@@ -57,4 +62,98 @@ const sanitizeOrderedProducts = async (
   return data;
 };
 
-export const OrderHelper = { sanitizeOrderedProducts };
+const findOrderForUpdatingOrder = async (
+  id: Types.ObjectId
+): Promise<TOrder> => {
+  const order = (
+    await Order.aggregate([
+      {
+        $match: {
+          _id: new Types.ObjectId(id),
+        },
+      },
+      {
+        $unwind: "$productDetails",
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "productDetails.product",
+          foreignField: "_id",
+          as: "productDetails.productInfo",
+        },
+      },
+      {
+        $unwind: "$productDetails.productInfo",
+      },
+      {
+        $lookup: {
+          from: "inventories",
+          localField: "productDetails.productInfo.inventory",
+          foreignField: "_id",
+          as: "productDetails.productInfo.inventoryInfo",
+        },
+      },
+      {
+        $unwind: "$productDetails.productInfo.inventoryInfo",
+      },
+      {
+        $lookup: {
+          from: "shippingcharges",
+          localField: "shippingCharge",
+          foreignField: "_id",
+          as: "shippingChargeInfo",
+        },
+      },
+      {
+        $unwind: "$shippingChargeInfo",
+      },
+      {
+        $group: {
+          _id: "$_id",
+          productDetails: {
+            $push: {
+              _id: "$productDetails._id",
+              product: "$productDetails.product",
+              attributes: "$productDetails.attributes",
+              unitPrice: "$productDetails.unitPrice",
+              quantity: "$productDetails.quantity",
+              total: "$productDetails.total",
+              warranty: "$productDetails.warranty",
+              isWarrantyClaim: "$productDetails.isWarrantyClaim",
+              claimedCodes: "$productDetails.claimedCodes",
+              inventoryInfo: {
+                _id: "$productDetails.productInfo.inventoryInfo._id",
+                stockQuantity:
+                  "$productDetails.productInfo.inventoryInfo.stockQuantity",
+              },
+            },
+          },
+
+          couponDetails: { $first: "$couponDetails" },
+          subtotal: { $first: "$subtotal" },
+          tax: { $first: "$tax" },
+          shippingCharge: {
+            $first: {
+              _id: "$shippingChargeInfo._id",
+              amount: "$shippingChargeInfo.amount",
+            },
+          },
+          discount: { $first: "$discount" },
+          shipping: { $first: "$shipping" },
+          advance: { $first: "$advance" },
+          warrantyAmount: { $first: "$warrantyAmount" },
+          total: { $first: "$total" },
+          status: { $first: "$status" },
+        },
+      },
+    ])
+  )[0] as TOrder;
+
+  return order;
+};
+
+export const OrderHelper = {
+  sanitizeOrderedProducts,
+  findOrderForUpdatingOrder,
+};

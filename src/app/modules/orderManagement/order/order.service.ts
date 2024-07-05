@@ -9,12 +9,17 @@ import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import { convertIso } from "../../../utilities/ISOConverter";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { Courier } from "../../courier/courier.model";
+import { TAttribute } from "../../productManagement/attribute/attribute.interface";
+import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
+import { TPrice } from "../../productManagement/price/price.interface";
 import ProductModel from "../../productManagement/product/product.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
 import { TShipping } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
+import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
+import { OrderHelper } from "./order.helper";
 import { TOrder, TOrderStatus, TProductDetails } from "./order.interface";
 import { Order } from "./order.model";
 import {
@@ -451,7 +456,6 @@ const getOrderInfoByOrderIdAdminFromDB = async (
         followUpDate: 1,
         orderSource: 1,
         productDetails: 1,
-        warrantyProductDetails: 1,
         createdAt: 1,
       },
     },
@@ -481,25 +485,6 @@ const getOrderInfoByOrderIdAdminFromDB = async (
       $unwind: { path: "$productThumb", preserveNullAndEmptyArrays: true },
     },
     {
-      $lookup: {
-        from: "warranties",
-        localField: "productDetails.warranty",
-        foreignField: "_id",
-        as: "warranty",
-      },
-    },
-    {
-      $addFields: {
-        warranty: {
-          $cond: {
-            if: { $eq: [{ $size: "$warranty" }, 0] },
-            then: null,
-            else: { $arrayElemAt: ["$warranty", 0] },
-          },
-        },
-      },
-    },
-    {
       $addFields: {
         product: {
           $cond: {
@@ -513,104 +498,9 @@ const getOrderInfoByOrderIdAdminFromDB = async (
                 src: "$productThumb.src",
                 alt: "$productThumb.alt",
               },
-              warranty: {
-                $cond: {
-                  if: { $not: ["$warranty"] },
-                  then: null,
-                  else: {
-                    warrantyCodes: "$warranty.warrantyCodes",
-                    createdAt: "$warranty.createdAt",
-                  },
-                },
-              },
               unitPrice: "$productDetails.unitPrice",
               quantity: "$productDetails.quantity",
               total: "$productDetails.total",
-            },
-          },
-        },
-      },
-    },
-    {
-      $unwind: {
-        path: "$warrantyProductDetails",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "warrantyProductDetails.product",
-        foreignField: "_id",
-        as: "warrantyProductInfo",
-      },
-    },
-    {
-      $unwind: {
-        path: "$warrantyProductInfo",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "warrantyProductInfo.image.thumbnail",
-        foreignField: "_id",
-        as: "warrantyProductThumb",
-      },
-    },
-    {
-      $unwind: {
-        path: "$warrantyProductThumb",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "warranties",
-        localField: "warrantyProductDetails.warranty",
-        foreignField: "_id",
-        as: "warrantyOrderWarranty",
-      },
-    },
-    {
-      $addFields: {
-        warrantyOrderWarranty: {
-          $cond: {
-            if: { $eq: [{ $size: "$warrantyOrderWarranty" }, 0] },
-            then: null,
-            else: { $arrayElemAt: ["$warrantyOrderWarranty", 0] },
-          },
-        },
-      },
-    },
-    {
-      $addFields: {
-        warrantyProduct: {
-          $cond: {
-            if: { $not: ["$warrantyProductDetails"] },
-            then: null,
-            else: {
-              _id: "$warrantyProductDetails._id",
-              productId: "$warrantyProductInfo._id",
-              title: "$warrantyProductInfo.title",
-              image: {
-                src: "$warrantyProductThumb.src",
-                alt: "$warrantyProductThumb.alt",
-              },
-              warranty: {
-                $cond: {
-                  if: { $not: ["$warrantyOrderWarranty"] },
-                  then: null,
-                  else: {
-                    warrantyCodes: "$warrantyOrderWarranty.warrantyCodes",
-                    createdAt: "$warrantyOrderWarranty.createdAt",
-                  },
-                },
-              },
-              unitPrice: "$warrantyProductDetails.unitPrice",
-              quantity: "$warrantyProductDetails.quantity",
-              total: "$warrantyProductDetails.total",
             },
           },
         },
@@ -644,15 +534,6 @@ const getOrderInfoByOrderIdAdminFromDB = async (
             },
           },
         },
-        warrantyProducts: {
-          $push: {
-            $cond: {
-              if: { $not: ["$warrantyProduct"] },
-              then: "$$REMOVE",
-              else: "$warrantyProduct",
-            },
-          },
-        },
         createdAt: { $first: "$createdAt" },
       },
     },
@@ -665,16 +546,10 @@ const getOrderInfoByOrderIdAdminFromDB = async (
             else: "$products",
           },
         },
-        warrantyProducts: {
-          $cond: {
-            if: { $eq: [{ $size: "$warrantyProducts" }, 0] },
-            then: null,
-            else: "$warrantyProducts",
-          },
-        },
       },
     },
   ];
+
   const result = (await Order.aggregate(pipeline))[0];
 
   if (!result) {
@@ -1471,19 +1346,21 @@ const bookCourierAndUpdateStatusIntoDB = async (
 
 const updateOrderDetailsByAdminIntoDB = async (
   id: mongoose.Types.ObjectId,
-  payload: Partial<TOrder>
+  payload: Record<string, unknown>
 ) => {
   const {
     discount,
+    advance,
     shipping,
     invoiceNotes,
     officialNotes,
     courierNotes,
     followUpDate,
-  } = payload;
-  const findOrder = await Order.findOne({ _id: id }).populate([
-    { path: "shippingCharge", select: "amount -_id" },
-  ]);
+    productDetails: updatedProductDetails,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } = payload as any;
+  const findOrder = await OrderHelper.findOrderForUpdatingOrder(id);
+
   if (!findOrder) {
     throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
   }
@@ -1492,23 +1369,229 @@ const updateOrderDetailsByAdminIntoDB = async (
   try {
     session.startTransaction();
 
+    // Update -- shipping
     if (Object.keys((shipping as TShipping) || {}).length) {
       await Shipping.findOneAndUpdate(
         { _id: findOrder.shipping },
         shipping
       ).session(session);
     }
-    const updatedDoc: Record<string, unknown> = {};
-    const discountInNumber = Number(discount || 0);
 
-    if (discountInNumber || discountInNumber === 0) {
-      updatedDoc.discount = discountInNumber;
-      updatedDoc.total =
-        Number(findOrder?.subtotal || 0) -
-        discountInNumber +
-        Number((findOrder?.shippingCharge as TShippingCharge)?.amount || 0);
+    const updatedDoc: Partial<TOrder> = {};
+    let increments = 0;
+    let decrements = 0;
+
+    // Update -- product details and recalculate subtotal
+    let newSubtotal = 0;
+    let newWarrantyAmount = 0;
+    if (
+      updatedProductDetails ||
+      (updatedProductDetails as unknown as TProductDetails[])?.length > 0
+    ) {
+      for (const updatedProduct of updatedProductDetails || []) {
+        const existingProductIndex = findOrder.productDetails.findIndex(
+          (product) =>
+            product?._id?.toString() === updatedProduct?.id?.toString()
+        );
+
+        if (existingProductIndex > -1) {
+          if (updatedProduct.isDelete) {
+            findOrder.productDetails.splice(existingProductIndex, 1);
+          } else {
+            // Update existing product details
+            const currentOrder = findOrder.productDetails[
+              existingProductIndex
+            ] as unknown as {
+              inventoryInfo: { _id: Types.ObjectId; stockQuantity: number };
+              _id: Types.ObjectId;
+              product: Types.ObjectId;
+              attributes: TAttribute[];
+              unitPrice: number;
+              quantity: number;
+              total: number;
+              isWarrantyClaim?: boolean;
+              claimedCodes?: { code: string }[];
+            };
+            const previousQuantity = currentOrder.quantity;
+            if (updatedProduct.quantity) {
+              currentOrder.total =
+                currentOrder.unitPrice * updatedProduct.quantity;
+              currentOrder.quantity = updatedProduct.quantity;
+            }
+            if (updatedProduct.attributes)
+              currentOrder.attributes = updatedProduct.attributes;
+
+            if (
+              currentOrder.isWarrantyClaim &&
+              updatedProduct.isWarrantyClaim === false
+            ) {
+              currentOrder.isWarrantyClaim = false;
+              currentOrder.claimedCodes = undefined;
+            }
+
+            if (
+              currentOrder.isWarrantyClaim &&
+              updatedProduct?.claimedCodes?.length
+            ) {
+              if (
+                updatedProduct?.claimedCodes?.length !== currentOrder.quantity
+              ) {
+                throw new ApiError(
+                  httpStatus.BAD_REQUEST,
+                  `Please add all warranty claim codes.`
+                );
+              }
+            }
+
+            if (updatedProduct.isWarrantyClaim) {
+              currentOrder.isWarrantyClaim = updatedProduct.isWarrantyClaim;
+              currentOrder.claimedCodes = updatedProduct.claimedCodes;
+              if (
+                currentOrder?.claimedCodes?.length !== currentOrder.quantity
+              ) {
+                throw new ApiError(
+                  httpStatus.BAD_REQUEST,
+                  `Please add all warranty claim codes.`
+                );
+              }
+            }
+
+            if (
+              updatedProduct.quantity &&
+              previousQuantity !== updatedProduct.quantity
+            ) {
+              const quantityCalculation =
+                currentOrder?.inventoryInfo?.stockQuantity +
+                previousQuantity -
+                updatedProduct.quantity;
+              await InventoryModel.updateOne(
+                { _id: currentOrder.inventoryInfo._id },
+                { stockQuantity: quantityCalculation },
+                { session }
+              );
+            }
+          }
+        } else {
+          const productInfo = (
+            await ProductModel.aggregate([
+              {
+                $match: {
+                  _id: new Types.ObjectId(updatedProduct.newProductId),
+                },
+              },
+              {
+                $lookup: {
+                  from: "prices",
+                  localField: "price",
+                  foreignField: "_id",
+                  as: "priceInfo",
+                },
+              },
+              {
+                $unwind: "$priceInfo",
+              },
+              {
+                $project: {
+                  price: "$priceInfo",
+                  inventory: 1,
+                },
+              },
+            ])
+          )[0] as { _id: Types.ObjectId; price: TPrice; inventory: TInventory };
+
+          if (!productInfo) {
+            throw new ApiError(
+              httpStatus.BAD_REQUEST,
+              "Failed to find product"
+            );
+          }
+
+          const { salePrice, regularPrice } = productInfo?.price as TPrice;
+          const unitPrice = salePrice || regularPrice;
+          const newProductDetails = {
+            product: productInfo?._id,
+            attributes: updatedProduct.attributes,
+            unitPrice,
+            quantity: updatedProduct.quantity,
+            total: unitPrice * updatedProduct.quantity,
+            warranty: updatedProduct.warranty,
+            isWarrantyClaim: updatedProduct.isWarrantyClaim,
+            claimedCodes: updatedProduct.claimedCodes,
+          };
+
+          if (newProductDetails.isWarrantyClaim) {
+            if (
+              newProductDetails?.claimedCodes?.length !==
+              newProductDetails.quantity
+            ) {
+              throw new ApiError(
+                httpStatus.BAD_REQUEST,
+                `Please add all warranty claim codes.`
+              );
+            }
+          }
+
+          findOrder.productDetails.push(
+            newProductDetails as unknown as TProductDetails
+          );
+          await InventoryModel.updateOne(
+            { _id: productInfo?.inventory?._id },
+            { $inc: { stockQuantity: -updatedProduct.quantity } },
+            { session }
+          );
+        }
+      }
+
+      findOrder.productDetails.forEach((product) => {
+        if (product.isWarrantyClaim) {
+          newWarrantyAmount += product.total;
+        } else {
+          newSubtotal += product.total;
+        }
+      });
+
+      updatedDoc.productDetails = findOrder.productDetails;
+    } else {
+      newSubtotal = Number(findOrder.subtotal || 0);
+      newWarrantyAmount = Number(findOrder.warrantyAmount || 0);
+    }
+    updatedDoc.subtotal = newSubtotal;
+    updatedDoc.warrantyAmount = newWarrantyAmount;
+
+    // Update shipping chare
+    if (payload?.shippingCharge) {
+      const shippingMethod = await ShippingCharge.findById(
+        payload.shippingCharge
+      );
+      if (!shippingMethod) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Failed to find shipping charge"
+        );
+      }
+      updatedDoc.shippingCharge = shippingMethod?._id;
+      increments += Number(shippingMethod?.amount || 0);
+    } else {
+      increments += Number(
+        (findOrder.shippingCharge as TShippingCharge).amount
+      );
     }
 
+    // Update -- advance, If there is any advance or the advance is 0
+    if (advance || advance === 0) {
+      updatedDoc.advance = advance;
+      decrements += advance;
+    }
+
+    // Update -- discount, If there is any discount or the discount is 0
+    if (discount || discount === 0) {
+      updatedDoc.discount = discount;
+      decrements += discount;
+    }
+
+    const totalIncDec = increments - decrements;
+
+    updatedDoc.total = newSubtotal + totalIncDec;
     updatedDoc.invoiceNotes = invoiceNotes;
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;

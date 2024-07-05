@@ -36,6 +36,14 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Warranty",
   },
+  isWarrantyClaim: Boolean,
+  claimedCodes: [
+    {
+      code: {
+        type: String,
+      },
+    },
+  ],
 });
 
 const CourierDetailsSchema = new Schema<TCourierDetails>(
@@ -66,7 +74,6 @@ const OrderSchema = new Schema<TOrder>(
       type: String,
     },
     productDetails: [ProductDetailsSchema],
-    warrantyProductDetails: [ProductDetailsSchema],
     couponDetails: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coupon",

@@ -48,6 +48,10 @@ export type TProductDetails = {
   quantity: number;
   total: number;
   warranty?: mongoose.Types.ObjectId | TWarranty;
+  isWarrantyClaim?: boolean;
+  claimedCodes?: {
+    code: string;
+  }[];
 } & Document;
 
 export type TCourierDetails = {
@@ -60,7 +64,6 @@ export type TOrderData = {
   userId: Types.ObjectId | TUser;
   sessionId: string;
   productDetails: TProductDetails[];
-  warrantyProductDetails: TProductDetails[];
   couponDetails?: Types.ObjectId;
   subtotal?: number;
   tax?: number;

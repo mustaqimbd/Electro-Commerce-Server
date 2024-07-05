@@ -1,4 +1,6 @@
 import { z } from "zod";
+
+import { validateDateInput } from "../../../utilities/validateDateInput";
 import { paymentZodSchema } from "../orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../shipping/shipping.validation";
 import { orderSources, orderStatus } from "./order.const";
@@ -102,13 +104,39 @@ const bookCourierAndUpdateStatus = z.object({
   }),
 });
 
+const productDetailsSchema = () =>
+  z.object({
+    id: z.string().optional(),
+    newProductId: z.string().optional(),
+    isWarrantyClaim: z.boolean().optional(),
+    quantity: z.number().optional(),
+    claimedCodes: z
+      .array(
+        z.object({
+          code: z.string({ required_error: "Code is required" }),
+        })
+      )
+      .optional(),
+  });
+
 const updateOrderDetailsByAdmin = z.object({
   body: z.object({
     discount: z.number().optional(),
+    advance: z.number().optional(),
     officialNotes: z.string().optional(),
     invoiceNotes: z.string().optional(),
     courierNotes: z.string().optional(),
-    shipping: shippingValidationZodSchema(true),
+    shipping: shippingValidationZodSchema(true).optional(),
+    followUpDate: validateDateInput().optional(),
+    productDetails: z.array(productDetailsSchema()).optional(),
+    attributes: z
+      .array(
+        z.object({
+          name: z.string({ required_error: "Name is required." }),
+          value: z.string({ required_error: "Value is required." }),
+        })
+      )
+      .optional(),
   }),
 });
 
