@@ -456,7 +456,6 @@ const getOrderInfoByOrderIdAdminFromDB = async (
         followUpDate: 1,
         orderSource: 1,
         productDetails: 1,
-        warrantyProductDetails: 1,
         createdAt: 1,
       },
     },
@@ -486,25 +485,6 @@ const getOrderInfoByOrderIdAdminFromDB = async (
       $unwind: { path: "$productThumb", preserveNullAndEmptyArrays: true },
     },
     {
-      $lookup: {
-        from: "warranties",
-        localField: "productDetails.warranty",
-        foreignField: "_id",
-        as: "warranty",
-      },
-    },
-    {
-      $addFields: {
-        warranty: {
-          $cond: {
-            if: { $eq: [{ $size: "$warranty" }, 0] },
-            then: null,
-            else: { $arrayElemAt: ["$warranty", 0] },
-          },
-        },
-      },
-    },
-    {
       $addFields: {
         product: {
           $cond: {
@@ -518,104 +498,9 @@ const getOrderInfoByOrderIdAdminFromDB = async (
                 src: "$productThumb.src",
                 alt: "$productThumb.alt",
               },
-              warranty: {
-                $cond: {
-                  if: { $not: ["$warranty"] },
-                  then: null,
-                  else: {
-                    warrantyCodes: "$warranty.warrantyCodes",
-                    createdAt: "$warranty.createdAt",
-                  },
-                },
-              },
               unitPrice: "$productDetails.unitPrice",
               quantity: "$productDetails.quantity",
               total: "$productDetails.total",
-            },
-          },
-        },
-      },
-    },
-    {
-      $unwind: {
-        path: "$warrantyProductDetails",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "warrantyProductDetails.product",
-        foreignField: "_id",
-        as: "warrantyProductInfo",
-      },
-    },
-    {
-      $unwind: {
-        path: "$warrantyProductInfo",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "warrantyProductInfo.image.thumbnail",
-        foreignField: "_id",
-        as: "warrantyProductThumb",
-      },
-    },
-    {
-      $unwind: {
-        path: "$warrantyProductThumb",
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "warranties",
-        localField: "warrantyProductDetails.warranty",
-        foreignField: "_id",
-        as: "warrantyOrderWarranty",
-      },
-    },
-    {
-      $addFields: {
-        warrantyOrderWarranty: {
-          $cond: {
-            if: { $eq: [{ $size: "$warrantyOrderWarranty" }, 0] },
-            then: null,
-            else: { $arrayElemAt: ["$warrantyOrderWarranty", 0] },
-          },
-        },
-      },
-    },
-    {
-      $addFields: {
-        warrantyProduct: {
-          $cond: {
-            if: { $not: ["$warrantyProductDetails"] },
-            then: null,
-            else: {
-              _id: "$warrantyProductDetails._id",
-              productId: "$warrantyProductInfo._id",
-              title: "$warrantyProductInfo.title",
-              image: {
-                src: "$warrantyProductThumb.src",
-                alt: "$warrantyProductThumb.alt",
-              },
-              warranty: {
-                $cond: {
-                  if: { $not: ["$warrantyOrderWarranty"] },
-                  then: null,
-                  else: {
-                    warrantyCodes: "$warrantyOrderWarranty.warrantyCodes",
-                    createdAt: "$warrantyOrderWarranty.createdAt",
-                  },
-                },
-              },
-              unitPrice: "$warrantyProductDetails.unitPrice",
-              quantity: "$warrantyProductDetails.quantity",
-              total: "$warrantyProductDetails.total",
             },
           },
         },
@@ -649,15 +534,6 @@ const getOrderInfoByOrderIdAdminFromDB = async (
             },
           },
         },
-        warrantyProducts: {
-          $push: {
-            $cond: {
-              if: { $not: ["$warrantyProduct"] },
-              then: "$$REMOVE",
-              else: "$warrantyProduct",
-            },
-          },
-        },
         createdAt: { $first: "$createdAt" },
       },
     },
@@ -670,16 +546,10 @@ const getOrderInfoByOrderIdAdminFromDB = async (
             else: "$products",
           },
         },
-        warrantyProducts: {
-          $cond: {
-            if: { $eq: [{ $size: "$warrantyProducts" }, 0] },
-            then: null,
-            else: "$warrantyProducts",
-          },
-        },
       },
     },
   ];
+
   const result = (await Order.aggregate(pipeline))[0];
 
   if (!result) {

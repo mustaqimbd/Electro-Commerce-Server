@@ -64,7 +64,6 @@ export type TOrderData = {
   userId: Types.ObjectId | TUser;
   sessionId: string;
   productDetails: TProductDetails[];
-  warrantyProductDetails: TProductDetails[];
   couponDetails?: Types.ObjectId;
   subtotal?: number;
   tax?: number;
