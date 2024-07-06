@@ -20,6 +20,8 @@ export type TWarrantyClaimReqData = {
   claimedCodes: string[];
 };
 
+export type TClaimedCodes = { code: string; _id?: Types.ObjectId };
+
 export type TWarrantyClaimData = {
   reqId: string;
   phoneNumber: string;
@@ -37,3 +39,7 @@ export type TWarrantyClaimData = {
 };
 
 export type TWarrantyClaim = TWarrantyClaimData & Document;
+
+export type TWarrantyClaimedProductDetails = TProductDetails & {
+  claimedCodes: TClaimedCodes[];
+};

@@ -499,6 +499,8 @@ const getOrderInfoByOrderIdAdminFromDB = async (
                 alt: "$productThumb.alt",
               },
               unitPrice: "$productDetails.unitPrice",
+              isWarrantyClaim: "$productDetails.isWarrantyClaim",
+              claimedCodes: "$productDetails.claimedCodes",
               quantity: "$productDetails.quantity",
               total: "$productDetails.total",
             },

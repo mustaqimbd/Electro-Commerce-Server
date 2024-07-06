@@ -18,6 +18,7 @@ import { Cart } from "../../shoppingCartManagement/cart/cart.model";
 import { TCartItem } from "../../shoppingCartManagement/cartItem/cartItem.interface";
 import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
+import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
 import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
@@ -274,7 +275,9 @@ export const createNewOrder = async (
   session: ClientSession,
   warrantyClaimOrderData?: {
     warrantyClaim?: boolean;
-    productsDetails?: Partial<TProductDetails[]>;
+    productsDetails?:
+      | Partial<TProductDetails[]>
+      | TWarrantyClaimedProductDetails[];
   }
 ) => {
   const {
@@ -445,6 +448,8 @@ export const createNewOrder = async (
       unitPrice: price,
       quantity: item?.quantity,
       total: Math.round(item?.quantity * price),
+      isWarrantyClaim: item?.isWarrantyClaim,
+      claimedCodes: item?.claimedCodes,
       // attributes: productItem?.attributes, //TODO: Enable if attributes is need
     };
     onlyProductsCosts += result.total;

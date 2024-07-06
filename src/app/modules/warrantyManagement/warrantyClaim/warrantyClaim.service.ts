@@ -5,9 +5,11 @@ import path from "path";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
-import { TProductDetails } from "../../orderManagement/order/order.interface";
 import { createNewOrder } from "../../orderManagement/order/order.utils";
-import { TWarrantyClaim } from "./warrantyClaim.interface";
+import {
+  TWarrantyClaim,
+  TWarrantyClaimedProductDetails,
+} from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
 const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
@@ -190,8 +192,9 @@ const createNewWarrantyClaimOrderIntoDB = async (
         }) => ({
           product: productId,
           quantity: claimedCodes?.length,
+          claimedCodes: claimedCodes.map((item) => ({ code: item })),
         })
-      ) as Partial<TProductDetails[]>,
+      ) as Partial<TWarrantyClaimedProductDetails[]>,
     });
 
     await WarrantyClaim.findOneAndUpdate(
