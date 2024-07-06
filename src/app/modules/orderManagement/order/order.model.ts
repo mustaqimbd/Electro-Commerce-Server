@@ -37,13 +37,16 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     ref: "Warranty",
   },
   isWarrantyClaim: Boolean,
-  claimedCodes: [
-    {
-      code: {
-        type: String,
+  claimedCodes: {
+    type: [
+      {
+        code: {
+          type: String,
+        },
       },
-    },
-  ],
+    ],
+    default: undefined,
+  },
 });
 
 const CourierDetailsSchema = new Schema<TCourierDetails>(

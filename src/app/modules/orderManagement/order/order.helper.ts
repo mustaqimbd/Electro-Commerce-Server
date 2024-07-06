@@ -61,7 +61,7 @@ const sanitizeOrderedProducts = async (
       quantity: item.quantity,
       attributes: item?.attributes,
       isWarrantyClaim: !!item?.claimedCodes?.length,
-      claimedCodes: item?.claimedCodes || undefined,
+      claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
     });
   }
   return data;
