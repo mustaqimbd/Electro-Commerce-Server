@@ -5,6 +5,7 @@ import { TPrice } from "../../productManagement/price/price.interface";
 import { TProduct } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TWarranty } from "../../warrantyManagement/warranty/warranty.interface";
+import { TClaimedCodes } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TShipping } from "../shipping/shipping.interface";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
@@ -101,6 +102,8 @@ export type TSanitizedOrProduct = {
   };
   quantity: number;
   attributes?: TSelectedAttributes[];
+  isWarrantyClaim?: boolean;
+  claimedCodes?: TClaimedCodes[];
 };
 
 export type TCourierResponse = {

@@ -1,5 +1,6 @@
 import mongoose, { Types } from "mongoose";
 import ProductModel from "../../productManagement/product/product.model";
+import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import {
   TOrder,
   TProductDetails,
@@ -7,8 +8,10 @@ import {
 } from "./order.interface";
 import { Order } from "./order.model";
 
+type TsnOrderProduct = TProductDetails[] | TWarrantyClaimedProductDetails[];
+
 const sanitizeOrderedProducts = async (
-  orderedProducts: TProductDetails[]
+  orderedProducts: TsnOrderProduct
 ): Promise<TSanitizedOrProduct[]> => {
   const data = [];
   for (const item of orderedProducts) {
@@ -57,6 +60,8 @@ const sanitizeOrderedProducts = async (
       product,
       quantity: item.quantity,
       attributes: item?.attributes,
+      isWarrantyClaim: !!item?.claimedCodes?.length,
+      claimedCodes: item?.claimedCodes || undefined,
     });
   }
   return data;
