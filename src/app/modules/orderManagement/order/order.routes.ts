@@ -111,13 +111,6 @@ router.delete(
   OrderController.deleteOrdersById
 );
 
-router.patch(
-  "/update-quantity/:id",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
-  validateRequest(OrderValidation.updateQuantity),
-  OrderController.updateOrderedProductQuantityByAdmin
-);
-
 router.get(
   "/orders-count-by-status",
   // authGuard({ requiredRoles: ["admin", "staff"] }),

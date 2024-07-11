@@ -176,22 +176,6 @@ const updateOrderDetailsByAdmin = catchAsync(
   }
 );
 
-const updateOrderedProductQuantityByAdmin = catchAsync(
-  async (req: Request, res: Response) => {
-    const { orderedItemId, quantity } = req.body;
-    await OrderServices.updateOrderedProductQuantityByAdmin(
-      req.params.id,
-      orderedItemId,
-      Number(quantity)
-    );
-
-    successResponse(res, {
-      statusCode: httpStatus.OK,
-      message: "Order quantity updated successfully.",
-    });
-  }
-);
-
 const deleteOrdersById = catchAsync(async (req: Request, res: Response) => {
   const { orderIds } = req.body;
   await OrderServices.deleteOrdersByIdFromBD(orderIds);
@@ -243,7 +227,6 @@ export const OrderController = {
   getProcessingOrdersAdmin,
   updateOrderDetailsByAdmin,
   deleteOrdersById,
-  updateOrderedProductQuantityByAdmin,
   orderCountsByStatus,
   updateOrdersDeliveryStatus,
   updateProcessingStatus,
