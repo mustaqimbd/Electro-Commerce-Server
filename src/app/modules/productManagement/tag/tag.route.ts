@@ -2,13 +2,13 @@ import express from "express";
 import validateRequest from "../../../middlewares/validateRequest";
 import { TagControllers } from "./tag.controller";
 import { TagValidation } from "./tag.validation";
-// import authGuard from '../../middlewares/authGuard';
+import authGuard from "../../../middlewares/authGuard";
 
 const router = express.Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
+  authGuard({ requiredRoles: ["admin"] }),
   validateRequest(TagValidation.tag),
   TagControllers.createTag
 );

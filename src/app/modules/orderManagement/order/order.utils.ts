@@ -108,6 +108,7 @@ export const ordersPipeline = (): PipelineStage[] => [
       subtotal: 1,
       total: 1,
       discount: 1,
+      advance: 1,
       status: 1,
       shipping: {
         fullName: "$shippingData.fullName",
@@ -188,6 +189,7 @@ export const ordersPipeline = (): PipelineStage[] => [
       subtotal: 1,
       total: 1,
       discount: 1,
+      advance: 1,
       status: 1,
       shipping: 1,
       shippingCharge: 1,
@@ -210,6 +212,7 @@ export const ordersPipeline = (): PipelineStage[] => [
       total: { $first: "$total" },
       subtotal: { $first: "$subtotal" },
       discount: { $first: "$discount" },
+      advance: { $first: "$advance" },
       status: { $first: "$status" },
       shipping: { $first: "$shipping" },
       shippingCharge: { $first: "$shippingCharge" },
