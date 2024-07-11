@@ -121,8 +121,8 @@ const productDetailsSchema = () =>
 
 const updateOrderDetailsByAdmin = z.object({
   body: z.object({
-    discount: z.number().optional(),
-    advance: z.number().optional(),
+    discount: z.number().min(0).optional(),
+    advance: z.number().min(0).optional(),
     officialNotes: z.string().optional(),
     invoiceNotes: z.string().optional(),
     courierNotes: z.string().optional(),

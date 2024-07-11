@@ -125,7 +125,6 @@ export const ordersPipeline = (): PipelineStage[] => [
       orderNotes: 1,
       followUpDate: 1,
       productDetails: 1,
-      // warrantyProductDetails: 1, // Removed field
     },
   },
   {
@@ -175,7 +174,6 @@ export const ordersPipeline = (): PipelineStage[] => [
             unitPrice: "$productDetails.unitPrice",
             quantity: "$productDetails.quantity",
             total: "$productDetails.total",
-            iSWarranty: "$productInfo.warranty",
           },
         },
       },
