@@ -1583,12 +1583,16 @@ const updateOrderDetailsByAdminIntoDB = async (
     if (advance || advance === 0) {
       updatedDoc.advance = advance;
       decrements += advance;
+    } else {
+      decrements += findOrder.advance || 0;
     }
 
     // Update -- discount, If there is any discount or the discount is 0
     if (discount || discount === 0) {
       updatedDoc.discount = discount;
       decrements += discount;
+    } else {
+      decrements += findOrder.discount || 0;
     }
 
     const totalIncDec = increments - decrements;
@@ -1647,146 +1651,6 @@ const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
     throw error;
   } finally {
     await session.endSession();
-  }
-};
-
-const updateOrderedProductQuantityByAdmin = async (
-  orderId: string,
-  orderedItemId: string,
-  quantity: number
-) => {
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    const order = (
-      await Order.aggregate([
-        {
-          $match: { _id: new mongoose.Types.ObjectId(orderId) },
-        },
-        {
-          $lookup: {
-            from: "shippingcharges",
-            localField: "shippingCharge",
-            foreignField: "_id",
-            as: "shippingCharge",
-          },
-        },
-        {
-          $unwind: "$shippingCharge",
-        },
-        {
-          $project: {
-            productDetails: 1,
-            shippingCharge: 1,
-            discount: 1,
-            advance: 1,
-          },
-        },
-      ])
-    )[0];
-
-    if (!order) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No order found.");
-    }
-
-    const currentUpdateItem = (order.productDetails as TProductDetails[]).find(
-      (item) => item._id.toString() === orderedItemId
-    );
-
-    const updateObj = {
-      $set: {
-        "productDetails.$.quantity": quantity,
-        "productDetails.$.total":
-          Number(currentUpdateItem?.unitPrice) * quantity,
-      },
-    };
-    await Order.findOneAndUpdate(
-      {
-        _id: orderId,
-        "productDetails._id": orderedItemId,
-      },
-      updateObj
-    );
-
-    const productId = currentUpdateItem?.product;
-    const productInventory = (
-      await ProductModel.aggregate([
-        {
-          $match: { _id: productId },
-        },
-        {
-          $lookup: {
-            from: "inventories",
-            localField: "inventory",
-            foreignField: "_id",
-            as: "inventory",
-          },
-        },
-        {
-          $unwind: "$inventory",
-        },
-        {
-          $project: {
-            _id: null,
-            inventory: 1,
-          },
-        },
-      ])
-    )[0].inventory;
-
-    const updatedQuantity =
-      productInventory.stockQuantity + currentUpdateItem?.quantity - quantity;
-    const result = await InventoryModel.updateOne(
-      { _id: productInventory._id },
-      { stockQuantity: updatedQuantity }
-    ).session(session);
-
-    if (!result.modifiedCount) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to update the stock quantity"
-      );
-    }
-
-    let subtotalWithoutChangedItem = 0;
-    (order.productDetails as TProductDetails[])
-      .filter((item) => item._id !== currentUpdateItem?._id)
-      .forEach((item) => (subtotalWithoutChangedItem += item.total));
-
-    const updatedSubtotal =
-      subtotalWithoutChangedItem +
-      Number(currentUpdateItem?.unitPrice) * quantity;
-
-    const updatedTotal =
-      updatedSubtotal +
-      order.shippingCharge.amount -
-      Number(order?.discount || 0) -
-      Number(order?.advance || 0);
-
-    const orderUpdateRes = await Order.updateOne(
-      { _id: orderId },
-      {
-        $set: {
-          subtotal: updatedSubtotal,
-          total: updatedTotal,
-        },
-      }
-    ).session(session);
-
-    if (!orderUpdateRes.modifiedCount) {
-      throw new ApiError(
-        httpStatus.INTERNAL_SERVER_ERROR,
-        "Failed to update Order details."
-      );
-    }
-
-    await session.commitTransaction();
-    await session.endSession();
-  } catch (error) {
-    await session.abortTransaction();
-    await session.endSession();
-    throw error;
   }
 };
 
@@ -1887,57 +1751,6 @@ const getCustomersOrdersCountByPhoneFromDB = async (phoneNumber: string) => {
   return formattedCount;
 };
 
-// this will need later
-// const deleteOrderByIdFromBD = async (id: string) => {
-//   const session = await mongoose.startSession();
-
-//   const order = await Order.findOne({ _id: id }).populate([
-//     { path: "orderedProductsDetails", select: "productDetails" },
-//   ]);
-//   if (!order) {
-//     throw new ApiError(httpStatus.BAD_REQUEST, "No order found with this ID.");
-//   }
-//   order.orderedProductsDetails =
-//     order.orderedProductsDetails as TOrderedProducts;
-
-//   try {
-//     session.startTransaction();
-//     await OrderedProducts.findOneAndDelete({
-//       _id: order?.orderedProductsDetails?._id,
-//     }).session(session);
-
-//     await OrderPayment.findOneAndDelete({ _id: order.payment }).session(
-//       session
-//     );
-
-//     await Shipping.findOneAndDelete({ _id: order.shipping }).session(session);
-
-//     await OrderStatusHistory.findOneAndDelete({
-//       _id: order.statusHistory,
-//     }).session(session);
-
-//     await Order.findOneAndDelete({ _id: order._id }).session(session);
-
-//     // update quantity
-//     for (const item of order.orderedProductsDetails.productDetails) {
-//       const product = await ProductModel.findById(item.product, {
-//         inventory: 1,
-//         title: 1,
-//       }).lean();
-//       await InventoryModel.updateOne(
-//         { _id: product?.inventory },
-//         { $inc: { stockQuantity: item.quantity } }
-//       ).session(session);
-//     }
-//     await session.commitTransaction();
-//     await session.endSession();
-//   } catch (error) {
-//     await session.abortTransaction();
-//     await session.endSession();
-//     throw error;
-//   }
-// };
-
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
@@ -1949,7 +1762,6 @@ export const OrderServices = {
   getAllOrdersAdminFromDB,
   updateOrderDetailsByAdminIntoDB,
   deleteOrdersByIdFromBD,
-  updateOrderedProductQuantityByAdmin,
   orderCountsByStatusFromBD,
   updateOrdersDeliveryStatusIntoDB,
   getProcessingOrdersAdminFromDB,
