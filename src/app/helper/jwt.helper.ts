@@ -3,7 +3,7 @@ import jwt, { Secret } from "jsonwebtoken";
 import ApiError from "../errorHandlers/ApiError";
 
 const createToken = (
-  payload: Record<string, string>,
+  payload: Record<string, string | string[]>,
   secret: Secret,
   expiresIn: string
 ) => {

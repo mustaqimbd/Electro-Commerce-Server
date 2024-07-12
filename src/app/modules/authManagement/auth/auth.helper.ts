@@ -72,6 +72,11 @@ const loginUser = async (req: Request, user: Partial<TUser | null>) => {
       {
         id: user?._id,
         role: user?.role as string,
+        permissions:
+          (user?.permissions?.map(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (item: any) => item.name
+          ) as unknown as string[]) || [],
         uid: user?.uid as string,
         sessionId,
       },
