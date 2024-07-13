@@ -1256,6 +1256,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
     if (courier.name === "steedfast") {
       const { success: successRequests, error: failedRequests } =
         await createOrderOnSteedFast(orders, courier);
+
       successCourierOrders = successRequests;
       failedCourierOrders = failedRequests.map((item) => item.orderId);
     }
