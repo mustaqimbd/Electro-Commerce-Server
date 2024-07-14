@@ -170,6 +170,7 @@ export const ordersPipeline = (): PipelineStage[] => [
             _id: "$productDetails._id",
             productId: "$productInfo._id",
             title: "$productInfo.title",
+            isProductWarrantyAvailable: "$productInfo.title",
             warranty: "$warranty",
             unitPrice: "$productDetails.unitPrice",
             quantity: "$productDetails.quantity",
