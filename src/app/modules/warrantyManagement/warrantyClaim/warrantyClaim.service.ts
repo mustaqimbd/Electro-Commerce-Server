@@ -89,8 +89,9 @@ const updateWarrantyClaimReqIntoDB = async (
       "No warranty claim request found"
     );
 
-  const { warrantyClaimReqData } = payload as {
+  const { warrantyClaimReqData, shipping } = payload as {
     warrantyClaimReqData: string[];
+    shipping: Partial<TShipping>;
   };
 
   if (payload.contactStatus) {
@@ -124,7 +125,15 @@ const updateWarrantyClaimReqIntoDB = async (
   }
 
   if (payload.shipping) {
-    warrantyClaimReq.shipping = payload.shipping as TShipping;
+    const newShipping = {
+      fullName: shipping.fullName ?? warrantyClaimReq.shipping.fullName,
+      fullAddress:
+        shipping.fullAddress ?? warrantyClaimReq.shipping.fullAddress,
+      phoneNumber:
+        shipping.phoneNumber ?? warrantyClaimReq.shipping.phoneNumber,
+    };
+
+    warrantyClaimReq.shipping = newShipping as unknown as TShipping;
   }
 
   if (payload.officialNotes || payload.officialNotes === "") {
