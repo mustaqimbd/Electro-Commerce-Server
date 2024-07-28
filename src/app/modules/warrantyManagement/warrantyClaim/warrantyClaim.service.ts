@@ -89,8 +89,9 @@ const updateWarrantyClaimReqIntoDB = async (
       "No warranty claim request found"
     );
 
-  const { warrantyClaimReqData } = payload as {
+  const { warrantyClaimReqData, shipping } = payload as {
     warrantyClaimReqData: string[];
+    shipping: Partial<TShipping>;
   };
 
   if (payload.contactStatus) {
@@ -108,10 +109,31 @@ const updateWarrantyClaimReqIntoDB = async (
     warrantyClaimReq.result =
       payload.result as TWarrantyClaimedProductCondition;
     warrantyClaimReq.identifiedBy = user.id;
+    if (payload.result === "solved") {
+      if (warrantyClaimReq?.videosAndImages?.length) {
+        warrantyClaimReq?.videosAndImages?.forEach((item) => {
+          try {
+            const folderPath = path.parse(item.path).dir;
+            fsEx.remove(folderPath);
+            // eslint-disable-next-line no-empty
+          } finally {
+          }
+        });
+      }
+      warrantyClaimReq.videosAndImages = [];
+    }
   }
 
   if (payload.shipping) {
-    warrantyClaimReq.shipping = payload.shipping as TShipping;
+    const newShipping = {
+      fullName: shipping.fullName ?? warrantyClaimReq.shipping.fullName,
+      fullAddress:
+        shipping.fullAddress ?? warrantyClaimReq.shipping.fullAddress,
+      phoneNumber:
+        shipping.phoneNumber ?? warrantyClaimReq.shipping.phoneNumber,
+    };
+
+    warrantyClaimReq.shipping = newShipping as unknown as TShipping;
   }
 
   if (payload.officialNotes || payload.officialNotes === "") {
@@ -128,19 +150,6 @@ const updateWarrantyClaimReqIntoDB = async (
       claimReqData as TWarrantyClaimReqData[];
   }
   await warrantyClaimReq.save();
-};
-
-const updateContactStatusIntoDB = async (
-  warrantyClaimedReqIds: Types.ObjectId[],
-  contactStatus: string
-) => {
-  const result = await WarrantyClaim.updateMany(
-    { _id: { $in: warrantyClaimedReqIds } },
-    { contactStatus },
-    { upsert: true }
-  );
-
-  return result;
 };
 
 const createNewWarrantyClaimOrderIntoDB = async (
@@ -166,7 +175,7 @@ const createNewWarrantyClaimOrderIntoDB = async (
   if (claimReq?.contactStatus !== "confirmed") {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Please contact with the customer first"
+      "Please contact the customer first"
     );
   }
 
@@ -248,6 +257,5 @@ export const WarrantyClaimServices = {
   checkWarrantyFromDB,
   createWarrantyClaimIntoDB,
   updateWarrantyClaimReqIntoDB,
-  updateContactStatusIntoDB,
   createNewWarrantyClaimOrderIntoDB,
 };
