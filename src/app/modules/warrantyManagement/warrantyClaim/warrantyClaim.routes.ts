@@ -26,7 +26,7 @@ router.post(
   imageAndVideoUploader.array("files", Number(config.upload_image_maxCount)),
   WarrantyClaimMiddlewares.parseFormData,
   validateRequest(WarrantyClaimValidation.createWarrantyClaimReq),
-  WarrantyClaimMiddlewares.validateWarranty,
+  WarrantyClaimMiddlewares.validateWarrantyMiddleware,
   WarrantyClaimController.createWarrantyClaimReq
 );
 

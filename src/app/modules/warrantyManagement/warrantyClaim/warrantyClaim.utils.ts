@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import { PipelineStage } from "mongoose";
+import { PipelineStage, Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { Order } from "../../orderManagement/order/order.model";
 import { createOrderId } from "../../orderManagement/order/order.utils";
@@ -152,15 +152,88 @@ const ifAlreadyClaimRequestPending = async (phoneNumber: string) => {
   if (result) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Dear valued customer, your another warranty claim request has already been pending. After completing that request, you can claim a new warranty."
+      "প্রিয় গ্রাহক, আপনার আরেকটি ওয়ারেন্টি দাবির অনুরোধ ইতিমধ্যেই মুলতুবি রয়েছে। সেই অনুরোধটি সম্পূর্ণ করার পরে, আপনি একটি নতুন ওয়ারেন্টি দাবি করতে পারবেন,ধন্যবাদ।"
     );
   }
 };
 
 const createReqID = () => createOrderId();
 
+const validateWarranty = async ({
+  phoneNumber,
+  warrantyCodes,
+}: {
+  phoneNumber: string;
+  warrantyCodes: string[];
+}) => {
+  const warranties = await WarrantyClaimUtils.getWarrantyData(
+    phoneNumber,
+    warrantyCodes
+  );
+  if (!warranties.length) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request");
+  }
+  const warrantyClaimReqData: Record<string, unknown>[] = [];
+
+  const allCodes: string[] = [];
+
+  warranties.forEach((warranty) => {
+    (
+      warranty.products as {
+        _id: Types.ObjectId;
+        productId: Types.ObjectId;
+        warranty: { warrantyCodes: { code: string }[]; endsDate: string };
+      }[]
+    ).map((product) => {
+      if (product?.warranty?.warrantyCodes)
+        allCodes.push(
+          ...product.warranty.warrantyCodes.map(({ code }) => code)
+        );
+      const endsDate = new Date(product?.warranty?.endsDate);
+      const today = new Date();
+      if (today > endsDate) {
+        const expiredCodes = product.warranty.warrantyCodes
+          .filter(({ code }) => warrantyCodes.includes(code))
+          .map(({ code }) => code);
+        const formattedEndsDate = `${endsDate}`
+          .split(" ")
+          .slice(1, 4)
+          .join(" ");
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `The warranty for code${expiredCodes.length > 1 ? "s" : ""} -'${expiredCodes}' was valid till ${formattedEndsDate}`
+        );
+      }
+
+      const data: Record<string, unknown> = {
+        order_id: warranty._id,
+      };
+      data.orderItemId = product._id;
+      data.productId = product.productId;
+      data.claimedCodes = product?.warranty?.warrantyCodes
+        .map((item) =>
+          warrantyCodes.includes(item.code) ? item.code : undefined
+        )
+        .filter(Boolean);
+      warrantyClaimReqData.push(data);
+    });
+  });
+  const notFoundCodes = warrantyCodes.filter(
+    (item) => !allCodes.includes(item)
+  );
+  if (notFoundCodes.length) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `The provides code${notFoundCodes.length > 1 ? "s" : ""} -'${notFoundCodes}' was not found.`
+    );
+  }
+
+  return warrantyClaimReqData;
+};
+
 export const WarrantyClaimUtils = {
   ifAlreadyClaimRequestPending,
   getWarrantyData,
   createReqID,
+  validateWarranty,
 };

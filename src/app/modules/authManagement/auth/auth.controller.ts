@@ -85,8 +85,17 @@ const logoutUser = catchAsync(async (req: Request, res: Response) => {
   const { refreshToken } = req.cookies;
   await AuthServices.logoutUser(refreshToken);
   req.ecSID.newId();
-  res.cookie("__app.ec.rt", "", { expires: new Date(0) });
-  res.cookie("__app.ec.at", "", { expires: new Date(0) });
+  const cookieOption: CookieOptions = {
+    domain:
+      config.env === "production" ? `.${config.main_domain}` : "localhost",
+    httpOnly: config.env === "production",
+    secure: config.env === "production",
+    sameSite: "lax",
+    expires: new Date(0),
+  };
+  res.cookie("__app.ec.rt", "", cookieOption);
+  res.cookie("__app.ec.at", "", cookieOption);
+
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Logged out successfully.",
