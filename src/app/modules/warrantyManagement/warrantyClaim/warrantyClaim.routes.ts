@@ -40,16 +40,6 @@ router.patch(
   WarrantyClaimController.updateWarrantyClaimReq
 );
 
-router.patch(
-  "/update-contact-status",
-  authGuard({
-    requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage warranty claim",
-  }),
-  validateRequest(WarrantyClaimValidation.updateContactStatus),
-  WarrantyClaimController.updateContactStatus
-);
-
 router.post(
   "/create-order/:id",
   authGuard({
