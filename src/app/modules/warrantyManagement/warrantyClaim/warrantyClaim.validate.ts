@@ -34,12 +34,17 @@ const updateWarrantyClaimReq = z.object({
   body: z.object({
     shipping: shippingValidationZodSchema(true).optional(),
     officialNotes: z.string().optional(),
+    phoneNumber: z.string().optional(),
     result: z
       .enum([...warrantyClaimedProductCondition] as [string, ...string[]])
       .optional(),
     approvalStatus: z
       .enum([...warrantyApprovalStatus] as [string, ...string[]])
       .optional(),
+    contactStatus: z
+      .enum([...warrantyClaimedContactStatus] as [string, ...string[]])
+      .optional(),
+    warrantyClaimReqData: z.string().array().optional(),
   }),
 });
 

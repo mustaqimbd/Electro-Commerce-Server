@@ -6,9 +6,13 @@ import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { createNewOrder } from "../../orderManagement/order/order.utils";
+import { TShipping } from "../../orderManagement/shipping/shipping.interface";
 import {
   TWarrantyClaim,
+  TWarrantyClaimedContactStatus,
+  TWarrantyClaimedProductCondition,
   TWarrantyClaimedProductDetails,
+  TWarrantyClaimReqData,
 } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
@@ -84,26 +88,46 @@ const updateWarrantyClaimReqIntoDB = async (
       httpStatus.BAD_REQUEST,
       "No warranty claim request found"
     );
-  const updatedDoc: Record<string, unknown> = {};
+
+  const { warrantyClaimReqData } = payload as {
+    warrantyClaimReqData: string[];
+  };
+
+  if (payload.contactStatus) {
+    warrantyClaimReq.contactStatus =
+      payload.contactStatus as TWarrantyClaimedContactStatus;
+  }
 
   if (payload.result) {
-    updatedDoc.result = payload.result;
-    updatedDoc.identifiedBy = user.id;
+    if (!["confirmed"].includes(warrantyClaimReq.contactStatus)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Please contact the customer first."
+      );
+    }
+    warrantyClaimReq.result =
+      payload.result as TWarrantyClaimedProductCondition;
+    warrantyClaimReq.identifiedBy = user.id;
   }
 
   if (payload.shipping) {
-    updatedDoc.shipping = payload.shipping;
+    warrantyClaimReq.shipping = payload.shipping as TShipping;
   }
 
   if (payload.officialNotes || payload.officialNotes === "") {
-    updatedDoc.officialNotes = payload.officialNotes;
+    warrantyClaimReq.officialNotes = payload.officialNotes as string;
   }
 
-  await WarrantyClaim.findByIdAndUpdate(
-    id,
-    { $set: updatedDoc },
-    { new: true }
-  );
+  if ((warrantyClaimReqData || []).length) {
+    const claimReqData = await WarrantyClaimUtils.validateWarranty({
+      phoneNumber: warrantyClaimReq.phoneNumber,
+      warrantyCodes: warrantyClaimReqData,
+    });
+
+    warrantyClaimReq.warrantyClaimReqData =
+      claimReqData as TWarrantyClaimReqData[];
+  }
+  await warrantyClaimReq.save();
 };
 
 const updateContactStatusIntoDB = async (
