@@ -157,6 +157,17 @@ const getOrdersCountsFromDB = async (query: TReportsQuery) => {
     };
 
     pipeline.push(...ReportsHelper.dailyOrdersPipeline(matchQuery));
+  } else if (query.type === "yearly") {
+    // This is the case for yearly reports by every year
+    const startOfYear = new Date(dateNow.getFullYear(), 0, 1);
+    const endOfYear = new Date(dateNow.getFullYear() + 1, 0, 1);
+
+    matchQuery.createdAt = {
+      $gte: startOfYear,
+      $lt: endOfYear,
+    };
+
+    pipeline.push(...ReportsHelper.yearlyOrdersPipeline(matchQuery));
   } else {
     const startOfDay = new Date(dateNow);
     startOfDay.setHours(0, 0, 0, 0);

@@ -7,6 +7,7 @@ export type TReportsType =
   | "lastMonth"
   | "thisYear"
   | "lastYear"
+  | "yearly"
   | "customDate"
   | "customRange";
 

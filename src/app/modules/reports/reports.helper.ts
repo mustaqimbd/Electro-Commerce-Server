@@ -116,8 +116,39 @@ const monthlyOrdersPipeline = (
   },
 ];
 
+const yearlyOrdersPipeline = (
+  matchQuery: Record<string, unknown>
+): PipelineStage[] => [
+  {
+    $match: matchQuery,
+  },
+  {
+    $addFields: {
+      year: { $year: "$createdAt" },
+    },
+  },
+  {
+    $group: {
+      _id: "$year",
+      count: { $sum: 1 },
+    },
+  },
+  {
+    $project: {
+      _id: 0,
+      id: "$_id",
+      name: "year",
+      count: 1,
+    },
+  },
+  {
+    $sort: { id: 1 },
+  },
+];
+
 export const ReportsHelper = {
   hourlyOrdersPipeline,
   dailyOrdersPipeline,
   monthlyOrdersPipeline,
+  yearlyOrdersPipeline,
 };
