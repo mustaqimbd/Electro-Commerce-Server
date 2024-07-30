@@ -43,7 +43,18 @@ const getOrderStatusChangeCounts = catchAsync(
     );
     successResponse(res, {
       statusCode: httpStatus.OK,
-      message: "Order source report retrieved successfully.",
+      message: "Order status change report retrieved successfully.",
+      data: result,
+    });
+  }
+);
+
+const getBestSellingProducts = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await ReportsServices.getBestSellingProductsFromDB();
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Best selling products report retrieved successfully.",
       data: result,
     });
   }
@@ -54,4 +65,5 @@ export const ReportsController = {
   getOrderCountsByStatus,
   getSourceCounts,
   getOrderStatusChangeCounts,
+  getBestSellingProducts,
 };

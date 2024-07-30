@@ -1,10 +1,10 @@
 import { PipelineStage } from "mongoose";
-import { Order } from "../orderManagement/order/order.model";
-
+import config from "../../config/config";
 import {
   orderSources,
   orderStatus,
 } from "../orderManagement/order/order.const";
+import { Order } from "../orderManagement/order/order.model";
 import { OrderStatusHistory } from "../orderManagement/orderStatusHistory/orderStatusHistory.model";
 import { ReportsHelper } from "./reports.helper";
 import { TReportsQuery } from "./reports.interface";
@@ -362,11 +362,84 @@ const getOrderStatusChangeCountsFromDB = async (dateParam: string) => {
   return completeStatusList;
 };
 
-getOrderStatusChangeCountsFromDB("2024-03-14");
+const getBestSellingProductsFromDB = async () => {
+  const pipeline: PipelineStage[] = [
+    {
+      $match: { status: { $ne: "deleted" } },
+    },
+    {
+      $unwind: "$productDetails",
+    },
+    {
+      $group: {
+        _id: "$productDetails.product",
+        totalQuantity: { $sum: "$productDetails.quantity" },
+        totalWarrantyClaims: {
+          $sum: {
+            $cond: [{ $eq: ["$productDetails.isWarrantyClaim", true] }, 1, 0],
+          },
+        },
+      },
+    },
+    {
+      $sort: { totalQuantity: -1 },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    {
+      $unwind: "$product",
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "product.image.thumbnail",
+        foreignField: "_id",
+        as: "productImage",
+      },
+    },
+    {
+      $unwind: "$productImage",
+    },
+    {
+      $lookup: {
+        from: "inventories",
+        localField: "product.inventory",
+        foreignField: "_id",
+        as: "inventory",
+      },
+    },
+    {
+      $unwind: "$inventory",
+    },
+    {
+      $project: {
+        _id: 0,
+        productId: "$_id",
+        productName: "$product.title",
+        productImage: {
+          $concat: [config.image_server, "/", "$productImage.src"],
+        },
+        stockQuantity: "$inventory.stockQuantity",
+        totalSales: "$totalQuantity",
+        totalWarrantyClaims: "$totalWarrantyClaims",
+      },
+    },
+  ];
+  const result = await Order.aggregate(pipeline);
+
+  return result;
+};
 
 export const ReportsServices = {
   getOrdersCountsFromDB,
   getOrderCountsByStatusFromDB,
   getSourceCountsFromDB,
   getOrderStatusChangeCountsFromDB,
+  getBestSellingProductsFromDB,
 };

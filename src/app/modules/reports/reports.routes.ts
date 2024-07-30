@@ -30,4 +30,11 @@ route.get(
   ReportsController.getOrderStatusChangeCounts
 );
 
+// This will return best selling products, it will skip warranty claim products
+route.get(
+  "/best-selling-product",
+  authGuard({ requiredRoles: ["admin"], requiredPermission }),
+  ReportsController.getBestSellingProducts
+);
+
 export const ReportsRoutes = route;
