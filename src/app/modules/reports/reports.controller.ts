@@ -5,8 +5,8 @@ import successResponse from "../../utilities/successResponse";
 import { TReportsQuery } from "./reports.interface";
 import { ReportsServices } from "./reports.service";
 
-const getOrders = catchAsync(async (req: Request, res: Response) => {
-  const result = await ReportsServices.getOrdersFromDB(
+const getOrdersCounts = catchAsync(async (req: Request, res: Response) => {
+  const result = await ReportsServices.getOrdersCountsFromDB(
     req.query as unknown as TReportsQuery
   );
   successResponse(res, {
@@ -26,6 +26,7 @@ const getOrderCountsByStatus = catchAsync(
     });
   }
 );
+
 const getSourceCounts = catchAsync(async (req: Request, res: Response) => {
   const result = await ReportsServices.getSourceCountsFromDB();
   successResponse(res, {
@@ -35,8 +36,22 @@ const getSourceCounts = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getOrderStatusChangeCounts = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await ReportsServices.getOrderStatusChangeCountsFromDB(
+      req.query.date as unknown as string
+    );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order source report retrieved successfully.",
+      data: result,
+    });
+  }
+);
+
 export const ReportsController = {
-  getOrders,
+  getOrdersCounts,
   getOrderCountsByStatus,
   getSourceCounts,
+  getOrderStatusChangeCounts,
 };

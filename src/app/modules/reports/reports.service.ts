@@ -5,10 +5,11 @@ import {
   orderSources,
   orderStatus,
 } from "../orderManagement/order/order.const";
+import { OrderStatusHistory } from "../orderManagement/orderStatusHistory/orderStatusHistory.model";
 import { ReportsHelper } from "./reports.helper";
 import { TReportsQuery } from "./reports.interface";
 
-const getOrdersFromDB = async (query: TReportsQuery) => {
+const getOrdersCountsFromDB = async (query: TReportsQuery) => {
   const matchQuery: Record<string, unknown> = { status: { $ne: "deleted" } };
   const pipeline: PipelineStage[] = [];
   const dateNow = new Date();
@@ -277,12 +278,84 @@ const getSourceCountsFromDB = async () => {
       },
     },
   ];
-  const result = await Order.aggregate(pipeline);
-  return result;
+
+  const results = await Order.aggregate(pipeline);
+
+  const resultMap = results.reduce((map, item) => {
+    map[item.source] = item;
+    return map;
+  }, {});
+
+  const completeList = orderSources.map((source) => ({
+    source,
+    count: resultMap[source]?.count || 0,
+    percentage: resultMap[source]?.percentage || 0,
+  }));
+
+  return completeList;
 };
 
+const getOrderStatusChangeCountsFromDB = async (dateParam: string) => {
+  const date = dateParam ? new Date(dateParam) : new Date();
+  const formattedDate = date.toISOString().split("T")[0];
+  const pipeline: PipelineStage[] = [
+    { $unwind: "$history" },
+    {
+      $match: {
+        "history.createdAt": {
+          $gte: new Date(`${formattedDate}T00:00:00.000Z`),
+          $lt: new Date(`${formattedDate}T23:59:59.999Z`),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          date: {
+            $dateToString: { format: "%Y-%m-%d", date: "$history.createdAt" },
+          },
+          status: "$history.status",
+        },
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id.date",
+        status: "$_id.status",
+        count: 1,
+      },
+    },
+    {
+      $addFields: {
+        order: { $indexOfArray: [orderStatus, "$status"] },
+      },
+    },
+    { $sort: { date: 1, order: 1 } },
+  ];
+
+  const result = await OrderStatusHistory.aggregate(pipeline);
+
+  const statusCountMap = result.reduce((map, item) => {
+    map[item.status] = item.count;
+    return map;
+  }, {});
+
+  const completeStatusList = orderStatus.map((status) => ({
+    date: formattedDate,
+    status: status,
+    count: statusCountMap[status] || 0,
+  }));
+
+  return completeStatusList;
+};
+
+getOrderStatusChangeCountsFromDB("2024-03-14");
+
 export const ReportsServices = {
-  getOrdersFromDB,
+  getOrdersCountsFromDB,
   getOrderCountsByStatusFromDB,
   getSourceCountsFromDB,
+  getOrderStatusChangeCountsFromDB,
 };

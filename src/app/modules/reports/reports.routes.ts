@@ -9,7 +9,7 @@ const requiredPermission = "super admin";
 route.get(
   "/orders",
   authGuard({ requiredRoles: ["admin"], requiredPermission }),
-  ReportsController.getOrders
+  ReportsController.getOrdersCounts
 );
 
 route.get(
@@ -19,9 +19,15 @@ route.get(
 );
 
 route.get(
-  "/orders-source",
+  "/orders-source-count",
   authGuard({ requiredRoles: ["admin"], requiredPermission }),
   ReportsController.getSourceCounts
+);
+
+route.get(
+  "/orders-status-change-count",
+  authGuard({ requiredRoles: ["admin"], requiredPermission }),
+  ReportsController.getOrderStatusChangeCounts
 );
 
 export const ReportsRoutes = route;
