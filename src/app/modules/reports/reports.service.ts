@@ -1,6 +1,10 @@
 import { PipelineStage } from "mongoose";
 import { Order } from "../orderManagement/order/order.model";
 
+import {
+  orderSources,
+  orderStatus,
+} from "../orderManagement/order/order.const";
 import { ReportsHelper } from "./reports.helper";
 import { TReportsQuery } from "./reports.interface";
 
@@ -169,6 +173,116 @@ const getOrdersFromDB = async (query: TReportsQuery) => {
   return result;
 };
 
+const getOrderCountsByStatusFromDB = async () => {
+  orderStatus.pop();
+  const statusMap: { [key: string]: number } = { all: 0 };
+  orderStatus.forEach((item: string) => {
+    statusMap[item] = 0;
+  });
+
+  const statusPipeline = [
+    {
+      $match: {
+        status: {
+          $in: Object.keys(statusMap),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ];
+
+  const result = await Order.aggregate(statusPipeline);
+
+  result.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+    statusMap.all += total;
+  });
+
+  const formattedResult = Object.entries(statusMap).map(([name, total]) => {
+    const percentage =
+      name === "all" ? undefined : (total / statusMap.all) * 100;
+    return {
+      name,
+      total,
+      percentage: percentage ? parseFloat(percentage.toFixed(2)) : undefined,
+    };
+  });
+
+  return formattedResult;
+};
+
+const getSourceCountsFromDB = async () => {
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        status: { $ne: "deleted" },
+      },
+    },
+    {
+      $facet: {
+        totalOrders: [
+          {
+            $count: "total",
+          },
+        ],
+        orderCounts: [
+          {
+            $group: {
+              _id: "$orderSource.name",
+              count: { $sum: 1 },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$totalOrders",
+    },
+    {
+      $unwind: "$orderCounts",
+    },
+    {
+      $project: {
+        source: "$orderCounts._id",
+        count: "$orderCounts.count",
+        percentage: {
+          $round: [
+            {
+              $multiply: [
+                { $divide: ["$orderCounts.count", "$totalOrders.total"] },
+                100,
+              ],
+            },
+            2,
+          ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        order: { $indexOfArray: [orderSources, "$source"] },
+      },
+    },
+    {
+      $sort: { order: 1 },
+    },
+    {
+      $project: {
+        order: 0,
+      },
+    },
+  ];
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
 export const ReportsServices = {
   getOrdersFromDB,
+  getOrderCountsByStatusFromDB,
+  getSourceCountsFromDB,
 };

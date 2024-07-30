@@ -12,4 +12,16 @@ route.get(
   ReportsController.getOrders
 );
 
+route.get(
+  "/orders-count",
+  authGuard({ requiredRoles: ["admin"], requiredPermission }),
+  ReportsController.getOrderCountsByStatus
+);
+
+route.get(
+  "/orders-source",
+  authGuard({ requiredRoles: ["admin"], requiredPermission }),
+  ReportsController.getSourceCounts
+);
+
 export const ReportsRoutes = route;

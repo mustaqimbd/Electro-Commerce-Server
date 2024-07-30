@@ -16,6 +16,27 @@ const getOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getOrderCountsByStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await ReportsServices.getOrderCountsByStatusFromDB();
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Order info retrieved successfully.",
+      data: result,
+    });
+  }
+);
+const getSourceCounts = catchAsync(async (req: Request, res: Response) => {
+  const result = await ReportsServices.getSourceCountsFromDB();
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Order source report retrieved successfully.",
+    data: result,
+  });
+});
+
 export const ReportsController = {
   getOrders,
+  getOrderCountsByStatus,
+  getSourceCounts,
 };
