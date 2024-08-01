@@ -2,12 +2,11 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../utilities/catchAsync";
 import successResponse from "../../utilities/successResponse";
-import { TReportsQuery } from "./reports.interface";
-import { ReportsServices } from "./reports.service";
+import { ReportsServices, TOrdersCountQuery } from "./reports.service";
 
 const getOrdersCounts = catchAsync(async (req: Request, res: Response) => {
   const result = await ReportsServices.getOrdersCountsFromDB(
-    req.query as unknown as TReportsQuery
+    req.query as unknown as TOrdersCountQuery
   );
   successResponse(res, {
     statusCode: httpStatus.OK,
@@ -60,10 +59,20 @@ const getBestSellingProducts = catchAsync(
   }
 );
 
+const getStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await ReportsServices.getStatsFromDB();
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Stats retrieved successfully.",
+    data: result,
+  });
+});
+
 export const ReportsController = {
   getOrdersCounts,
   getOrderCountsByStatus,
   getSourceCounts,
   getOrderStatusChangeCounts,
   getBestSellingProducts,
+  getStats,
 };

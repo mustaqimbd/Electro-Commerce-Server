@@ -37,4 +37,10 @@ route.get(
   ReportsController.getBestSellingProducts
 );
 
+route.get(
+  "/stats",
+  authGuard({ requiredRoles: ["admin"], requiredPermission }),
+  ReportsController.getStats
+);
+
 export const ReportsRoutes = route;
