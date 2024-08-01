@@ -13,6 +13,7 @@ import { TReportsQuery } from "./reports.interface";
 export type TOrdersCountQuery = TReportsQuery & { zone: string };
 const getOrdersCountsFromDB = async (query: TOrdersCountQuery) => {
   const pipeline: PipelineStage[] = [];
+  query.type = query.type || "today";
   const { start, end } = getTimePeriod({
     period: query.type,
     customDate: query.customDate,
@@ -37,8 +38,10 @@ const getOrdersCountsFromDB = async (query: TOrdersCountQuery) => {
     )
   ) {
     pipeline.push(...ReportsHelper.dailyOrdersPipeline(matchQuery));
-  } else if (["thisYear", "lastYear", "yearly"].includes(query.type)) {
+  } else if (["thisYear", "lastYear"].includes(query.type)) {
     pipeline.push(...ReportsHelper.monthlyOrdersPipeline(matchQuery));
+  } else if (["yearly"].includes(query.type)) {
+    pipeline.push(...ReportsHelper.yearlyOrdersPipeline(matchQuery));
   } else {
     pipeline.push(...ReportsHelper.hourlyOrdersPipeline(matchQuery));
   }
