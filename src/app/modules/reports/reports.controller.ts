@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import httpStatus from "http-status";
 import catchAsync from "../../utilities/catchAsync";
 import successResponse from "../../utilities/successResponse";
-import { ReportsServices, TOrdersCountQuery } from "./reports.service";
+import {
+  ReportsServices,
+  TOrdersCountQuery,
+  TOrdersSourceCountQuery,
+} from "./reports.service";
 
 const getOrdersCounts = catchAsync(async (req: Request, res: Response) => {
   const result = await ReportsServices.getOrdersCountsFromDB(
@@ -27,7 +31,9 @@ const getOrderCountsByStatus = catchAsync(
 );
 
 const getSourceCounts = catchAsync(async (req: Request, res: Response) => {
-  const result = await ReportsServices.getSourceCountsFromDB();
+  const result = await ReportsServices.getSourceCountsFromDB(
+    req.query as unknown as TOrdersSourceCountQuery
+  );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Order source report retrieved successfully.",

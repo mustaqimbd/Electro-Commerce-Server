@@ -1,4 +1,5 @@
 export type TPeriod =
+  | "allTime"
   | "today"
   | "yesterday"
   | "thisWeek"

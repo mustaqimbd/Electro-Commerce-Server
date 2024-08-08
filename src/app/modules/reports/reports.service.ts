@@ -92,13 +92,9 @@ const getOrderCountsByStatusFromDB = async () => {
   return formattedResult;
 };
 
-const getSourceCountsFromDB = async () => {
+export type TOrdersSourceCountQuery = TReportsQuery & { zone: string };
+const getSourceCountsFromDB = async (query: TOrdersSourceCountQuery) => {
   const pipeline: PipelineStage[] = [
-    {
-      $match: {
-        status: { $ne: "deleted" },
-      },
-    },
     {
       $facet: {
         totalOrders: [
@@ -153,6 +149,38 @@ const getSourceCountsFromDB = async () => {
       },
     },
   ];
+
+  query.type = query.type || "allTime";
+  let start, end;
+  if (query.type !== "allTime") {
+    const { start: startTime, end: endTime } = getTimePeriod({
+      period: query.type,
+      customDate: query.customDate,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      zone: query.zone,
+    });
+    start = startTime;
+    end = endTime;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matchQuery: any = {
+    status: { $ne: "deleted" },
+  };
+
+  if (query.type !== undefined && query.type !== "allTime") {
+    matchQuery = {
+      ...matchQuery,
+      createdAt: {
+        $gte: start,
+        $lt: end,
+      },
+    };
+  }
+
+  pipeline.unshift({
+    $match: matchQuery,
+  });
 
   const results = await Order.aggregate(pipeline);
 
