@@ -1,4 +1,5 @@
-export type TReportsType =
+export type TPeriod =
+  | "allTime"
   | "today"
   | "yesterday"
   | "thisWeek"
@@ -7,11 +8,12 @@ export type TReportsType =
   | "lastMonth"
   | "thisYear"
   | "lastYear"
+  | "yearly"
   | "customDate"
   | "customRange";
 
 export type TReportsQuery = {
-  type: TReportsType;
+  type: TPeriod;
   sort: string;
   customDate: string;
   startDate: string;
