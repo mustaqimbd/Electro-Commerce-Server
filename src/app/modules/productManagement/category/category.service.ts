@@ -1,16 +1,28 @@
+import httpStatus from "http-status";
 import { Types } from "mongoose";
+import ApiError from "../../../errorHandlers/ApiError";
+import { ImageModel } from "../../image/image.model";
 import { TCategory } from "./category.interface";
 import { CategoryModel } from "./category.model";
-import httpStatus from "http-status";
-import ApiError from "../../../errorHandlers/ApiError";
 
 const createCategoryIntoDB = async (
   createdBy: Types.ObjectId,
   payload: TCategory
 ) => {
   payload.createdBy = createdBy;
+
+  if (payload.image) {
+    const isImageExist = await ImageModel.findById(payload.image);
+    if (!isImageExist) {
+      throw new ApiError(httpStatus.NOT_FOUND, "The image was not found!");
+    }
+    if (isImageExist.isDeleted) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "The image is deleted!");
+    }
+  }
+
   const isCategoryDeleted = await CategoryModel.findOne({
-    name: payload.name,
+    name: { $regex: new RegExp(payload.name, "i") },
     isDeleted: true,
   });
 
@@ -45,29 +57,24 @@ const getAllCategoriesFromDB = async () => {
         localField: "_id",
         foreignField: "category",
         as: "subCategory",
+        pipeline: [
+          { $match: { isDeleted: false } },
+          { $project: { _id: 1, name: 1, slug: 1, description: 1 } },
+        ],
       },
     },
     {
       $project: {
         _id: 1,
         name: 1,
+        slug: 1,
         image: {
           _id: "$image._id",
           src: "$image.src",
           alt: "$image.alt",
-          uploadedBy: "$image.uploadedBy",
         },
         description: 1,
-        subcategories: {
-          $map: {
-            input: "$subCategory",
-            as: "sub",
-            in: {
-              _id: "$$sub._id",
-              name: "$$sub.name",
-            },
-          },
-        },
+        subcategories: "$subCategory",
       },
     },
   ];
@@ -76,11 +83,11 @@ const getAllCategoriesFromDB = async () => {
 };
 
 const updateCategoryIntoDB = async (
-  createdBy: Types.ObjectId,
+  updatedBy: Types.ObjectId,
   id: string,
   payload: TCategory
 ) => {
-  payload.createdBy = createdBy;
+  payload.updatedBy = updatedBy;
   const isCategoryExist = await CategoryModel.findById(id);
 
   if (!isCategoryExist) {
@@ -90,47 +97,23 @@ const updateCategoryIntoDB = async (
   if (isCategoryExist.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The category is deleted!");
   }
-  const isUpdateCategoryDeleted = await CategoryModel.findOne({
-    name: payload.name,
-    isDeleted: true,
+
+  const result = await CategoryModel.findByIdAndUpdate(id, payload, {
+    new: true,
   });
 
-  if (isUpdateCategoryDeleted) {
-    const result = await CategoryModel.findByIdAndUpdate(
-      isUpdateCategoryDeleted._id,
-      { createdBy, isDeleted: false },
-      { new: true }
-    );
-    await CategoryModel.findByIdAndUpdate(id, { isDeleted: true });
-    return result;
-  } else {
-    const result = await CategoryModel.findByIdAndUpdate(id, payload, {
-      new: true,
-    });
-    return result;
-  }
+  return result;
 };
 
 const deleteCategoryFromDB = async (
-  createdBy: Types.ObjectId,
+  deletedBy: Types.ObjectId,
   categoryIds: string[]
 ) => {
-  // const isCategoryExist = await CategoryModel.findById(id);
-  // if (!isCategoryExist) {
-  //   throw new ApiError(httpStatus.NOT_FOUND, "The category was not found!");
-  // }
-
-  // if (isCategoryExist.isDeleted) {
-  //   throw new ApiError(
-  //     httpStatus.BAD_REQUEST,
-  //     "The category is already deleted!"
-  //   );
-  // }
   const result = await CategoryModel.updateMany(
     { _id: { $in: categoryIds } },
     {
       $set: {
-        createdBy: createdBy,
+        deletedBy,
         isDeleted: true,
       },
     }

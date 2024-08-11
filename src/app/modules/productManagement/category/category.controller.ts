@@ -2,13 +2,33 @@ import httpStatus from "http-status";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { CategoryServices } from "./category.service";
+import generateSlug from "../../../utilities/generateSlug";
 
 const createCategory = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
+  const { name } = req.body;
+  req.body.slug = generateSlug(name);
+  // req.body.subcategories = subcategories?.map(
+  //   ({
+  //     name,
+  //     image,
+  //     description,
+  //   }: {
+  //     name: string;
+  //     image: string;
+  //     description: string;
+  //   }) => ({
+  //     name,
+  //     slug: generateSlug(name),
+  //     image,
+  //     description,
+  //   })
+  // );
   const result = await CategoryServices.createCategoryIntoDB(
     createdBy,
     req.body
   );
+
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Category created successfully",
@@ -26,10 +46,14 @@ const getAllCategories = catchAsync(async (req, res) => {
 });
 
 const updateCategory = catchAsync(async (req, res) => {
-  const createdBy = req.user.id;
+  const updatedBy = req.user.id;
   const categoryId = req.params.id;
+  const { name } = req.body;
+  if (name) {
+    req.body.slug = generateSlug(name);
+  }
   const result = await CategoryServices.updateCategoryIntoDB(
-    createdBy,
+    updatedBy,
     categoryId,
     req.body
   );

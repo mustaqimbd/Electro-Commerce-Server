@@ -18,7 +18,7 @@ router.get("/", CategoryControllers.getAllCategories);
 router.patch(
   "/:id",
   authGuard({ requiredRoles: ["admin"] }),
-  validateRequest(CategoryValidation.category),
+  validateRequest(CategoryValidation.updateCategory),
   CategoryControllers.updateCategory
 );
 
