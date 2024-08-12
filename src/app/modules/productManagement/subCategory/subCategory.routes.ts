@@ -2,13 +2,13 @@ import express from "express";
 import { SubCategoryControllers } from "./subCategory.controller";
 import { SubCategoryValidation } from "./subCategory.validation";
 import validateRequest from "../../../middlewares/validateRequest";
-// import authGuard from '../../middlewares/authGuard';
+import authGuard from "../../../middlewares/authGuard";
 
 const router = express.Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   validateRequest(SubCategoryValidation.subCategory),
   SubCategoryControllers.createSubCategory
 );
@@ -17,14 +17,14 @@ router.get("/", SubCategoryControllers.getAllSubCategories);
 
 router.patch(
   "/:id",
-  // authGuard('admin'),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   validateRequest(SubCategoryValidation.updateSubCategory),
   SubCategoryControllers.updateSubCategory
 );
 
 router.delete(
-  "/:id",
-  // authGuard('admin'),
+  "/",
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   SubCategoryControllers.deleteSubCategory
 );
 
