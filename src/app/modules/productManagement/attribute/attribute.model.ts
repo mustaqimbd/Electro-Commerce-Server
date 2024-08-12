@@ -1,13 +1,26 @@
 import { Schema, model } from "mongoose";
-import { TAttribute } from "./attribute.interface";
+import { TAttribute, TAttributeValues } from "./attribute.interface";
+
+const attributeValuesSchema = new Schema<TAttributeValues>({
+  name: { type: String, unique: true },
+  isDeleted: { type: Boolean, default: false },
+});
 
 const attributeSchema = new Schema<TAttribute>(
   {
     name: { type: String, unique: true, sparse: true },
-    values: { type: [String] },
+    values: { type: [attributeValuesSchema] },
     createdBy: {
       type: Schema.Types.ObjectId,
       required: true,
+      ref: "User",
+    },
+    updatedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    deletedBy: {
+      type: Schema.Types.ObjectId,
       ref: "User",
     },
     isDeleted: { type: Boolean, default: false },

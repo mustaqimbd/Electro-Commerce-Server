@@ -10,7 +10,7 @@ const createAttributeIntoDB = async (
 ) => {
   payload.createdBy = createdBy;
   const isAttributeDeleted = await AttributeModel.findOne({
-    name: payload.name,
+    name: { $regex: new RegExp(payload.name, "i") },
     isDeleted: true,
   });
 
@@ -28,17 +28,36 @@ const createAttributeIntoDB = async (
 };
 
 const getAllAttributesFromDB = async () => {
-  const result = await AttributeModel.find({ isDeleted: false }, "name values");
+  const result = await AttributeModel.aggregate([
+    {
+      $match: {
+        isDeleted: false,
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        values: {
+          $filter: {
+            input: "$values",
+            as: "value",
+            cond: { $eq: ["$$value.isDeleted", false] },
+          },
+        },
+      },
+    },
+  ]);
+
   return result;
 };
 
 const updateAttributeIntoDB = async (
-  createdBy: Types.ObjectId,
+  updatedBy: Types.ObjectId,
   id: string,
   payload: TAttribute
 ) => {
-  payload.createdBy = createdBy;
-  const { deleteValue } = payload;
+  payload.updatedBy = updatedBy;
+
   const isAttributeExist = await AttributeModel.findById(id);
 
   if (!isAttributeExist) {
@@ -48,65 +67,53 @@ const updateAttributeIntoDB = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "The attribute is deleted!");
   }
 
-  if (deleteValue) {
-    const result = await AttributeModel.findByIdAndUpdate(
+  const { name, values = [] } = payload;
+  let result;
+  if (name) {
+    result = await AttributeModel.findByIdAndUpdate(
       id,
-      { $pull: { values: deleteValue } },
+      { name },
       { new: true }
     );
-    return result;
   }
 
-  const isUpdateAttributeDeleted = await AttributeModel.findOne({
-    name: payload.name,
-    isDeleted: true,
-  });
-
-  const { name, values } = payload;
-
-  if (isUpdateAttributeDeleted) {
-    const updateData = values
-      ? payload
-      : { name, values: [...isAttributeExist.values] };
-    const result = await AttributeModel.findByIdAndUpdate(
-      isUpdateAttributeDeleted._id,
-      { ...updateData, isDeleted: false },
-      { new: true }
-    );
-    await AttributeModel.findByIdAndUpdate(id, { isDeleted: true });
-    return result;
-  } else {
-    const updateValues = values ? values : [];
-    payload.values = [
-      ...new Set([...isAttributeExist.values, ...updateValues]),
-    ];
-    const result = await AttributeModel.findByIdAndUpdate(id, payload, {
-      new: true,
-    });
-
-    return result;
+  for (const value of values) {
+    if (value._id) {
+      // Update the existing elements in the values array
+      result = await AttributeModel.updateOne(
+        { _id: id, "values._id": value._id }, // Find the document by id and specific subdocument by _id
+        { $set: { "values.$.name": value.name, updatedBy } } // Update the name of the specific subdocument
+      );
+    } else {
+      // Add new elements to the values array if _id does not exist
+      result = await AttributeModel.updateOne(
+        { _id: id },
+        { $push: { values: { name: value.name, updatedBy } } } // Add the new element to the array
+      );
+    }
   }
+
+  return result;
 };
 
-const deleteAttributeFromDB = async (createdBy: Types.ObjectId, id: string) => {
-  const isAttributeExist = await AttributeModel.findById(id);
-
-  if (!isAttributeExist) {
-    throw new ApiError(httpStatus.NOT_FOUND, "The attribute was not found!");
-  }
-  if (isAttributeExist.isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "The attribute is already deleted!"
+const deleteAttributeFromDB = async (
+  deletedBy: Types.ObjectId,
+  attributeIds: string[],
+  valueIds: string[]
+) => {
+  if (attributeIds && attributeIds.length > 0) {
+    await AttributeModel.updateMany(
+      { _id: { $in: attributeIds } },
+      { $set: { isDeleted: true, deletedBy } }
     );
   }
-
-  const result = await AttributeModel.findByIdAndUpdate(id, {
-    values: [],
-    createdBy,
-    isDeleted: true,
-  });
-  return result;
+  if (valueIds && valueIds.length > 0) {
+    await AttributeModel.updateMany(
+      { "values._id": { $in: valueIds } },
+      { $set: { "values.$[elem].isDeleted": true, deletedBy } },
+      { arrayFilters: [{ "elem._id": { $in: valueIds } }] }
+    );
+  }
 };
 
 export const AttributeServices = {
