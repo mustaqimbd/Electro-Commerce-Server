@@ -2,9 +2,13 @@ import httpStatus from "http-status";
 import { BrandServices } from "./brand.service";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
+import generateSlug from "../../../utilities/generateSlug";
 
 const createBrand = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
+  const { name } = req.body;
+  req.body.slug = generateSlug(name);
+
   const result = await BrandServices.createBrandIntoDB(createdBy, req.body);
   successResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -23,10 +27,10 @@ const getAllBrands = catchAsync(async (req, res) => {
 });
 
 const updateBrand = catchAsync(async (req, res) => {
-  const createdBy = req.user.id;
+  const updatedBy = req.user.id;
   const brandId = req.params.id;
   const result = await BrandServices.updateBrandIntoDB(
-    createdBy,
+    updatedBy,
     brandId,
     req.body
   );
@@ -38,9 +42,9 @@ const updateBrand = catchAsync(async (req, res) => {
 });
 
 const deleteBrand = catchAsync(async (req, res) => {
-  const createdBy = req.user.id;
-  const brandId = req.params.id;
-  await BrandServices.deleteBrandFromDB(createdBy, brandId);
+  const deletedBy = req.user.id;
+  const { brandIds } = req.body;
+  await BrandServices.deleteBrandFromDB(deletedBy, brandIds);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Brand deleted successfully",

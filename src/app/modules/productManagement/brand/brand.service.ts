@@ -10,7 +10,7 @@ const createBrandIntoDB = async (
 ) => {
   payload.createdBy = createdBy;
   const isBrandDeleted = await BrandModel.findOne({
-    name: payload.name,
+    name: { $regex: new RegExp(payload.name, "i") },
     isDeleted: true,
   });
 
@@ -30,8 +30,8 @@ const createBrandIntoDB = async (
 const getAllBrandsFromDB = async () => {
   const result = await BrandModel.find(
     { isDeleted: false },
-    "name description logo"
-  );
+    "name slug description "
+  ).populate("logo", "_id src alt");
   return result;
 };
 
@@ -50,44 +50,25 @@ const updateBrandIntoDB = async (
   if (isBrandExist.isDeleted) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The brand is deleted!");
   }
-  const isUpdateBrandDeleted = await BrandModel.findOne({
-    name: payload.name,
-    isDeleted: true,
+  const result = await BrandModel.findByIdAndUpdate(id, payload, {
+    new: true,
   });
-
-  if (isUpdateBrandDeleted) {
-    const result = await BrandModel.findByIdAndUpdate(
-      isUpdateBrandDeleted._id,
-      { ...payload, isDeleted: false },
-      { new: true }
-    );
-    await BrandModel.findByIdAndUpdate(id, { isDeleted: true });
-    return result;
-  } else {
-    const result = await BrandModel.findByIdAndUpdate(id, payload, {
-      new: true,
-    });
-    return result;
-  }
+  return result;
 };
 
-const deleteBrandFromDB = async (createdBy: Types.ObjectId, id: string) => {
-  const isBrandExist = await BrandModel.findById(id);
-
-  if (!isBrandExist) {
-    throw new ApiError(httpStatus.NOT_FOUND, "The brand was not found!");
-  }
-
-  if (isBrandExist.isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "The brand is already deleted!");
-  }
-
-  const result = await BrandModel.findByIdAndUpdate(id, {
-    description: "",
-    logo: "",
-    createdBy,
-    isDeleted: true,
-  });
+const deleteBrandFromDB = async (
+  deletedBy: Types.ObjectId,
+  brandIds: string[]
+) => {
+  const result = await BrandModel.updateMany(
+    { _id: { $in: brandIds } },
+    {
+      $set: {
+        deletedBy,
+        isDeleted: true,
+      },
+    }
+  );
   return result;
 };
 
