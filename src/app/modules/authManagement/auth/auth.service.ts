@@ -81,12 +81,18 @@ const refreshToken = async (
     {
       id: isExist?._id,
       role: isExist?.role as string,
+      permissions:
+        (isExist?.permissions?.map(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (item: any) => item.name
+        ) as unknown as string[]) || [],
       uid: isExist?.uid as string,
       // sessionId: isTokenExist.sessionId,
     },
     config.token_data.access_token_secret as Secret,
     config.token_data.access_token_expires as string
   );
+
   return { accessToken };
 };
 

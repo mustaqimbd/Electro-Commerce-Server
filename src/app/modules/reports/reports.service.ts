@@ -332,7 +332,7 @@ const getStatsFromDB = async () => {
   const pipeline: PipelineStage[] = [
     {
       $match: {
-        status: { $in: ["completed", "partly completed"] },
+        status: { $in: ["completed", "partial completed"] },
       },
     },
     {
