@@ -1,5 +1,5 @@
 import { Document, Types } from "mongoose";
-import { TImage } from "../productManagement/image/image.interface";
+import { TImage } from "../image/image.interface";
 import { TUser } from "../userManagement/user/user.interface";
 
 export type TPaymentMethodMerchantACInfo = {

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  authGuard({ requiredRoles: ["admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   validateRequest(CategoryValidation.category),
   CategoryControllers.createCategory
 );
@@ -17,14 +17,14 @@ router.get("/", CategoryControllers.getAllCategories);
 
 router.patch(
   "/:id",
-  authGuard({ requiredRoles: ["admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   validateRequest(CategoryValidation.updateCategory),
   CategoryControllers.updateCategory
 );
 
 router.delete(
   "/",
-  authGuard({ requiredRoles: ["admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   CategoryControllers.deleteCategory
 );
 

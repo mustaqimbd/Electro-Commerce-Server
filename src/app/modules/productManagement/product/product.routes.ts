@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  // authGuard('admin'),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   // imgUploader.fields([
   //   { name: "thumbnail", maxCount: 1 },
   //   { name: "gallery", maxCount: 5 },
@@ -22,9 +22,17 @@ router.post(
 
 router.get("/featured", ProductControllers.getFeaturedProducts);
 
-router.get("/admin", ProductControllers.getAllProductsAdmin);
+router.get(
+  "/admin",
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  ProductControllers.getAllProductsAdmin
+);
 
-router.get("/:id/admin", ProductControllers.getAProductAdmin);
+router.get(
+  "/:id/admin",
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  ProductControllers.getAProductAdmin
+);
 
 router.get("/:id", ProductControllers.getAProductCustomer);
 
@@ -32,7 +40,7 @@ router.get("/", ProductControllers.getAllProductsCustomer);
 
 router.patch(
   "/:id",
-  // authGuard('admin'),
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   // imgUploader.fields([
   //   { name: "thumbnail", maxCount: 1 },
   //   { name: "gallery", maxCount: 5 },
@@ -44,10 +52,7 @@ router.patch(
 
 router.delete(
   "/delete",
-  authGuard({
-    requiredRoles: ["admin", "superAdmin"],
-    requiredPermission: "super admin",
-  }),
+  authGuard({ requiredRoles: ["admin", "superAdmin"] }),
   ProductControllers.deleteProduct
 );
 

@@ -1,7 +1,6 @@
 import httpStatus from "http-status";
 import { Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
-import { ImageModel } from "../../image/image.model";
 import { TCategory } from "./category.interface";
 import { CategoryModel } from "./category.model";
 
@@ -11,16 +10,6 @@ const createCategoryIntoDB = async (
 ) => {
   payload.createdBy = createdBy;
 
-  if (payload.image) {
-    const isImageExist = await ImageModel.findById(payload.image);
-    if (!isImageExist) {
-      throw new ApiError(httpStatus.NOT_FOUND, "The image was not found!");
-    }
-    if (isImageExist.isDeleted) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "The image is deleted!");
-    }
-  }
-
   const isCategoryDeleted = await CategoryModel.findOne({
     name: { $regex: new RegExp(payload.name, "i") },
     isDeleted: true,
@@ -29,7 +18,7 @@ const createCategoryIntoDB = async (
   if (isCategoryDeleted) {
     const result = await CategoryModel.findByIdAndUpdate(
       isCategoryDeleted._id,
-      { createdBy, isDeleted: false },
+      { ...payload, isDeleted: false },
       { new: true }
     );
     return result;

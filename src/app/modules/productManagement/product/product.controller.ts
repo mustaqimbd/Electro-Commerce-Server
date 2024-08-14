@@ -2,17 +2,24 @@ import httpStatus from "http-status";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { ProductServices } from "./product.service";
-import updatedPriceData from "./utils";
+import generateSlug from "../../../utilities/generateSlug";
+import modifiedPriceData from "./utils";
 
 const createProduct = catchAsync(async (req, res) => {
-  const { title, slug } = req.body;
-  req.body.title = title.replace(/\s+/g, " ").trim();
-  req.body.slug = slug
-    ? slug.replace(/\s+/g, " ").trim().toLowerCase().split(" ").join("-")
-    : title.replace(/\s+/g, " ").trim().toLowerCase().split(" ").join("-");
-  updatedPriceData(req);
   const createdBy = req.user.id;
+  const { title, slug, warrantyInfo } = req.body;
+  const { duration } = warrantyInfo || {};
+  req.body.title = title.replace(/\s+/g, " ").trim();
+  req.body.slug = generateSlug(title, slug);
+
+  modifiedPriceData(req);
+
+  if (req.body.warrantyInfo?.duration) {
+    req.body.warrantyInfo.duration = duration?.quantity + " " + duration?.unit;
+  }
+
   const result = await ProductServices.createProductIntoDB(createdBy, req.body);
+
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Product created successfully",
@@ -79,7 +86,7 @@ const getFeaturedProducts = catchAsync(async (req, res) => {
 });
 
 const updateProduct = catchAsync(async (req, res) => {
-  updatedPriceData(req);
+  modifiedPriceData(req);
   const updatedBy = req.user.id;
   const ProductId = req.params.id;
   const result = await ProductServices.updateProductIntoDB(

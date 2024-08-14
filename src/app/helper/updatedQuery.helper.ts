@@ -103,7 +103,7 @@ export class UpdatedAggregateQueryHelper<T> {
       );
       if (facetStageIndex !== -1) {
         // Push the $match stage into the existing $facet stage
-        this.pipeline[facetStageIndex].$facet!.data.push({
+        this.pipeline[facetStageIndex].$facet!.data.unshift({
           $match: { $or: searchConditions },
         });
       }

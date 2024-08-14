@@ -2,31 +2,35 @@ import { z } from "zod";
 import { PriceValidation } from "../price/price.validation";
 import { ProductImageValidation } from "../productImage/productImage.validation";
 import { InventoryValidation } from "../inventory/inventory.validation";
-import { SeoDataValidation } from "../seoData/seoData.validation";
+// import { SeoDataValidation } from "../seoData/seoData.validation";
 import { publishedStatus, visibilityStatus } from "./product.const";
 
-// const productAttribute = z.object({
-//   _id: z.string().min(1, { message: "Attribute Id is required!" }).optional(),
-//   name: z.string().min(1, { message: "Attribute name is required!" }),
-//   values: z.array(
-//     z.string().min(1, { message: "Attribute value is required!" })
-//   ),
-// });
-
 const updateProductAttribute = z.object({
-  _id: z.string().optional(),
-  name: z.string().optional(),
-  values: z.array(z.string()).optional(),
+  name: z.string().trim().min(1, { message: "Attribute is required!" }),
+  values: z
+    .array(z.string().trim())
+    .min(1, { message: "Attribute value is required!" }),
+});
+
+const productVariations = z.object({
+  attributes: z.record(z.string()), // Use `z.record` for dynamic key-value pairs
+  price: PriceValidation.price,
+  inventory: InventoryValidation.inventory,
 });
 
 const category = z.object({
-  _id: z.string().min(1, { message: "Category is required!" }),
-  subCategory: z.array(z.string()).optional(),
+  name: z.string().min(1, { message: "Category is required!" }),
+  subCategory: z.string().optional(),
 });
 
 const warrantyInfo = z.object({
-  duration: z.string().min(1, { message: "Duration is required!" }),
-  terms: z.string().min(1, { message: "Duration is required!" }),
+  duration: z
+    .object({
+      quantity: z.string().trim().optional(),
+      unit: z.string().optional(),
+    })
+    .optional(),
+  terms: z.string().optional(),
 });
 
 const publishedStatusSchema = z.object({
@@ -46,41 +50,64 @@ const updatePublishedStatus = z
   .optional();
 
 const product = z.object({
-  body: z.object({
-    title: z.string().min(1, { message: "Title is required!" }),
-    permalink: z.string().optional(),
-    type: z.string().optional(),
-    slug: z.string().optional(),
-    description: z.string().optional(),
-    shortDescription: z.string().optional(),
-    downloadable: z.boolean().optional(),
-    featured: z.boolean().optional(),
-    review: z.boolean().optional(),
-    price: PriceValidation.price,
-    image: ProductImageValidation.productImage,
-    inventory: InventoryValidation.inventory,
-    attribute: z.array(updateProductAttribute).optional(),
-    brand: z.array(z.string()).optional(),
-    category: category,
-    warranty: z.boolean({ required_error: "warranty is required" }),
-    warrantyInfo: warrantyInfo.optional(),
-    tag: z.array(z.string()).optional(),
-    seoData: SeoDataValidation.updatesSeoData.optional(),
-    publishedStatus: publishedStatusSchema,
-  }),
+  body: z
+    .object({
+      title: z.string().trim().min(1, { message: "Title is required!" }),
+      // permalink: z.string().optional(),
+      // type: z.string().optional(),
+      // slug: z.string().optional(),
+      description: z.string().trim().optional(),
+      // shortDescription: z.string().optional(),
+      // downloadable: z.boolean().optional(),
+      // review: z.boolean().optional(),
+      image: ProductImageValidation.productImage,
+      price: PriceValidation.price,
+      inventory: InventoryValidation.inventory,
+      attributes: z.array(updateProductAttribute).optional(),
+      variations: z.array(productVariations).optional(),
+      brand: z.string().optional(),
+      category: category,
+      featured: z.boolean().optional(),
+      warranty: z.boolean().optional(),
+      warrantyInfo: warrantyInfo.optional(),
+      // tag: z.array(z.string()).optional(),
+      // seoData: SeoDataValidation.updatesSeoData.optional(),
+      publishedStatus: publishedStatusSchema,
+    })
+    .refine(
+      (data) => {
+        if (data.warranty) {
+          return data.warrantyInfo?.duration?.quantity?.trim() !== "";
+        }
+        return true;
+      },
+      {
+        message: "Warranty duration is required!",
+        path: ["warrantyInfo", "duration"], // Error will be associated with quantity
+      }
+    )
+    .refine(
+      (data) => {
+        if (data.warranty) {
+          return data.warrantyInfo?.duration?.unit?.trim() !== "";
+        }
+        return true;
+      },
+      {
+        message: "Warranty duration is required!",
+        path: ["warrantyInfo", "duration"], // Error will be associated with unit
+      }
+    ),
 });
 
 const updateProduct = z.object({
   body: z.object({
-    title: z.string().min(1, { message: "Title is required!" }).optional(),
+    title: z.string().trim().optional(),
     permalink: z.string().optional(),
     type: z.string().optional(),
-    slug: z.string().optional(),
-    description: z
-      .string()
-      .min(1, { message: "Description is required!" })
-      .optional(),
-    shortDescription: z.string().optional(),
+    slug: z.string().trim().optional(),
+    description: z.string().trim().optional(),
+    shortDescription: z.string().trim().optional(),
     downloadable: z.boolean().optional(),
     featured: z.boolean().optional(),
     review: z.boolean().optional(),
@@ -91,9 +118,19 @@ const updateProduct = z.object({
     brand: z.array(z.string()).optional(),
     category: category.optional(),
     warranty: z.boolean().optional(),
-    warrantyInfo: warrantyInfo.optional(),
-    tag: z.array(z.string()).optional(),
-    seoData: SeoDataValidation.updatesSeoData.optional(),
+    warrantyInfo: z
+      .object({
+        duration: z
+          .object({
+            quantity: z.string().trim().optional(),
+            unit: z.string().optional(),
+          })
+          .optional(),
+        terms: z.string().trim().optional(),
+      })
+      .optional(),
+    // tag: z.array(z.string()).optional(),
+    // seoData: SeoDataValidation.updatesSeoData.optional(),
     publishedStatus: updatePublishedStatus,
   }),
 });

@@ -1,5 +1,5 @@
 import { Document, Types } from "mongoose";
-import { TAttribute } from "../attribute/attribute.interface";
+// import { TAttribute } from "../attribute/attribute.interface";
 import { TInventory } from "../inventory/inventory.interface";
 import { TPrice } from "../price/price.interface";
 
@@ -15,8 +15,21 @@ export type TProductImage = {
   gallery: Types.ObjectId[];
 };
 export type TCategorySchema = {
-  _id: Types.ObjectId;
-  subCategory?: Types.ObjectId[];
+  name: Types.ObjectId;
+  subCategory?: Types.ObjectId;
+};
+
+export type TProductAttribute = {
+  name: Types.ObjectId;
+  values: Types.ObjectId[];
+};
+
+export type TVariation = {
+  attributes: {
+    [key: string]: string;
+  };
+  price: TPrice;
+  inventory: TInventory;
 };
 
 export type TWarrantyInfo = {
@@ -38,8 +51,9 @@ export type TProduct = {
   price: Types.ObjectId | TPrice;
   image: TProductImage; //| TProductImage
   inventory: Types.ObjectId | TInventory;
-  attribute: Partial<TAttribute>[];
-  brand: Types.ObjectId[];
+  attributes: TProductAttribute[];
+  variations: TVariation[];
+  brand: Types.ObjectId;
   category: TCategorySchema;
   warranty: boolean;
   warrantyInfo: TWarrantyInfo;

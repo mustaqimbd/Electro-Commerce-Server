@@ -1,11 +1,12 @@
 import { Schema, model } from "mongoose";
 import { TPrice } from "./price.interface";
 
-const priceSchema = new Schema<TPrice>(
+export const priceSchema = new Schema<TPrice>(
   {
     regularPrice: { type: Number, required: true },
     salePrice: { type: Number },
     discountPercent: { type: Number },
+    save: { type: Number },
     date: {
       start: { type: String },
       end: { type: String },

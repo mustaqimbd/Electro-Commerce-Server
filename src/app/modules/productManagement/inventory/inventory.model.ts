@@ -2,24 +2,24 @@ import { Schema, model } from "mongoose";
 import { TInventory } from "./inventory.interface";
 import { stockStatus } from "./inventory.const";
 
-const inventorySchema = new Schema<TInventory>(
+export const inventorySchema = new Schema<TInventory>(
   {
-    sku: { type: String, unique: true, sparse: true },
+    // sku: { type: String, unique: true, sparse: true },
     stockStatus: { type: String, enum: [...stockStatus], required: true },
-    stockQuantity: { type: Number },
+    stockQuantity: { type: Number, required: true },
     stockAvailable: {
       type: Number,
       default: function (this: TInventory) {
         return this.stockQuantity;
       },
     },
+    // productCode: { type: String },
     manageStock: { type: Boolean, default: false },
     lowStockWarning: { type: Number },
-    productCode: { type: String },
-    showStockQuantity: { type: Boolean, default: false },
-    showStockWithText: { type: Boolean, default: false },
+    // showStockQuantity: { type: Boolean, default: false },
+    // showStockWithText: { type: Boolean, default: false },
     hideStock: { type: Boolean, default: false },
-    soldIndividually: { type: Boolean, default: false },
+    // soldIndividually: { type: Boolean, default: false },
   },
   {
     timestamps: true,

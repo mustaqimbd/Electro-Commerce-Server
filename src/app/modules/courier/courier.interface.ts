@@ -1,5 +1,5 @@
 import mongoose, { Document } from "mongoose";
-import { TImage } from "../productManagement/image/image.interface";
+import { TImage } from "../image/image.interface";
 
 export type TCourierCredentials = [string, string];
 

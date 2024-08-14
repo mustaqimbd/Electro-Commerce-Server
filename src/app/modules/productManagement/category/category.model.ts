@@ -1,5 +1,8 @@
 import { Schema, model } from "mongoose";
 import { TCategory } from "./category.interface";
+import { ImageModel } from "../../image/image.model";
+import ApiError from "../../../errorHandlers/ApiError";
+import httpStatus from "http-status";
 
 // const subcategorySchema = new Schema<TCategory>({
 //   name: { type: String, required: true, unique: true },
@@ -36,12 +39,24 @@ const categorySchema = new Schema<TCategory>(
   }
 );
 
-categorySchema.pre("save", function (next) {
+categorySchema.pre("save", async function (next) {
   if (this.name) {
     this.name = this.name
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()) // Capitalize the first letter of each word
-      .join(" ");
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase() // Convert the entire string to lowercase
+      .split(" ") // Split the string into an array of words
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize the first letter of each word
+      .join(" "); // Convert to lowercase for uniqueness
+  }
+  if (this.image) {
+    const isImageExist = await ImageModel.findById(this.image);
+    if (!isImageExist) {
+      throw new ApiError(httpStatus.NOT_FOUND, "The image was not found!");
+    }
+    if (isImageExist.isDeleted) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "The image is deleted!");
+    }
   }
   next();
 });

@@ -4,17 +4,17 @@ export type TStockStatus = "In stock" | "Out of stock" | "On backorder";
 
 export type TInventory = {
   product: Types.ObjectId;
-  sku: string;
   stockStatus: TStockStatus;
   stockQuantity: number;
   stockAvailable?: number;
-  lowStockWarning: number;
-  manageStock: boolean;
+  sku: string;
   productCode?: string;
-  showStockQuantity: boolean;
-  showStockWithText: boolean;
+  manageStock: boolean;
+  lowStockWarning: number;
+  // showStockQuantity: boolean;
+  // showStockWithText: boolean;
   hideStock: boolean;
-  soldIndividually: boolean;
+  // soldIndividually: boolean;
   createdBy: Types.ObjectId;
   isDeleted: boolean;
 } & Document;

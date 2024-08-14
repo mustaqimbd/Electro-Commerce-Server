@@ -47,41 +47,192 @@ const createProductIntoDB = async (
 };
 
 const getAProductCustomerFromDB = async (id: string) => {
-  const result = await ProductModel.findOne({
-    _id: id,
-    isDeleted: false,
-    "publishedStatus.status": publishedStatusQuery.Published,
-    "publishedStatus.visibility": visibilityStatusQuery.Public,
-  }).populate([
-    { path: "price", select: "-createdAt -updatedAt" },
-    { path: "image.thumbnail", select: "src alt" },
-    { path: "image.gallery", select: "src alt" },
-    { path: "inventory", select: "-createdAt -updatedAt" },
-    { path: "seoData", select: "-createdAt -updatedAt" },
-    { path: "brand", select: "name" },
-    { path: "category._id", select: "name" },
-    { path: "category.subCategory", select: "name" },
-    { path: "tag", select: "name" },
-  ]);
+  const pipeline = [
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(id),
+        isDeleted: false,
+        "publishedStatus.status": publishedStatusQuery.Published,
+        "publishedStatus.visibility": visibilityStatusQuery.Public,
+      },
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "image.thumbnail",
+        foreignField: "_id",
+        as: "thumbnail",
+        pipeline: [{ $project: { src: 1, alt: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "image.gallery",
+        foreignField: "_id",
+        as: "gallery",
+        pipeline: [{ $project: { src: 1, alt: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "prices",
+        localField: "price",
+        foreignField: "_id",
+        as: "price",
+        pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "inventories",
+        localField: "inventory",
+        foreignField: "_id",
+        as: "inventory",
+        pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "category.name",
+        foreignField: "_id",
+        as: "myCategory",
+        // pipeline: [{ $project: { name: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "subcategories",
+        localField: "category.subCategory",
+        foreignField: "_id",
+        as: "subCategory",
+        pipeline: [{ $project: { _id: 1, name: 1, slug: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "attributes",
+        localField: "attributes.name",
+        foreignField: "_id",
+        as: "myAttributes",
+        pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "brands",
+        localField: "brand",
+        foreignField: "_id",
+        as: "brand",
+        pipeline: [{ $project: { name: 1, slug: 1 } }],
+      },
+    },
+    {
+      $unwind: "$thumbnail",
+    },
+    {
+      $unwind: "$price",
+    },
+    {
+      $unwind: "$inventory",
+    },
+    {
+      $unwind: "$myCategory",
+    },
+    {
+      $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $unwind: { path: "$brand", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $project: {
+        _id: 1,
+        id: 1,
+        title: 1,
+        slug: 1,
+        description: 1,
+        thumbnail: "$thumbnail",
+        gallery: "$gallery",
+        price: "$price",
+        inventory: "$inventory",
+        category: {
+          _id: "$myCategory._id",
+          name: "$myCategory.name",
+          slug: "$myCategory.slug",
+          subCategory: "$subCategory",
+        },
+        attributes: {
+          $map: {
+            input: "$myAttributes",
+            as: "a",
+            in: {
+              _id: "$$a._id",
+              name: "$$a.name",
+              values: {
+                $filter: {
+                  input: "$$a.values",
+                  as: "value",
+                  cond: {
+                    $in: [
+                      "$$value._id",
+                      {
+                        $arrayElemAt: [
+                          {
+                            $map: {
+                              input: {
+                                $filter: {
+                                  input: "$attributes",
+                                  as: "s",
+                                  cond: { $eq: ["$$s.name", "$$a._id"] },
+                                },
+                              },
+                              as: "sa",
+                              in: "$$sa.values",
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+        variations: 1,
+        brand: "$brand",
+        warranty: 1,
+        warrantyInfo: 1,
+        publishedStatus: 1,
+      },
+    },
+  ];
+
+  const result = await ProductModel.aggregate(pipeline);
+
   if (!result) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The product was not found!");
   }
-  return result;
+  return result[0];
 };
 
 const getAProductAdminFromDB = async (id: string) => {
   const result = await ProductModel.findOne({
     _id: id,
   }).populate([
-    { path: "price", select: "-createdAt -updatedAt" },
     { path: "image.thumbnail", select: "src alt" },
     { path: "image.gallery", select: "src alt" },
+    { path: "price", select: "-createdAt -updatedAt" },
     { path: "inventory", select: "-createdAt -updatedAt" },
-    { path: "seoData", select: "-createdAt -updatedAt" },
-    { path: "brand", select: "name" },
-    { path: "category._id", select: "name" },
+    { path: "category.name", select: "name" },
     { path: "category.subCategory", select: "name" },
-    { path: "tag", select: "name" },
+    { path: "attributes.name", select: "name" },
+    // { path: "seoData", select: "-createdAt -updatedAt" },
+    { path: "brand", select: "name" },
+    // { path: "tag", select: "name" },
   ]);
   if (!result) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The product was not found!");
@@ -96,19 +247,13 @@ const getAProductAdminFromDB = async (id: string) => {
 const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
   if (query.category) {
-    filterQuery["category._id"] = new mongoose.Types.ObjectId(
-      query.category as string
-    );
+    filterQuery["category.slug"] = query.category;
   }
   if (query.subCategory) {
-    filterQuery["subcategory._id"] = new mongoose.Types.ObjectId(
-      query.subCategory as string
-    );
+    filterQuery["subcategory.slug"] = query.subCategory;
   }
   if (query.brand) {
-    filterQuery["brand._id"] = new mongoose.Types.ObjectId(
-      query.brand as string
-    );
+    filterQuery["brand.slug"] = query.brand;
   }
 
   const pipeline = [
@@ -163,7 +308,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     {
       $lookup: {
         from: "categories",
-        localField: "category._id",
+        localField: "category.name",
         foreignField: "_id",
         as: "category",
       },
@@ -177,14 +322,14 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
         as: "brand",
       },
     },
-    {
-      $lookup: {
-        from: "reviews",
-        localField: "_id",
-        foreignField: "product",
-        as: "review",
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "reviews",
+    //     localField: "_id",
+    //     foreignField: "product",
+    //     as: "review",
+    //   },
+    // },
     { $match: filterQuery },
     {
       $facet: {
@@ -195,15 +340,16 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
               _id: 1,
               title: 1,
               slug: 1,
-              shortDescription: 1,
-              price: "$price.regularPrice",
+              // shortDescription: 1,
+              regularPrice: "$price.regularPrice",
               salePrice: "$price.salePrice",
               discountPercent: "$price.discountPercent",
-              stock: "$inventory.stockStatus",
-              stockAvailable: "$inventory.stockAvailable",
-              totalReview: { $size: "$review" },
-              averageRating: { $avg: "$review.rating" },
-              image: {
+              save: "$price.save",
+              stockStatus: "$inventory.stockStatus",
+              // stockAvailable: "$inventory.stockAvailable",
+              // totalReview: { $size: "$review" },
+              // averageRating: { $avg: "$review.rating" },
+              thumbnail: {
                 _id: "$thumbnail._id",
                 src: "$thumbnail.src",
                 alt: "$thumbnail.alt",
@@ -211,17 +357,18 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
               category: {
                 _id: "$category._id",
                 name: "$category.name",
+                slug: "$category.slug",
               },
-              brand: {
-                $map: {
-                  input: "$brand",
-                  as: "b",
-                  in: {
-                    _id: "$$b._id",
-                    name: "$$b.name",
-                  },
-                },
-              },
+              // brand: {
+              //   $map: {
+              //     input: "$brand",
+              //     as: "b",
+              //     in: {
+              //       _id: "$$b._id",
+              //       name: "$$b.name",
+              //     },
+              //   },
+              // },
             },
           },
         ],
@@ -247,7 +394,13 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     pipeline,
     query
   )
-    .search(["title"])
+    .search([
+      "title",
+      "description",
+      "category.name",
+      "subcategory.name",
+      "brand.name",
+    ])
     .sort()
     .paginate();
 
@@ -323,20 +476,20 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     {
       $lookup: {
         from: "categories",
-        localField: "category._id",
+        localField: "category.name",
         foreignField: "_id",
         as: "category",
       },
     },
     { $unwind: "$category" },
-    {
-      $lookup: {
-        from: "reviews",
-        localField: "_id",
-        foreignField: "product",
-        as: "review",
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "reviews",
+    //     localField: "_id",
+    //     foreignField: "product",
+    //     as: "review",
+    //   },
+    // },
     { $match: filterQuery },
     {
       $facet: {
@@ -345,13 +498,14 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
           {
             $project: {
               title: 1,
-              price: "$price.regularPrice",
+              regularPrice: "$price.regularPrice",
+              salePrice: "$price.salePrice",
               sku: "$inventory.sku",
-              stock: "$inventory.stockStatus",
+              stockStatus: "$inventory.stockStatus",
               stockAvailable: "$inventory.stockAvailable",
-              totalReview: { $size: "$review" },
-              averageRating: { $avg: "$review.rating" },
-              image: {
+              // totalReview: { $size: "$review" },
+              // averageRating: { $avg: "$review.rating" },
+              thumbnail: {
                 _id: "$thumbnail._id",
                 src: "$thumbnail.src",
                 alt: "$thumbnail.alt",
@@ -428,7 +582,15 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     pipeline,
     query
   )
-    .search(["title", "price", "sku"])
+    .search([
+      "title",
+      "price",
+      "sku",
+      "description",
+      "category.name",
+      "subcategory.name",
+      "brand.name",
+    ])
     .sort()
     .paginate();
 
@@ -443,8 +605,8 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
       $match: {
         isDeleted: false,
         featured: true,
-        "publishedStatus.status": "Published",
-        "publishedStatus.visibility": "Public",
+        "publishedStatus.status": publishedStatusQuery.Published,
+        "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
     // Populate the "price" field
@@ -479,25 +641,30 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
       },
     },
     { $unwind: "$category" },
-    {
-      $lookup: {
-        from: "reviews",
-        localField: "_id",
-        foreignField: "product",
-        as: "review",
-      },
-    },
+    // {
+    //   $lookup: {
+    //     from: "reviews",
+    //     localField: "_id",
+    //     foreignField: "product",
+    //     as: "review",
+    //   },
+    // },
     // Project specific fields
     {
       $project: {
+        _id: 1,
         title: 1,
         slug: 1,
+        // shortDescription: 1,
         regularPrice: "$price.regularPrice",
         salePrice: "$price.salePrice",
         discountPercent: "$price.discountPercent",
-        totalReview: { $size: "$review" },
-        averageRating: { $avg: "$review.rating" },
-        image: {
+        save: "$price.save",
+        stockStatus: "$inventory.stockStatus",
+        // stockAvailable: "$inventory.stockAvailable",
+        // totalReview: { $size: "$review" },
+        // averageRating: { $avg: "$review.rating" },
+        thumbnail: {
           _id: "$thumbnail._id",
           src: "$thumbnail.src",
           alt: "$thumbnail.alt",
@@ -535,7 +702,7 @@ const updateProductIntoDB = async (
       inventory,
       seoData,
       publishedStatus,
-      attribute,
+      attributes,
       brand,
       category,
       warrantyInfo,
@@ -610,10 +777,10 @@ const updateProductIntoDB = async (
     }
 
     let updateAttribute, updateBrand, updateTag;
-    if (attribute?.length) {
-      updateAttribute = attribute;
+    if (attributes?.length) {
+      updateAttribute = attributes;
     }
-    if (brand?.length) {
+    if (brand) {
       updateBrand = brand;
     }
     if (tag?.length) {
