@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
 import { CourierRoutes } from "../modules/courier/courier.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
@@ -12,6 +12,7 @@ import { ProductRoutes } from "../modules/productManagement/product/product.rout
 import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
+import { ReportsRoutes } from "../modules/reports/reports.routes";
 import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
 import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
@@ -20,8 +21,14 @@ import { UserRoutes } from "../modules/userManagement/user/user.routes";
 import { WarrantyRoutes } from "../modules/warrantyManagement/warranty/warranty.routes";
 import { WarrantyClaimRoutes } from "../modules/warrantyManagement/warrantyClaim/warrantyClaim.routes";
 
+type TModuleTypes = {
+  path: string;
+  route: Router;
+};
+
 const router = express();
-const moduleRoutes = [
+
+const moduleRoutes: TModuleTypes[] = [
   {
     path: "/users",
     route: UserRoutes,
@@ -101,6 +108,10 @@ const moduleRoutes = [
   {
     path: "/warranty-claim",
     route: WarrantyClaimRoutes,
+  },
+  {
+    path: "/reports",
+    route: ReportsRoutes,
   },
 ];
 

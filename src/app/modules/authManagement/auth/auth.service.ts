@@ -92,6 +92,7 @@ const refreshToken = async (
     config.token_data.access_token_secret as Secret,
     config.token_data.access_token_expires as string
   );
+
   return { accessToken };
 };
 

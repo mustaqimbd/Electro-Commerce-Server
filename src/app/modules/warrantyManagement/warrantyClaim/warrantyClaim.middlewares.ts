@@ -1,53 +1,14 @@
 import { NextFunction, Request, Response } from "express";
-import httpStatus from "http-status";
-import { Types } from "mongoose";
-import ApiError from "../../../errorHandlers/ApiError";
 import catchAsync from "../../../utilities/catchAsync";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
 
-const validateWarranty = catchAsync(
+const validateWarrantyMiddleware = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const { phoneNumber, warrantyCodes } = req.body;
     await WarrantyClaimUtils.ifAlreadyClaimRequestPending(phoneNumber);
-    const warranties = await WarrantyClaimUtils.getWarrantyData(
+    const warrantyClaimReqData = await WarrantyClaimUtils.validateWarranty({
       phoneNumber,
-      warrantyCodes
-    );
-    if (!warranties.length) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request");
-    }
-    const warrantyClaimReqData: Record<string, unknown>[] = [];
-
-    warranties.forEach((warranty) => {
-      (
-        warranty.products as {
-          _id: Types.ObjectId;
-          productId: Types.ObjectId;
-          warranty: { warrantyCodes: { code: string }[]; endsDate: string };
-        }[]
-      ).map((product) => {
-        const endsDate = new Date(product?.warranty?.endsDate);
-        const today = new Date();
-
-        if (today > endsDate) {
-          throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            `Please check again your warranty codes`
-          );
-        }
-
-        const data: Record<string, unknown> = {
-          order_id: warranty._id,
-        };
-        data.orderItemId = product._id;
-        data.productId = product.productId;
-        data.claimedCodes = product?.warranty?.warrantyCodes
-          .map((item) =>
-            warrantyCodes.includes(item.code) ? item.code : undefined
-          )
-          .filter(Boolean);
-        warrantyClaimReqData.push(data);
-      });
+      warrantyCodes,
     });
 
     req.anyData = warrantyClaimReqData;
@@ -69,4 +30,7 @@ const parseFormData = catchAsync(
   }
 );
 
-export const WarrantyClaimMiddlewares = { validateWarranty, parseFormData };
+export const WarrantyClaimMiddlewares = {
+  validateWarrantyMiddleware,
+  parseFormData,
+};

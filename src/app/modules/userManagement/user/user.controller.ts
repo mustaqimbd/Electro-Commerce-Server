@@ -75,6 +75,7 @@ const updateAdminOrStaff = catchAsync(async (req: Request, res: Response) => {
   }
 
   const { personalInfo, address, ...userInfo } = req.body;
+
   await UserServices.updateAdminOrStaffIntDB(
     new Types.ObjectId(req.params.id),
     personalInfo,

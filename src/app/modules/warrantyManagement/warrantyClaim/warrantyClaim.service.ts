@@ -6,9 +6,13 @@ import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { createNewOrder } from "../../orderManagement/order/order.utils";
+import { TShipping } from "../../orderManagement/shipping/shipping.interface";
 import {
   TWarrantyClaim,
+  TWarrantyClaimedContactStatus,
+  TWarrantyClaimedProductCondition,
   TWarrantyClaimedProductDetails,
+  TWarrantyClaimReqData,
 } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
@@ -84,39 +88,68 @@ const updateWarrantyClaimReqIntoDB = async (
       httpStatus.BAD_REQUEST,
       "No warranty claim request found"
     );
-  const updatedDoc: Record<string, unknown> = {};
+
+  const { warrantyClaimReqData, shipping } = payload as {
+    warrantyClaimReqData: string[];
+    shipping: Partial<TShipping>;
+  };
+
+  if (payload.contactStatus) {
+    warrantyClaimReq.contactStatus =
+      payload.contactStatus as TWarrantyClaimedContactStatus;
+  }
 
   if (payload.result) {
-    updatedDoc.result = payload.result;
-    updatedDoc.identifiedBy = user.id;
+    if (!["confirmed"].includes(warrantyClaimReq.contactStatus)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Please contact the customer first."
+      );
+    }
+    warrantyClaimReq.result =
+      payload.result as TWarrantyClaimedProductCondition;
+    warrantyClaimReq.identifiedBy = user.id;
+    if (payload.result === "solved") {
+      if (warrantyClaimReq?.videosAndImages?.length) {
+        warrantyClaimReq?.videosAndImages?.forEach((item) => {
+          try {
+            const folderPath = path.parse(item.path).dir;
+            fsEx.remove(folderPath);
+            // eslint-disable-next-line no-empty
+          } finally {
+          }
+        });
+      }
+      warrantyClaimReq.videosAndImages = [];
+    }
   }
 
   if (payload.shipping) {
-    updatedDoc.shipping = payload.shipping;
+    const newShipping = {
+      fullName: shipping.fullName ?? warrantyClaimReq.shipping.fullName,
+      fullAddress:
+        shipping.fullAddress ?? warrantyClaimReq.shipping.fullAddress,
+      phoneNumber:
+        shipping.phoneNumber ?? warrantyClaimReq.shipping.phoneNumber,
+    };
+
+    warrantyClaimReq.shipping = newShipping as unknown as TShipping;
   }
 
   if (payload.officialNotes || payload.officialNotes === "") {
-    updatedDoc.officialNotes = payload.officialNotes;
+    warrantyClaimReq.officialNotes = payload.officialNotes as string;
   }
 
-  await WarrantyClaim.findByIdAndUpdate(
-    id,
-    { $set: updatedDoc },
-    { new: true }
-  );
-};
+  if ((warrantyClaimReqData || []).length) {
+    const claimReqData = await WarrantyClaimUtils.validateWarranty({
+      phoneNumber: warrantyClaimReq.phoneNumber,
+      warrantyCodes: warrantyClaimReqData,
+    });
 
-const updateContactStatusIntoDB = async (
-  warrantyClaimedReqIds: Types.ObjectId[],
-  contactStatus: string
-) => {
-  const result = await WarrantyClaim.updateMany(
-    { _id: { $in: warrantyClaimedReqIds } },
-    { contactStatus },
-    { upsert: true }
-  );
-
-  return result;
+    warrantyClaimReq.warrantyClaimReqData =
+      claimReqData as TWarrantyClaimReqData[];
+  }
+  await warrantyClaimReq.save();
 };
 
 const createNewWarrantyClaimOrderIntoDB = async (
@@ -142,7 +175,7 @@ const createNewWarrantyClaimOrderIntoDB = async (
   if (claimReq?.contactStatus !== "confirmed") {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      "Please contact with the customer first"
+      "Please contact the customer first"
     );
   }
 
@@ -224,6 +257,5 @@ export const WarrantyClaimServices = {
   checkWarrantyFromDB,
   createWarrantyClaimIntoDB,
   updateWarrantyClaimReqIntoDB,
-  updateContactStatusIntoDB,
   createNewWarrantyClaimOrderIntoDB,
 };

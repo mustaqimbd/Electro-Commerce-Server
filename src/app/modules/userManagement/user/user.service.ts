@@ -280,16 +280,21 @@ const updateAdminOrStaffIntDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-
-    if (userInfo.phoneNumber || userInfo.email) {
+    const updatedUserData: Record<string, unknown> = {};
+    if (userInfo?.phoneNumber || userInfo?.email) {
       await isEmailOrNumberTaken({
         phoneNumber: userInfo.phoneNumber,
         email: userInfo.email,
       });
-      await User.findOneAndUpdate(
-        { _id: isExist._id },
-        { phoneNumber: userInfo.phoneNumber, email: userInfo.email }
-      );
+      updatedUserData.phoneNumber = userInfo?.phoneNumber;
+      updatedUserData.email = userInfo?.email;
+    }
+    if (userInfo?.status) {
+      updatedUserData.status = userInfo?.status;
+    }
+
+    if (Object.keys(updatedUserData).length) {
+      await User.findOneAndUpdate({ _id: isExist._id }, updatedUserData);
     }
 
     if (address) {

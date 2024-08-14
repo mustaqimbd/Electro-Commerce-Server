@@ -11,7 +11,7 @@ export const orderStatus: TOrderStatus[] = [
   "On courier",
   "canceled",
   "returned",
-  "partly returned",
+  "partial completed",
   "completed",
   "deleted",
 ];

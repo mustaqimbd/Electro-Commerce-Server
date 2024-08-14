@@ -65,7 +65,6 @@ const UserSchema = new Schema<TUser, TUserModel>(
       type: String,
       enum: statusEnum,
       default: "active",
-      set: () => "active",
     },
   },
 

@@ -73,20 +73,6 @@ const updateWarrantyClaimReq = catchAsync(
   }
 );
 
-const updateContactStatus = catchAsync(async (req: Request, res: Response) => {
-  const { warrantyClaimedReqIds, status } = req.body;
-  const warranty = await WarrantyClaimServices.updateContactStatusIntoDB(
-    warrantyClaimedReqIds,
-    status
-  );
-
-  successResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Warranty claim request updated successfully",
-    data: warranty,
-  });
-});
-
 const createNewWarrantyClaimOrder = catchAsync(
   async (req: Request, res: Response) => {
     const warranty =
@@ -109,6 +95,5 @@ export const WarrantyClaimController = {
   checkWarranty,
   createWarrantyClaimReq,
   updateWarrantyClaimReq,
-  updateContactStatus,
   createNewWarrantyClaimOrder,
 };

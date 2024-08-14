@@ -26,7 +26,7 @@ router.post(
   imageAndVideoUploader.array("files", Number(config.upload_image_maxCount)),
   WarrantyClaimMiddlewares.parseFormData,
   validateRequest(WarrantyClaimValidation.createWarrantyClaimReq),
-  WarrantyClaimMiddlewares.validateWarranty,
+  WarrantyClaimMiddlewares.validateWarrantyMiddleware,
   WarrantyClaimController.createWarrantyClaimReq
 );
 
@@ -38,16 +38,6 @@ router.patch(
   }),
   validateRequest(WarrantyClaimValidation.updateWarrantyClaimReq),
   WarrantyClaimController.updateWarrantyClaimReq
-);
-
-router.patch(
-  "/update-contact-status",
-  authGuard({
-    requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage warranty claim",
-  }),
-  validateRequest(WarrantyClaimValidation.updateContactStatus),
-  WarrantyClaimController.updateContactStatus
 );
 
 router.post(

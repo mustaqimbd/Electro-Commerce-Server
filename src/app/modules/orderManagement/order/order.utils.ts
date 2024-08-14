@@ -170,6 +170,7 @@ export const ordersPipeline = (): PipelineStage[] => [
             _id: "$productDetails._id",
             productId: "$productInfo._id",
             title: "$productInfo.title",
+            isProductWarrantyAvailable: "$productInfo.title",
             warranty: "$warranty",
             unitPrice: "$productDetails.unitPrice",
             quantity: "$productDetails.quantity",
@@ -548,7 +549,7 @@ export const createNewOrder = async (
   if (!orderRes) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
   }
-  if (user.id) {
+  if (user.id && user.role === "customer") {
     await Address.updateOne({ uid: user.uid }, shipping).session(session);
   }
   // clear cart and cart items
