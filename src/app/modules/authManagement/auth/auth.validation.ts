@@ -9,7 +9,7 @@ const login = z.object({
     phoneEmailOrUid: z.string({
       required_error: "Phone number email or UID is required",
     }),
-    password: passwordZodSchema,
+    password: z.string({ required_error: "Password is required" }),
   }),
 });
 
@@ -21,7 +21,9 @@ export const refreshTokenZodSchema = z.object({
 
 const changePassword = z.object({
   body: z.object({
-    previousPassword: passwordZodSchema,
+    previousPassword: z.string({
+      required_error: "Previous password is required",
+    }),
     newPassword: passwordZodSchema,
   }),
 });

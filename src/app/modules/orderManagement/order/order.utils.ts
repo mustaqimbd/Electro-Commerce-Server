@@ -549,7 +549,7 @@ export const createNewOrder = async (
   if (!orderRes) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
   }
-  if (user.id) {
+  if (user.id && user.role === "customer") {
     await Address.updateOne({ uid: user.uid }, shipping).session(session);
   }
   // clear cart and cart items

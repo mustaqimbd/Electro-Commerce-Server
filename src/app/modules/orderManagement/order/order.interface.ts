@@ -20,7 +20,7 @@ export type TOrderStatus =
   | "warranty added"
   | "On courier"
   | "returned"
-  | "partly completed"
+  | "partial completed"
   | "completed"
   | "canceled"
   | "deleted";
