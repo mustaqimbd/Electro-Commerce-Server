@@ -9,7 +9,7 @@ import { SeoDataModel } from "../seoData/seoData.model";
 import { publishedStatusQuery, visibilityStatusQuery } from "./product.const";
 import { TProduct } from "./product.interface";
 import ProductModel from "./product.model";
-import { UpdatedAggregateQueryHelper } from "../../../helper/updatedQuery.helper";
+import { AggregateQueryHelperFacet } from "../../../helper/query.helper";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
@@ -22,17 +22,20 @@ const createProductIntoDB = async (
     payload.createdBy = createdBy;
     const generatedProductId = await generateProductId();
     payload.id = generatedProductId;
+
     payload.price = (
       await PriceModel.create([payload.price], { session })
     )[0]._id;
+
     payload.inventory = (
       await InventoryModel.create([payload.inventory], { session })
     )[0]._id;
-    if (payload.seoData) {
-      payload.seoData = (
-        await SeoDataModel.create([payload.seoData], { session })
-      )[0]._id;
-    }
+
+    // if (payload.seoData) {
+    //   payload.seoData = (
+    //     await SeoDataModel.create([payload.seoData], { session })
+    //   )[0]._id;
+    // }
 
     const product = (await ProductModel.create([payload], { session }))[0];
 
@@ -389,7 +392,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     },
   ];
 
-  const productQuery = new UpdatedAggregateQueryHelper(
+  const productQuery = new AggregateQueryHelperFacet(
     ProductModel,
     pipeline,
     query
@@ -408,6 +411,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
 
   return { ...data };
 };
+
 const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
 
@@ -550,11 +554,12 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     all: 0,
     Published: 0,
     Draft: 0,
-    // Deleted: 0,
   };
+
   const statusPipeline = [
     {
       $match: {
+        isDeleted: false,
         "publishedStatus.status": {
           $in: Object.keys(statusMap).filter((status) => status !== "all"),
         },
@@ -567,17 +572,22 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
       },
     },
   ];
+
   const result = await ProductModel.aggregate(statusPipeline);
+
   result.forEach(({ _id, total }) => {
-    statusMap[_id as keyof typeof statusMap] = total;
-    statusMap.all += total;
+    if (_id in statusMap) {
+      statusMap[_id as keyof typeof statusMap] = total;
+      statusMap.all += total;
+    }
   });
+
   const formattedResult = Object.entries(statusMap).map(([name, total]) => ({
     name,
     total,
   }));
 
-  const productQuery = new UpdatedAggregateQueryHelper(
+  const productQuery = new AggregateQueryHelperFacet(
     ProductModel,
     pipeline,
     query
@@ -744,6 +754,7 @@ const updateProductIntoDB = async (
         { session }
       );
     }
+
     if (seoData && Object.keys(seoData).length) {
       await SeoDataModel.findByIdAndUpdate(
         isProductExist.seoData,
@@ -751,6 +762,7 @@ const updateProductIntoDB = async (
         { session }
       );
     }
+
     const updateImage: Record<string, unknown> = {};
     if (image && Object.keys(image).length) {
       for (const [key, value] of Object.entries(image)) {
@@ -819,23 +831,6 @@ const deleteProductFromDB = async (
   productIds: string[],
   deletedBy: Types.ObjectId
 ) => {
-  // const isProductExist = await ProductModel.findById(id);
-  // if (!isProductExist) {
-  //   throw new ApiError(httpStatus.NOT_FOUND, "The Product was not found!");
-  // }
-
-  // if (isProductExist.isDeleted) {
-  //   throw new ApiError(
-  //     httpStatus.BAD_REQUEST,
-  //     "The Product is already deleted!"
-  //   );
-  // }
-
-  // const result = await ProductModel.findByIdAndUpdate(id, {
-  //   deletedBy,
-  //   isDeleted: true,
-  // });
-
   const result = await ProductModel.updateMany(
     { _id: { $in: productIds } },
     {

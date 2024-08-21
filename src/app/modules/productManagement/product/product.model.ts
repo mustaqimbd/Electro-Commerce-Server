@@ -8,7 +8,6 @@ import {
   TVariation,
   TWarrantyInfo,
 } from "./product.interface";
-// import { TAttribute } from "../attribute/attribute.interface";
 import { publishedStatus, visibilityStatus } from "./product.const";
 import { stockStatus } from "../inventory/inventory.const";
 import { TInventory } from "../inventory/inventory.interface";
@@ -87,7 +86,7 @@ const publishedStatusSchema = new Schema<TPublishedStatusSchema>(
   {
     status: { type: String, enum: publishedStatus, required: true },
     visibility: { type: String, enum: visibilityStatus, required: true },
-    date: { type: String, required: true },
+    // date: { type: String, required: true },
   },
   { _id: false }
 );
@@ -245,12 +244,10 @@ productSchema.pre("save", async function (next) {
 
       for (const id of values) {
         const objectId = id.toString();
-        // Find the attribute value in the existing attributes
         const isAttributeValueExist = isAttributeExist.values.find(
           ({ _id }) => _id?.toString() === objectId
         );
 
-        // Check if the attribute value exists
         if (!isAttributeValueExist) {
           throw new ApiError(
             httpStatus.NOT_FOUND,
@@ -258,7 +255,6 @@ productSchema.pre("save", async function (next) {
           );
         }
 
-        // Check if the attribute value is deleted
         if (isAttributeValueExist.isDeleted) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,

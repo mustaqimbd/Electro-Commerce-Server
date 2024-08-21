@@ -14,15 +14,15 @@ router.post(
 );
 
 router.get(
-  "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
-  ImageControllers.getAllImages
-);
-
-router.get(
   "/:id",
   authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   ImageControllers.getAnImage
+);
+
+router.get(
+  "/",
+  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  ImageControllers.getAllImages
 );
 
 router.delete(

@@ -3,7 +3,7 @@ import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { ProductServices } from "./product.service";
 import generateSlug from "../../../utilities/generateSlug";
-import modifiedPriceData from "./utils";
+import modifiedPriceData from "./product.utils";
 
 const createProduct = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
@@ -86,9 +86,20 @@ const getFeaturedProducts = catchAsync(async (req, res) => {
 });
 
 const updateProduct = catchAsync(async (req, res) => {
-  modifiedPriceData(req);
   const updatedBy = req.user.id;
   const ProductId = req.params.id;
+  const { title, slug, price, warrantyInfo } = req.body;
+  const { duration } = warrantyInfo || {};
+  if (title) {
+    req.body.title = title.replace(/\s+/g, " ").trim();
+    req.body.slug = generateSlug(title, slug);
+  }
+  if (price) {
+    modifiedPriceData(req);
+  }
+  if (req.body.warrantyInfo?.duration) {
+    req.body.warrantyInfo.duration = duration?.quantity + " " + duration?.unit;
+  }
   const result = await ProductServices.updateProductIntoDB(
     updatedBy,
     ProductId,
