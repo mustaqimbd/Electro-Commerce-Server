@@ -1,6 +1,9 @@
-import mongoose, { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 import { TSelectedAttributes } from "../../../types/attribute";
-import { TProduct } from "../../productManagement/product/product.interface";
+import {
+  TProduct,
+  TVariation,
+} from "../../productManagement/product/product.interface";
 
 export type TSelectedAttributesOnCart = {
   name: string;
@@ -8,10 +11,11 @@ export type TSelectedAttributesOnCart = {
 };
 
 export type TCartItemData = {
-  userId?: mongoose.Types.ObjectId;
+  userId?: Types.ObjectId;
   sessionId?: string;
-  product: mongoose.Types.ObjectId | TProduct;
+  product: Types.ObjectId | TProduct;
   attributes: TSelectedAttributes[];
+  variation?: Types.ObjectId | TVariation;
   quantity: number;
   expireAt?: Date;
 };

@@ -7,6 +7,7 @@ import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { createNewOrder } from "../../orderManagement/order/order.utils";
 import { TShipping } from "../../orderManagement/shipping/shipping.interface";
+import { TVariation } from "../../productManagement/product/product.interface";
 import {
   TWarrantyClaim,
   TWarrantyClaimedContactStatus,
@@ -219,12 +220,15 @@ const createNewWarrantyClaimOrderIntoDB = async (
         ({
           productId,
           claimedCodes,
+          variation,
         }: {
           productId: Types.ObjectId;
           claimedCodes: string[];
+          variation: Types.ObjectId | TVariation;
         }) => ({
           product: productId,
           quantity: claimedCodes?.length,
+          variation: new Types.ObjectId(variation.toString()),
           claimedCodes: claimedCodes.map((item) => ({ code: item })),
         })
       ) as Partial<TWarrantyClaimedProductDetails[]>,

@@ -1,38 +1,174 @@
 import httpStatus from "http-status";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
+import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import ProductModel from "../../productManagement/product/product.model";
 import { TCartItem, TCartItemData } from "../cartItem/cartItem.interface";
 import { CartItem } from "../cartItem/cartItem.model";
-import { TCart, TCartData } from "./cart.interface";
-import { Cart } from "./cart.model";
+import { CartHelper } from "./cart.helper";
 
-const getCartFromDB = async (
-  user: TOptionalAuthGuardPayload
-): Promise<TCart | null> => {
+const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
   const query = optionalAuthUserQuery(user);
-  const result = await Cart.findOne(query, { cartItems: 1 }).populate([
+  const pipeline: PipelineStage[] = [
     {
-      path: "cartItems.item",
-      select: "quantity product attributes",
-      populate: {
-        path: "product",
-        select: "title slug price image.thumbnail",
-        populate: [
-          {
-            path: "price",
-            select: "salePrice regularPrice",
-          },
-          {
-            path: "image.thumbnail",
-            select: "src alt",
-          },
-        ],
+      $match: query,
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "product",
+        foreignField: "_id",
+        as: "productDetails",
       },
     },
-  ]);
+    {
+      $unwind: "$productDetails",
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "productDetails.image.thumbnail",
+        foreignField: "_id",
+        as: "productImage",
+      },
+    },
+    {
+      $unwind: "$productImage",
+    },
+    {
+      $lookup: {
+        from: "prices",
+        localField: "productDetails.price",
+        foreignField: "_id",
+        as: "defaultPrice",
+      },
+    },
+    {
+      $unwind: "$defaultPrice",
+    },
+    // Conditionally handle the variation if it exists
+    {
+      $lookup: {
+        from: "products",
+        let: {
+          productId: "$productDetails._id",
+          variationId: "$variation",
+        },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$_id", "$$productId"] },
+                  { $ne: ["$$variationId", null] }, // Ensure the variation is not null
+                ],
+              },
+            },
+          },
+          {
+            $project: {
+              variations: {
+                $filter: {
+                  input: "$variations",
+                  as: "variation",
+                  cond: { $eq: ["$$variation._id", "$$variationId"] },
+                },
+              },
+            },
+          },
+        ],
+        as: "variationDetails",
+      },
+    },
+    {
+      $unwind: {
+        path: "$variationDetails",
+        preserveNullAndEmptyArrays: true, // In case there is no variation
+      },
+    },
+    {
+      $project: {
+        product: {
+          _id: "$productDetails._id",
+          title: "$productDetails.title",
+          image: {
+            src: {
+              $concat: [config.image_server, "/", "$productImage.src"],
+            },
+            alt: "$productImage.alt",
+          },
+        },
+        variation: {
+          $cond: {
+            if: {
+              $and: [
+                { $ne: ["$variation", null] }, // Ensure variation is present
+                {
+                  $gt: [
+                    {
+                      $size: {
+                        $ifNull: ["$variationDetails.variations", []],
+                      },
+                    },
+                    0,
+                  ],
+                }, // Ensure variationDetails.variations is non-empty
+              ],
+            },
+            then: {
+              _id: { $arrayElemAt: ["$variationDetails.variations._id", 0] },
+              attributes: {
+                $arrayElemAt: ["$variationDetails.variations.attributes", 0],
+              },
+            },
+            else: null,
+          },
+        },
+        price: {
+          $cond: {
+            if: {
+              $and: [
+                { $ne: ["$variation", null] }, // Ensure variation is present
+                {
+                  $gt: [
+                    {
+                      $size: {
+                        $ifNull: ["$variationDetails.variations", []],
+                      },
+                    },
+                    0,
+                  ],
+                }, // Ensure variationDetails.variations is non-empty
+              ],
+            },
+            then: {
+              regularPrice: {
+                $arrayElemAt: [
+                  "$variationDetails.variations.price.regularPrice",
+                  0,
+                ],
+              },
+              salePrice: {
+                $arrayElemAt: [
+                  "$variationDetails.variations.price.salePrice",
+                  0,
+                ],
+              },
+            },
+            else: {
+              regularPrice: "$defaultPrice.regularPrice",
+              salePrice: "$defaultPrice.salePrice",
+            },
+          },
+        },
+        quantity: 1,
+      },
+    },
+  ];
+
+  const result = await CartItem.aggregate(pipeline);
   return result;
 };
 
@@ -40,78 +176,40 @@ const addToCartIntoDB = async (
   user: TOptionalAuthGuardPayload,
   payload: TCartItemData
 ): Promise<void> => {
-  const query = optionalAuthUserQuery(user);
-
   const product = await ProductModel.findOne(
     { _id: payload.product },
-    { isDeleted: 1 }
+    { isDeleted: 1, variations: 1 }
   );
 
   if (!product || product.isDeleted) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Failed to add to cart. No product available"
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, "No product found");
   }
 
-  // const isAlreadyAddedIntoCart = await CartItem.findOne({ ...query, product });
-  // if (isAlreadyAddedIntoCart) {
-  //   throw new ApiError(
-  //     httpStatus.BAD_REQUEST,
-  //     "Dear customer, this product is already added into your cart."
-  //   );
-  // }
+  await CartHelper.checkInventory({
+    quantity: Number(payload.quantity || 1),
+    item: {
+      product: product?._id as Types.ObjectId,
+      variation: payload.variation as Types.ObjectId,
+    },
+  });
 
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    // cart item creation start here
-    const cartItemData: TCartItemData = {
-      userId: user.id,
-      sessionId: user.sessionId,
-      ...payload,
-    };
-    const [cartItem]: TCartItem[] = await CartItem.create([cartItemData], {
-      session,
-    });
-    if (!cartItem) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create cart item");
-    }
-    // cart item creation ends here
-
-    const cartData = await Cart.findOne(query);
-    if (cartData) {
-      const updatedCartData = await Cart.updateOne(
-        query,
-        { $push: { cartItems: { item: cartItem._id } } },
-        { session }
+  if (product.variations.length) {
+    if (!payload.variation)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "No variation has been selected"
       );
-      if (!updatedCartData.modifiedCount) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          "Failed to update cart data."
-        );
-      }
-    } else {
-      const newCartData: TCartData = {
-        userId: user.id,
-        sessionId: user.sessionId,
-        cartItems: [{ item: cartItem._id }],
-      };
-      const [newCart] = await Cart.create([newCartData], { session });
-      if (!newCart) {
-        throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create cart");
-      }
-    }
-
-    await session.commitTransaction();
-    await session.endSession();
-  } catch (error) {
-    await session.abortTransaction();
-    await session.endSession();
-    throw error;
+  } else {
+    payload.variation = undefined;
   }
+
+  const cartItemData: TCartItemData = {
+    userId: user.id,
+    sessionId: user.sessionId,
+    ...payload,
+  };
+
+  await CartItem.create(cartItemData);
 };
 
 const updateQuantityIntoDB = async (
@@ -127,18 +225,16 @@ const updateQuantityIntoDB = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "No cart item found");
   }
 
-  // const product = await Product.findOne({ _id: cartItem.id }, { quantity: 1 });
-  // if (product.quantity < payload.quantity) {
-  //   throw new ApiError(
-  //     httpStatus.BAD_REQUEST,
-  //     `Sorry insufficient quantity. ${product.quantity}`
-  //   );
-  // }
-  // TODO : Ensure the commented codes are working.
+  await CartHelper.checkInventory({
+    quantity: Number(payload.quantity || 1),
+    item: {
+      product: cartItem?.product as Types.ObjectId,
+      variation: cartItem?.variation as Types.ObjectId,
+    },
+  });
 
   cartItem.quantity = Number(payload.quantity) || 1;
-  const result = await cartItem.save();
-  return result;
+  await cartItem.save();
 };
 
 const deleteFromCartFromDB = async (
@@ -146,31 +242,10 @@ const deleteFromCartFromDB = async (
   payload: { itemId: mongoose.Types.ObjectId }
 ) => {
   const query = optionalAuthUserQuery(user);
-
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    const deletedFromCartItem = await CartItem.deleteOne({
-      ...query,
-      _id: payload.itemId,
-    }).session(session);
-    if (!deletedFromCartItem.deletedCount) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to delete item");
-    }
-    const deletedFromCart = await Cart.updateOne(query, {
-      $pull: { cartItems: { item: payload.itemId } },
-    }).session(session);
-    if (!deletedFromCart.modifiedCount) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to delete from cart");
-    }
-    await session.commitTransaction();
-    await session.endSession();
-  } catch (error) {
-    await session.abortTransaction();
-    await session.endSession();
-    throw error;
-  }
+  await CartItem.deleteOne({
+    ...query,
+    _id: payload.itemId,
+  });
 };
 
 export const CartServices = {

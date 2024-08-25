@@ -8,18 +8,9 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     required: true,
     ref: "Product",
   },
-  attributes: [
-    {
-      type: {
-        name: {
-          type: String,
-        },
-        value: {
-          type: String,
-        },
-      },
-    },
-  ],
+  variation: {
+    type: Schema.Types.ObjectId,
+  },
   unitPrice: {
     type: Number,
     require: true,

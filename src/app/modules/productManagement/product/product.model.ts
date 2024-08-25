@@ -8,16 +8,17 @@ import {
   TVariation,
   TWarrantyInfo,
 } from "./product.interface";
-import { publishedStatus, visibilityStatus } from "./product.const";
+// import { TAttribute } from "../attribute/attribute.interface";
+import httpStatus from "http-status";
+import ApiError from "../../../errorHandlers/ApiError";
+import { ImageModel } from "../../image/image.model";
+import { AttributeModel } from "../attribute/attribute.model";
+import { BrandModel } from "../brand/brand.model";
+import { CategoryModel } from "../category/category.model";
 import { stockStatus } from "../inventory/inventory.const";
 import { TInventory } from "../inventory/inventory.interface";
-import { ImageModel } from "../../image/image.model";
-import ApiError from "../../../errorHandlers/ApiError";
-import httpStatus from "http-status";
-import { CategoryModel } from "../category/category.model";
 import { SubCategoryModel } from "../subCategory/subCategory.model";
-import { BrandModel } from "../brand/brand.model";
-import { AttributeModel } from "../attribute/attribute.model";
+import { publishedStatus, visibilityStatus } from "./product.const";
 
 const productImageSchema = new Schema<TProductImage>(
   {
@@ -38,7 +39,7 @@ const productAttributeSchema = new Schema<TProductAttribute>(
   { _id: false }
 );
 
-const productVariationsSchema = new Schema<TVariation>({
+export const productVariationsSchema = new Schema<TVariation>({
   attributes: {
     type: Map,
     of: String,

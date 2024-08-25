@@ -9,13 +9,9 @@ import steedFastApi from "../../../utilities/steedfastApi";
 import { Address } from "../../addressManagement/address/address.model";
 import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
-import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
-import { TPrice } from "../../productManagement/price/price.interface";
-import { TProduct } from "../../productManagement/product/product.interface";
 import ProductModel from "../../productManagement/product/product.model";
 import { Cart } from "../../shoppingCartManagement/cart/cart.model";
-import { TCartItem } from "../../shoppingCartManagement/cartItem/cartItem.interface";
 import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
 import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
@@ -331,15 +327,14 @@ export const createNewOrder = async (
   const orderId = createOrderId();
   let orderedProductInfo: TSanitizedOrProduct[] = [];
 
+  // console.log(user);
+
   if (custom || warrantyClaimOrderData?.warrantyClaim) {
     if (!user.id) {
       throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
     }
     if (!["admin", "staff"]?.includes(String(user?.role))) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        "Only staff or admin can create custom orders."
-      );
+      throw new ApiError(httpStatus.BAD_REQUEST, "Permission denied");
     }
   }
   let fromWebsite = false;
@@ -347,9 +342,8 @@ export const createNewOrder = async (
     orderedProductInfo =
       await OrderHelper.sanitizeOrderedProducts(orderedProducts);
   } else if (salesPage) {
-    orderedProductInfo = await OrderHelper.sanitizeOrderedProducts([
-      orderedProducts[0],
-    ]);
+    orderedProductInfo =
+      await OrderHelper.sanitizeOrderedProducts(orderedProducts);
   } else if (
     warrantyClaimOrderData?.warrantyClaim &&
     warrantyClaimOrderData?.productsDetails
@@ -359,44 +353,177 @@ export const createNewOrder = async (
     );
   } else {
     fromWebsite = true;
-    const cart = await Cart.findOne(userQuery)
-      .populate({
-        path: "cartItems.item",
-        select: "product attributes quantity -_id",
-        populate: {
-          path: "product",
-          select: "price title isDeleted inventory",
-          populate: [
+    const pipeline: PipelineStage[] = [
+      {
+        $match: userQuery,
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+      {
+        $unwind: "$productDetails",
+      },
+      {
+        $lookup: {
+          from: "inventories",
+          localField: "productDetails.inventory",
+          foreignField: "_id",
+          as: "defaultInventory",
+        },
+      },
+      {
+        $unwind: "$defaultInventory",
+      },
+      {
+        $lookup: {
+          from: "prices",
+          localField: "productDetails.price",
+          foreignField: "_id",
+          as: "productPrice",
+        },
+      },
+      {
+        $unwind: "$productPrice",
+      },
+      {
+        $lookup: {
+          from: "products",
+          let: {
+            productId: "$productDetails._id",
+            variationId: "$variation", // Checking CartItem.variation, not the product
+          },
+          pipeline: [
             {
-              path: "price",
-              select: "salePrice regularPrice -_id",
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$_id", "$$productId"] },
+                    { $ne: ["$$variationId", null] }, // Ensure variation is present in CartItem
+                  ],
+                },
+              },
             },
             {
-              path: "inventory",
-              select: "stockQuantity",
+              $project: {
+                variations: {
+                  $filter: {
+                    input: "$variations",
+                    as: "variation",
+                    cond: { $eq: ["$$variation._id", "$$variationId"] }, // Match variationId
+                  },
+                },
+              },
             },
           ],
+          as: "variationDetails",
         },
-      })
-      .exec();
+      },
+      {
+        $unwind: {
+          path: "$variationDetails",
+          preserveNullAndEmptyArrays: true, // Handle cases without variation
+        },
+      },
+      {
+        $project: {
+          product: {
+            variationDetails: "$variationDetails",
+            _id: "$productDetails._id",
+            title: "$productDetails.title",
+            isDeleted: "$productDetails.isDeleted",
+            defaultInventory: "$defaultInventory._id",
+            stock: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $ne: ["$variation", null] }, // Ensure variation is present
+                    {
+                      $gt: [
+                        {
+                          $size: {
+                            $ifNull: ["$variationDetails.variations", []],
+                          },
+                        },
+                        0,
+                      ],
+                    }, // Ensure variationDetails.variations is non-empty
+                  ],
+                },
+                then: {
+                  stockQuantity: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.stockQuantity",
+                      0,
+                    ],
+                  },
+                  manageStock: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.manageStock",
+                      0,
+                    ],
+                  },
+                },
+                else: {
+                  stockQuantity: "$defaultInventory.stockQuantity",
+                  manageStock: "$defaultInventory.manageStock",
+                },
+              },
+            },
+            price: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $ne: ["$variation", null] }, // Ensure variation is present
+                    {
+                      $gt: [
+                        {
+                          $size: {
+                            $ifNull: ["$variationDetails.variations", []],
+                          },
+                        },
+                        0,
+                      ],
+                    }, // Ensure variationDetails.variations is non-empty
+                  ],
+                },
+                then: {
+                  regularPrice: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.price.regularPrice",
+                      0,
+                    ],
+                  },
+                  salePrice: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.price.salePrice",
+                      0,
+                    ],
+                  },
+                },
+                else: {
+                  regularPrice: "$productPrice.regularPrice",
+                  salePrice: "$productPrice.salePrice",
+                },
+              },
+            },
+          },
+
+          variation: 1,
+          quantity: 1,
+        },
+      },
+    ];
+
+    const cart = await CartItem.aggregate(pipeline);
     if (!cart) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
     }
-    orderedProductInfo = cart?.cartItems?.map(({ item }) => {
-      const cartItem = item as TCartItem;
-      const product = cartItem.product as TProduct;
-      return {
-        product: {
-          _id: product._id,
-          title: product.title,
-          price: product.price as TPrice,
-          inventory: product.inventory as TInventory,
-          isDeleted: product.isDeleted,
-        },
-        quantity: cartItem.quantity,
-        attributes: cartItem.attributes,
-      };
-    });
+    orderedProductInfo = cart;
   }
 
   if (config.env === "production") {
@@ -420,51 +547,67 @@ export const createNewOrder = async (
     discount = 0;
   }
 
-  const quantityUpdateData: {
-    productInventoryId: string;
-    quantity: number;
-  }[] = [];
-  const orderedProductData = orderedProductInfo?.map((item) => {
-    if (item.product.isDeleted) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `The product ${item.product.title} is no longer available`
-      );
-    }
-    if (item?.product.inventory?.stockQuantity < item.quantity) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `The product ${item.product.title} is out of stock, Please contact to the support team`
-      );
-    }
+  const orderedProductData = await Promise.all(
+    orderedProductInfo?.map(async (item) => {
+      if (item.product.isDeleted) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `The product '${item.product.title}' is no longer available`
+        );
+      }
+      if (item?.product?.stock?.manageStock) {
+        if (item?.product?.stock?.stockQuantity < item?.quantity) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `The product '${item.product.title}' is out of stock, Please contact the support team`
+          );
+        }
 
-    quantityUpdateData.push({
-      productInventoryId: item.product.inventory?._id,
-      quantity: item.quantity,
-    });
-    const price = Number(
-      item?.product?.price?.salePrice || item?.product?.price?.regularPrice
-    );
-    const result = {
-      product: item?.product?._id,
-      unitPrice: price,
-      quantity: item?.quantity,
-      total: Math.round(item?.quantity * price),
-      isWarrantyClaim: item?.isWarrantyClaim,
-      claimedCodes: item?.claimedCodes,
-      // attributes: productItem?.attributes, //TODO: Enable if attributes is need
-    };
-    onlyProductsCosts += result.total;
-    return result;
-  });
-  //  [costs] calculation ends here
-  // decrease the quantity
-  for (const item of quantityUpdateData) {
-    await InventoryModel.updateOne(
-      { _id: item.productInventoryId },
-      { $inc: { stockQuantity: -item.quantity } }
-    ).session(session);
-  }
+        // Update stock
+        if (item.variation) {
+          if (item?.product?.stock?.manageStock) {
+            await ProductModel.updateOne(
+              {
+                _id: item?.product?._id,
+                "variations._id": item?.variation,
+              },
+              {
+                $inc: {
+                  "variations.$.inventory.stockQuantity": -item.quantity,
+                },
+              }
+            ).session(session);
+          }
+        } else {
+          if (item?.product?.stock?.manageStock) {
+            await InventoryModel.updateOne(
+              { _id: item?.product?.defaultInventory },
+              { $inc: { stockQuantity: -item.quantity } }
+            ).session(session);
+          }
+        }
+      }
+
+      const price = Number(
+        item?.product?.price?.salePrice || item?.product?.price?.regularPrice
+      );
+      const result = {
+        product: item?.product?._id,
+        unitPrice: price,
+        quantity: item?.quantity,
+        total: Math.round(item?.quantity * price),
+        isWarrantyClaim: item?.isWarrantyClaim,
+        claimedCodes: item?.claimedCodes,
+        variation: item?.variation,
+      };
+
+      onlyProductsCosts += result.total;
+
+      return result;
+    })
+  );
+
+  // throw new ApiError(404, "break");
 
   orderData.productDetails = orderedProductData as TProductDetails[];
 

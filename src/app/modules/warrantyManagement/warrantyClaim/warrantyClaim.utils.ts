@@ -106,6 +106,7 @@ const getWarrantyData = async (
             endsDate: "$warranty.endsDate",
             warrantyCodes: "$warranty.warrantyCodes",
           },
+          variation: "$productDetails.variation",
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
         },
@@ -170,6 +171,7 @@ const validateWarranty = async ({
     phoneNumber,
     warrantyCodes
   );
+
   if (!warranties.length) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Invalid request");
   }
@@ -183,6 +185,7 @@ const validateWarranty = async ({
         _id: Types.ObjectId;
         productId: Types.ObjectId;
         warranty: { warrantyCodes: { code: string }[]; endsDate: string };
+        variation: Types.ObjectId;
       }[]
     ).map((product) => {
       if (product?.warranty?.warrantyCodes)
@@ -210,6 +213,7 @@ const validateWarranty = async ({
       };
       data.orderItemId = product._id;
       data.productId = product.productId;
+      data.variation = product.variation;
       data.claimedCodes = product?.warranty?.warrantyCodes
         .map((item) =>
           warrantyCodes.includes(item.code) ? item.code : undefined

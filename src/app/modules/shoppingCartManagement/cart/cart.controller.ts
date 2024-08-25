@@ -9,7 +9,7 @@ import { CartServices } from "./cart.service";
 const getCartInfo = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as TOptionalAuthGuardPayload;
   const result = await CartServices.getCartFromDB(user);
-  successResponse<TCart>(res, {
+  successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Cart info retrieved successfully",
     data: result,
