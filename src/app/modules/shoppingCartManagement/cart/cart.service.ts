@@ -37,6 +37,17 @@ const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
     {
       $unwind: "$productImage",
     },
+    {
+      $lookup: {
+        from: "prices",
+        localField: "productDetails.price",
+        foreignField: "_id",
+        as: "defaultPrice",
+      },
+    },
+    {
+      $unwind: "$defaultPrice",
+    },
     // Conditionally handle the variation if it exists
     {
       $lookup: {
@@ -91,23 +102,72 @@ const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
         },
         variation: {
           $cond: {
-            if: { $gt: [{ $ifNull: ["$variationDetails.variations", []] }, 0] },
+            if: {
+              $and: [
+                { $ne: ["$variation", null] }, // Ensure variation is present
+                {
+                  $gt: [
+                    {
+                      $size: {
+                        $ifNull: ["$variationDetails.variations", []],
+                      },
+                    },
+                    0,
+                  ],
+                }, // Ensure variationDetails.variations is non-empty
+              ],
+            },
             then: {
               _id: { $arrayElemAt: ["$variationDetails.variations._id", 0] },
-              price: {
-                $arrayElemAt: ["$variationDetails.variations.price", 0],
-              },
-              inventory: {
-                $arrayElemAt: ["$variationDetails.variations.inventory", 0],
+              attributes: {
+                $arrayElemAt: ["$variationDetails.variations.attributes", 0],
               },
             },
             else: null,
+          },
+        },
+        price: {
+          $cond: {
+            if: {
+              $and: [
+                { $ne: ["$variation", null] }, // Ensure variation is present
+                {
+                  $gt: [
+                    {
+                      $size: {
+                        $ifNull: ["$variationDetails.variations", []],
+                      },
+                    },
+                    0,
+                  ],
+                }, // Ensure variationDetails.variations is non-empty
+              ],
+            },
+            then: {
+              regularPrice: {
+                $arrayElemAt: [
+                  "$variationDetails.variations.price.regularPrice",
+                  0,
+                ],
+              },
+              salePrice: {
+                $arrayElemAt: [
+                  "$variationDetails.variations.price.salePrice",
+                  0,
+                ],
+              },
+            },
+            else: {
+              regularPrice: "$defaultPrice.regularPrice",
+              salePrice: "$defaultPrice.salePrice",
+            },
           },
         },
         quantity: 1,
       },
     },
   ];
+
   const result = await CartItem.aggregate(pipeline);
   return result;
 };

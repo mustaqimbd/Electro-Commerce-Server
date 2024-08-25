@@ -45,6 +45,9 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
             type: mongoose.Types.ObjectId,
             required: true,
           },
+          variation: {
+            type: Schema.ObjectId,
+          },
           productId: {
             type: mongoose.Types.ObjectId,
             required: true,

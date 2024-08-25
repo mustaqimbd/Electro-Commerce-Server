@@ -1,8 +1,10 @@
 import mongoose, { Document, Types } from "mongoose";
-import { TSelectedAttributes } from "../../../types/attribute";
 import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { TPrice } from "../../productManagement/price/price.interface";
-import { TProduct } from "../../productManagement/product/product.interface";
+import {
+  TProduct,
+  TVariation,
+} from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TWarranty } from "../../warrantyManagement/warranty/warranty.interface";
 import { TClaimedCodes } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
@@ -44,7 +46,7 @@ export type TOrderSource = {
 
 export type TProductDetails = {
   product: mongoose.Types.ObjectId | TProduct;
-  attributes?: TSelectedAttributes[];
+  variation: Types.ObjectId | TVariation;
   unitPrice: number;
   quantity: number;
   total: number;
@@ -97,11 +99,12 @@ export type TSanitizedOrProduct = {
     _id: mongoose.Types.ObjectId;
     title: string;
     price: TPrice;
-    inventory: TInventory;
     isDeleted: boolean;
+    stock: TInventory;
+    defaultInventory: Types.ObjectId;
   };
   quantity: number;
-  attributes?: TSelectedAttributes[];
+  variation?: Types.ObjectId;
   isWarrantyClaim?: boolean;
   claimedCodes?: TClaimedCodes[];
 };

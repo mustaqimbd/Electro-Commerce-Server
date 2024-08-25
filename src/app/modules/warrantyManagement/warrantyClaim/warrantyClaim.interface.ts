@@ -1,6 +1,7 @@
 import mongoose, { Document, Types } from "mongoose";
 import { TProductDetails } from "../../orderManagement/order/order.interface";
 import { TShipping } from "../../orderManagement/shipping/shipping.interface";
+import { TVariation } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 
 export type TWarrantyClaimedContactStatus =
@@ -17,6 +18,7 @@ export type TWarrantyClaimReqData = {
   order_id: Types.ObjectId;
   orderItemId: Types.ObjectId | TProductDetails;
   productId: Types.ObjectId;
+  variation: Types.ObjectId | TVariation;
   claimedCodes: string[];
 };
 

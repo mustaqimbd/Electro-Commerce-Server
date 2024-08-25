@@ -1,4 +1,6 @@
+import httpStatus from "http-status";
 import mongoose, { Types } from "mongoose";
+import ApiError from "../../../errorHandlers/ApiError";
 import ProductModel from "../../productManagement/product/product.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import {
@@ -13,7 +15,7 @@ type TsnOrderProduct = TProductDetails[] | TWarrantyClaimedProductDetails[];
 const sanitizeOrderedProducts = async (
   orderedProducts: TsnOrderProduct
 ): Promise<TSanitizedOrProduct[]> => {
-  const data = [];
+  const data: TSanitizedOrProduct[] = [];
   for (const item of orderedProducts) {
     const product = (
       await ProductModel.aggregate([
@@ -50,20 +52,69 @@ const sanitizeOrderedProducts = async (
             inventory: {
               _id: "$inventory._id",
               stockQuantity: "$inventory.stockQuantity",
+              manageStock: "$inventory.manageStock",
             },
             isDeleted: 1,
+            variations: {
+              $map: {
+                input: "$variations",
+                as: "variation",
+                in: {
+                  _id: "$$variation._id",
+                  inventory: {
+                    stockQuantity: "$$variation.inventory.stockQuantity",
+                    manageStock: "$$variation.inventory.manageStock",
+                  },
+                  price: {
+                    regularPrice: "$$variation.price.regularPrice",
+                    salePrice: "$$variation.price.salePrice",
+                  },
+                },
+              },
+            },
           },
         },
       ])
     )[0];
-    data.push({
-      product,
+
+    const findVariation = product?.variations?.filter(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (variation: any) => variation._id.toString() === item.variation
+    )[0];
+    if (product.variations) {
+      if (!item.variation) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Please provide valid variation for product - ${product.title}`
+        );
+      }
+      if (!findVariation) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Variation not match for product - ${product.title}`
+        );
+      }
+    }
+
+    const sanitizedData = {
+      product: {
+        ...product,
+        price: findVariation?.price || product?.price,
+        stock: findVariation?.inventory || product?.inventory,
+        defaultInventory: product?.inventory?._id,
+        variations: undefined,
+        inventory: undefined,
+      },
       quantity: item.quantity,
-      attributes: item?.attributes,
+      variation: item?.variation
+        ? new Types.ObjectId(String(item.variation))
+        : undefined,
       isWarrantyClaim: !!item?.claimedCodes?.length,
       claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
-    });
+    };
+    data.push(sanitizedData);
   }
+
   return data;
 };
 
