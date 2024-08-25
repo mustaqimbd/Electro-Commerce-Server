@@ -9,8 +9,12 @@ const createImageIntoDB = async (payload: Partial<TImage[]>) => {
 };
 
 const getAnImageFromDB = async (id: string) => {
-  const result = await ImageModel.findById(id, "_id src alt");
-  return result;
+  if (id != "undefined") {
+    const result = await ImageModel.findById(id, "_id src alt");
+    return result;
+  } else {
+    return {};
+  }
 };
 
 const getAllImagesFromDB = async (query: Record<string, unknown>) => {

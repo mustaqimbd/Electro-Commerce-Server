@@ -23,6 +23,11 @@ const category = z.object({
   subCategory: z.string().optional(),
 });
 
+const updateCategory = z.object({
+  name: z.string().optional(),
+  subCategory: z.string().optional(),
+});
+
 const warrantyInfo = z.object({
   duration: z
     .object({
@@ -36,7 +41,7 @@ const warrantyInfo = z.object({
 const publishedStatusSchema = z.object({
   status: z.enum([...publishedStatus] as [string, ...string[]]),
   visibility: z.enum([...visibilityStatus] as [string, ...string[]]),
-  date: z.string().min(1, { message: "Date is required!" }),
+  // date: z.string().min(1, { message: "Date is required!" }),
 });
 
 const updatePublishedStatus = z
@@ -115,8 +120,8 @@ const updateProduct = z.object({
     image: ProductImageValidation.updateProductImage.optional(),
     inventory: InventoryValidation.inventory.optional(),
     attribute: z.array(updateProductAttribute).optional(),
-    brand: z.array(z.string()).optional(),
-    category: category.optional(),
+    brand: z.string().optional(),
+    category: updateCategory.optional(),
     warranty: z.boolean().optional(),
     warrantyInfo: z
       .object({
