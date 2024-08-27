@@ -53,8 +53,8 @@ const getOrderInfoByOrderIdAdmin = catchAsync(
   }
 );
 
-const getAllOrderCustomers = catchAsync(async (req: Request, res: Response) => {
-  const result = await OrderServices.getAllOrderCustomersFromDB(
+const getAllOrdersCustomer = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.getAllOrdersCustomerFromDB(
     req.user as TOptionalAuthGuardPayload
   );
 
@@ -221,7 +221,7 @@ export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
   getOrderInfoByOrderIdAdmin,
-  getAllOrderCustomers,
+  getAllOrdersCustomer,
   updateStatus,
   getAllOrdersAdmin,
   getProcessingOrdersAdmin,
