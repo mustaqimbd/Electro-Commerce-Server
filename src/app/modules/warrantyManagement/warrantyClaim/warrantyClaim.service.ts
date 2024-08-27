@@ -214,26 +214,29 @@ const createNewWarrantyClaimOrderIntoDB = async (
   let order;
   try {
     session.startTransaction();
+    const productsDetails = claimReq?.warrantyClaimReqData?.map(
+      ({
+        productId,
+        claimedCodes,
+        variation,
+      }: {
+        productId: Types.ObjectId;
+        claimedCodes: string[];
+        variation?: Types.ObjectId | TVariation;
+      }) => ({
+        product: productId,
+        quantity: claimedCodes?.length,
+        variation: variation
+          ? new Types.ObjectId(variation.toString())
+          : undefined,
+        claimedCodes: claimedCodes.map((item) => ({ code: item })),
+      })
+    ) as Partial<TWarrantyClaimedProductDetails[]>;
+
     order = await createNewOrder({ body, user }, session, {
       warrantyClaim: true,
-      productsDetails: claimReq?.warrantyClaimReqData?.map(
-        ({
-          productId,
-          claimedCodes,
-          variation,
-        }: {
-          productId: Types.ObjectId;
-          claimedCodes: string[];
-          variation: Types.ObjectId | TVariation;
-        }) => ({
-          product: productId,
-          quantity: claimedCodes?.length,
-          variation: new Types.ObjectId(variation.toString()),
-          claimedCodes: claimedCodes.map((item) => ({ code: item })),
-        })
-      ) as Partial<TWarrantyClaimedProductDetails[]>,
+      productsDetails,
     });
-
     await WarrantyClaim.findOneAndUpdate(
       { _id: id },
       {
