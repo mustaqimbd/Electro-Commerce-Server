@@ -79,8 +79,9 @@ const sanitizeOrderedProducts = async (
 
     const findVariation = product?.variations?.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (variation: any) => variation._id.toString() === item.variation
+      (variation: any) => variation._id.toString() === item.variation.toString()
     )[0];
+
     if (product.variations) {
       if (!item.variation) {
         throw new ApiError(
