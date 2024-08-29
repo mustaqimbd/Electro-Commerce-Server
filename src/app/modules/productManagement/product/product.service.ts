@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import mongoose, { Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import generateProductId from "../../../utilities/generateProductId";
@@ -10,6 +10,7 @@ import { publishedStatusQuery, visibilityStatusQuery } from "./product.const";
 import { TProduct } from "./product.interface";
 import ProductModel from "./product.model";
 import { AggregateQueryHelperFacet } from "../../../helper/query.helper";
+import { Order } from "../../orderManagement/order/order.model";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
@@ -248,14 +249,28 @@ const getAProductAdminFromDB = async (id: string) => {
 };
 
 const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
-  const filterQuery: Record<string, unknown> = {};
-  if (query.category) {
+  let filterQuery: Record<string, unknown> = {};
+
+  const { minPrice, maxPrice, category, subCategory, brand } = query;
+
+  if (minPrice && maxPrice) {
+    filterQuery = {
+      $expr: {
+        $and: [
+          { $gte: ["$price.salePrice", Number(minPrice)] },
+          { $lte: ["$price.salePrice", Number(maxPrice)] },
+        ],
+      },
+    };
+  }
+
+  if (category) {
     filterQuery["category.slug"] = query.category;
   }
-  if (query.subCategory) {
+  if (subCategory) {
     filterQuery["subcategory.slug"] = query.subCategory;
   }
-  if (query.brand) {
+  if (brand) {
     filterQuery["brand.slug"] = query.brand;
   }
 
@@ -347,7 +362,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
               regularPrice: "$price.regularPrice",
               salePrice: "$price.salePrice",
               discountPercent: "$price.discountPercent",
-              save: "$price.save",
+              priceSave: "$price.priceSave",
               stockStatus: "$inventory.stockStatus",
               // stockAvailable: "$inventory.stockAvailable",
               // totalReview: { $size: "$review" },
@@ -619,7 +634,6 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
         "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
-    // Populate the "price" field
     {
       $lookup: {
         from: "prices",
@@ -645,12 +659,23 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
     {
       $lookup: {
         from: "categories",
-        localField: "category._id",
+        localField: "category.name",
         foreignField: "_id",
         as: "category",
       },
     },
     { $unwind: "$category" },
+    {
+      $lookup: {
+        from: "inventories",
+        localField: "inventory",
+        foreignField: "_id",
+        as: "inventory",
+      },
+    },
+    {
+      $unwind: "$inventory",
+    },
     // {
     //   $lookup: {
     //     from: "reviews",
@@ -669,7 +694,7 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
         regularPrice: "$price.regularPrice",
         salePrice: "$price.salePrice",
         discountPercent: "$price.discountPercent",
-        save: "$price.save",
+        priceSave: "$price.priceSave",
         stockStatus: "$inventory.stockStatus",
         // stockAvailable: "$inventory.stockAvailable",
         // totalReview: { $size: "$review" },
@@ -682,6 +707,7 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
         category: {
           _id: "$category._id",
           name: "$category.name",
+          slug: "$category.slug",
         },
       },
     },
@@ -694,6 +720,123 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
 
   const data = await productQuery.model;
   const total = (await ProductModel.aggregate(pipeline)).length;
+  const meta = productQuery.metaData(total);
+  return { meta, data };
+};
+
+const getBestSellingProductsFromDB = async (query: Record<string, unknown>) => {
+  const pipeline: PipelineStage[] = [
+    {
+      $match: { status: { $ne: "deleted" } },
+    },
+    {
+      $unwind: "$productDetails",
+    },
+    {
+      $group: {
+        _id: "$productDetails.product",
+        totalQuantity: { $sum: "$productDetails.quantity" },
+      },
+    },
+    {
+      $sort: { totalQuantity: -1 },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "_id",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    {
+      $unwind: "$product",
+    },
+    {
+      $lookup: {
+        from: "prices",
+        localField: "product.price",
+        foreignField: "_id",
+        as: "price",
+      },
+    },
+    {
+      $unwind: "$price",
+    },
+    {
+      $lookup: {
+        from: "images",
+        localField: "product.image.thumbnail",
+        foreignField: "_id",
+        as: "thumbnail",
+      },
+    },
+    {
+      $unwind: "$thumbnail",
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "product.category.name",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+    { $unwind: "$category" },
+    {
+      $lookup: {
+        from: "inventories",
+        localField: "product.inventory",
+        foreignField: "_id",
+        as: "inventory",
+      },
+    },
+    {
+      $unwind: "$inventory",
+    },
+    // {
+    //   $lookup: {
+    //     from: "reviews",
+    //     localField: "_id",
+    //     foreignField: "product",
+    //     as: "review",
+    //   },
+    // },
+    // Project specific fields
+    {
+      $project: {
+        _id: "$_id",
+        title: "$product.title",
+        // shortDescription: "$product.shortDescription",
+        regularPrice: "$price.regularPrice",
+        salePrice: "$price.salePrice",
+        discountPercent: "$price.discountPercent",
+        priceSave: "$price.priceSave",
+        stockStatus: "$inventory.stockStatus",
+        // stockAvailable: "$inventory.stockAvailable",
+        // totalReview: { $size: "$review" },
+        // averageRating: { $avg: "$review.rating" },
+        thumbnail: {
+          _id: "$thumbnail._id",
+          src: "$thumbnail.src",
+          alt: "$thumbnail.alt",
+        },
+        category: {
+          _id: "$category._id",
+          name: "$category.name",
+          slug: "$category.slug",
+        },
+      },
+    },
+  ];
+
+  const productQuery = new AggregateQueryHelper(
+    Order.aggregate(pipeline),
+    query
+  ).paginate();
+
+  const data = await productQuery.model;
+  const total = (await Order.aggregate(pipeline)).length;
   const meta = productQuery.metaData(total);
   return { meta, data };
 };
@@ -851,6 +994,7 @@ export const ProductServices = {
   getAllProductsCustomerFromDB,
   getAllProductsAdminFromDB,
   getFeaturedProductsFromDB,
+  getBestSellingProductsFromDB,
   updateProductIntoDB,
   deleteProductFromDB,
 };

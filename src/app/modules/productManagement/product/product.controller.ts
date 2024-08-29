@@ -85,6 +85,18 @@ const getFeaturedProducts = catchAsync(async (req, res) => {
   });
 });
 
+const getBestSellingProducts = catchAsync(async (req, res) => {
+  const { meta, data } = await ProductServices.getBestSellingProductsFromDB(
+    req.query
+  );
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Best selling products retrieved successfully!",
+    meta: meta,
+    data: data,
+  });
+});
+
 const updateProduct = catchAsync(async (req, res) => {
   const updatedBy = req.user.id;
   const ProductId = req.params.id;
@@ -131,6 +143,7 @@ export const ProductControllers = {
   getAllProductsCustomer,
   getAllProductsAdmin,
   getFeaturedProducts,
+  getBestSellingProducts,
   updateProduct,
   deleteProduct,
 };

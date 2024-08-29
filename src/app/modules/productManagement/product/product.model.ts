@@ -48,7 +48,7 @@ export const productVariationsSchema = new Schema<TVariation>({
     regularPrice: { type: Number, required: true },
     salePrice: { type: Number },
     discountPercent: { type: Number },
-    save: { type: Number },
+    priceSave: { type: Number },
   },
   inventory: {
     sku: { type: String, unique: true, sparse: true },

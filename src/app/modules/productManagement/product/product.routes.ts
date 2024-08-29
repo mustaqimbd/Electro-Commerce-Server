@@ -20,6 +20,8 @@ router.post(
   ProductControllers.createProduct
 );
 
+router.get("/best-selling", ProductControllers.getBestSellingProducts);
+
 router.get("/featured", ProductControllers.getFeaturedProducts);
 
 router.get(
