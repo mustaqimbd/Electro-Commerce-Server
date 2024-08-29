@@ -1,6 +1,6 @@
 import { Request } from "express";
 import httpStatus from "http-status";
-import mongoose, { Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import updateCourierStatus from "../../../helper/updateCourierStatus";
@@ -26,12 +26,14 @@ import {
   createNewOrder,
   createOrderOnSteedFast,
   deleteWarrantyFromOrder,
-  ordersPipeline,
   updateStockOnOrderCancelOrDeleteOrRetrieve,
 } from "./order.utils";
 
 const maxOrderStatusChangeAtATime = 20;
 
+/* -----------------------------------------
+          Create order
+----------------------------------------- */
 const createOrderIntoDB = async (req: Request) => {
   let response;
   const session = await mongoose.startSession();
@@ -53,6 +55,9 @@ const createOrderIntoDB = async (req: Request) => {
   return response;
 };
 
+/* -----------------------------------------
+          Get pending orders
+----------------------------------------- */
 const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderStatus[] = [
@@ -102,7 +107,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     };
   }
 
-  const pipeline = ordersPipeline();
+  const pipeline = OrderHelper.orderDetailsPipeline;
   pipeline.unshift({
     $match: matchQuery,
   });
@@ -172,6 +177,9 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   return { countsByStatus: formattedResult, meta, data };
 };
 
+/* -----------------------------------------
+          Get processing orders
+----------------------------------------- */
 const getProcessingOrdersAdminFromDB = async (
   query: Record<string, string>
 ) => {
@@ -200,7 +208,7 @@ const getProcessingOrdersAdminFromDB = async (
     );
   }
 
-  const pipeline = ordersPipeline();
+  const pipeline = OrderHelper.orderDetailsPipeline;
 
   pipeline.unshift({
     $match: matchQuery,
@@ -262,6 +270,9 @@ const getProcessingOrdersAdminFromDB = async (
   return { countsByStatus: formattedCount, meta, data };
 };
 
+/* -----------------------------------------
+  Get processing done and on courier orders
+----------------------------------------- */
 const getProcessingDoneCourierOrdersAdminFromDB = async (
   query: Record<string, string>
 ) => {
@@ -285,7 +296,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     );
   }
 
-  const pipeline = ordersPipeline();
+  const pipeline = OrderHelper.orderDetailsPipeline;
 
   pipeline.unshift({
     $match: matchQuery,
@@ -345,212 +356,14 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   return { countsByStatus: formattedCount, meta, data };
 };
 
+/* -----------------------------------------
+          Get single orders data
+----------------------------------------- */
 const getOrderInfoByOrderIdAdminFromDB = async (
   id: mongoose.Types.ObjectId
 ): Promise<TOrder | null> => {
-  const pipeline = [
-    { $match: { _id: new mongoose.Types.ObjectId(id) } },
-    {
-      $lookup: {
-        from: "shippings",
-        localField: "shipping",
-        foreignField: "_id",
-        as: "shippingData",
-      },
-    },
-    {
-      $unwind: "$shippingData",
-    },
-    {
-      $lookup: {
-        from: "shippingcharges",
-        localField: "shippingCharge",
-        foreignField: "_id",
-        as: "shippingCharge",
-      },
-    },
-    {
-      $unwind: "$shippingCharge",
-    },
-    {
-      $lookup: {
-        from: "orderpayments",
-        localField: "payment",
-        foreignField: "_id",
-        as: "payment",
-      },
-    },
-    {
-      $unwind: "$payment",
-    },
-    {
-      $lookup: {
-        from: "paymentmethods",
-        localField: "payment.paymentMethod",
-        foreignField: "_id",
-        as: "paymentMethod",
-      },
-    },
-    {
-      $unwind: "$paymentMethod",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "paymentMethod.image",
-        foreignField: "_id",
-        as: "paymentMethodImage",
-      },
-    },
-    {
-      $unwind: "$paymentMethodImage",
-    },
-    {
-      $lookup: {
-        from: "orderstatushistories",
-        localField: "statusHistory",
-        foreignField: "_id",
-        as: "statusHistory",
-      },
-    },
-    {
-      $unwind: "$statusHistory",
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        advance: 1,
-        status: 1,
-        shipping: {
-          fullName: "$shippingData.fullName",
-          phoneNumber: "$shippingData.phoneNumber",
-          fullAddress: "$shippingData.fullAddress",
-        },
-        shippingCharge: {
-          name: "$shippingCharge.name",
-          amount: "$shippingCharge.amount",
-        },
-        payment: {
-          paymentMethod: {
-            name: "$paymentMethod.name",
-            image: {
-              src: "$paymentMethodImage.src",
-              alt: "$paymentMethodImage.alt",
-            },
-          },
-          phoneNumber: "$payment.phoneNumber",
-          transactionId: "$payment.transactionId",
-        },
-        statusHistory: {
-          refunded: "$statusHistory.refunded",
-          history: "$statusHistory.history",
-        },
-        officialNotes: 1,
-        invoiceNotes: 1,
-        courierNotes: 1,
-        orderNotes: 1,
-        followUpDate: 1,
-        orderSource: 1,
-        productDetails: 1,
-        createdAt: 1,
-      },
-    },
-    {
-      $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true },
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "productDetails.product",
-        foreignField: "_id",
-        as: "productInfo",
-      },
-    },
-    {
-      $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true },
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "productInfo.image.thumbnail",
-        foreignField: "_id",
-        as: "productThumb",
-      },
-    },
-    {
-      $unwind: { path: "$productThumb", preserveNullAndEmptyArrays: true },
-    },
-    {
-      $addFields: {
-        product: {
-          $cond: {
-            if: { $not: ["$productDetails"] },
-            then: null,
-            else: {
-              _id: "$productDetails._id",
-              productId: "$productInfo._id",
-              title: "$productInfo.title",
-              image: {
-                src: "$productThumb.src",
-                alt: "$productThumb.alt",
-              },
-              unitPrice: "$productDetails.unitPrice",
-              isWarrantyClaim: "$productDetails.isWarrantyClaim",
-              claimedCodes: "$productDetails.claimedCodes",
-              quantity: "$productDetails.quantity",
-              total: "$productDetails.total",
-            },
-          },
-        },
-      },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        orderId: { $first: "$orderId" },
-        total: { $first: "$total" },
-        subtotal: { $first: "$subtotal" },
-        discount: { $first: "$discount" },
-        advance: { $first: "$advance" },
-        status: { $first: "$status" },
-        shipping: { $first: "$shipping" },
-        payment: { $first: "$payment" },
-        shippingCharge: { $first: "$shippingCharge" },
-        officialNotes: { $first: "$officialNotes" },
-        invoiceNotes: { $first: "$invoiceNotes" },
-        courierNotes: { $first: "$courierNotes" },
-        orderNotes: { $first: "$orderNotes" },
-        followUpDate: { $first: "$followUpDate" },
-        orderSource: { $first: "$orderSource" },
-        statusHistory: { $first: "$statusHistory" },
-        products: {
-          $push: {
-            $cond: {
-              if: { $not: ["$product"] },
-              then: "$$REMOVE",
-              else: "$product",
-            },
-          },
-        },
-        createdAt: { $first: "$createdAt" },
-      },
-    },
-    {
-      $addFields: {
-        products: {
-          $cond: {
-            if: { $eq: [{ $size: "$products" }, 0] },
-            then: null,
-            else: "$products",
-          },
-        },
-      },
-    },
-  ];
+  const pipeline: PipelineStage[] = OrderHelper.orderDetailsPipeline;
+  pipeline.unshift({ $match: { _id: new mongoose.Types.ObjectId(id) } });
 
   const result = (await Order.aggregate(pipeline))[0];
 
@@ -561,6 +374,31 @@ const getOrderInfoByOrderIdAdminFromDB = async (
   return result;
 };
 
+/* -----------------------------------------
+      Get all orders for customers
+----------------------------------------- */
+const getAllOrdersCustomerFromDB = async (user: TOptionalAuthGuardPayload) => {
+  const userQuery = optionalAuthUserQuery(user);
+  if (userQuery.userId) {
+    userQuery.userId = new Types.ObjectId(userQuery.userId);
+  }
+
+  const matchQuery = {
+    ...userQuery,
+  };
+
+  const pipeline = [
+    { $match: matchQuery },
+    ...OrderHelper.orderDetailsCustomerPipeline,
+  ];
+
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
+/* -----------------------------------------
+    Get single order info for customers
+-------------------------------------------- */
 const getOrderInfoByOrderIdCustomerFromDB = async (
   user: TOptionalAuthGuardPayload,
   id: string
@@ -577,331 +415,16 @@ const getOrderInfoByOrderIdCustomerFromDB = async (
 
   const pipeline = [
     { $match: matchQuery },
-    {
-      $lookup: {
-        from: "shippings",
-        localField: "shipping",
-        foreignField: "_id",
-        as: "shippingData",
-      },
-    },
-    {
-      $unwind: "$shippingData",
-    },
-    {
-      $lookup: {
-        from: "shippingcharges",
-        localField: "shippingCharge",
-        foreignField: "_id",
-        as: "shippingCharge",
-      },
-    },
-    {
-      $unwind: "$shippingCharge",
-    },
-    {
-      $lookup: {
-        from: "orderpayments",
-        localField: "payment",
-        foreignField: "_id",
-        as: "payment",
-      },
-    },
-    {
-      $unwind: "$payment",
-    },
-    {
-      $lookup: {
-        from: "paymentmethods",
-        localField: "payment.paymentMethod",
-        foreignField: "_id",
-        as: "paymentMethod",
-      },
-    },
-    {
-      $unwind: "$paymentMethod",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "paymentMethod.image",
-        foreignField: "_id",
-        as: "paymentMethodImage",
-      },
-    },
-    {
-      $unwind: "$paymentMethodImage",
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        advance: 1,
-        status: 1,
-        shipping: {
-          fullName: "$shippingData.fullName",
-          phoneNumber: "$shippingData.phoneNumber",
-          fullAddress: "$shippingData.fullAddress",
-        },
-        shippingCharge: {
-          name: "$shippingCharge.name",
-          amount: "$shippingCharge.amount",
-        },
-        payment: {
-          paymentMethod: {
-            name: "$paymentMethod.name",
-            image: {
-              src: "$paymentMethodImage.src",
-              alt: "$paymentMethodImage.alt",
-            },
-          },
-          phoneNumber: "$payment.phoneNumber",
-          transactionId: "$payment.transactionId",
-        },
-        orderNotes: 1,
-        orderSource: 1,
-        productDetails: 1,
-        createdAt: 1,
-      },
-    },
-    {
-      $unwind: "$productDetails",
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "productDetails.product",
-        foreignField: "_id",
-        as: "productInfo",
-      },
-    },
-    {
-      $unwind: "$productInfo",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "productInfo.image.thumbnail",
-        foreignField: "_id",
-        as: "productThumb",
-      },
-    },
-    {
-      $unwind: "$productThumb",
-    },
-    {
-      $lookup: {
-        from: "warranties",
-        localField: "productDetails.warranty",
-        foreignField: "_id",
-        as: "warranty",
-      },
-    },
-    {
-      $addFields: {
-        warranty: {
-          $cond: {
-            if: { $eq: [{ $size: "$warranty" }, 0] },
-            then: {
-              warrantyCodes: null,
-              createdAt: null,
-            },
-            else: { $arrayElemAt: ["$warranty", 0] },
-          },
-        },
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        advance: 1,
-        status: 1,
-        shipping: 1,
-        shippingCharge: 1,
-        orderNotes: 1,
-        orderSource: 1,
-        payment: 1,
-        product: {
-          _id: "$productDetails._id",
-          productId: "$productInfo._id",
-          title: "$productInfo.title",
-          image: {
-            src: "$productThumb.src",
-            alt: "$productThumb.alt",
-          },
-          warranty: {
-            warrantyCodes: "$warranty.warrantyCodes",
-            createdAt: "$warranty.createdAt",
-          },
-          unitPrice: "$productDetails.unitPrice",
-          quantity: "$productDetails.quantity",
-          total: "$productDetails.total",
-        },
-        createdAt: 1,
-      },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        orderId: { $first: "$orderId" },
-        total: { $first: "$total" },
-        subtotal: { $first: "$subtotal" },
-        discount: { $first: "$discount" },
-        advance: { $first: "$advance" },
-        status: { $first: "$status" },
-        shipping: { $first: "$shipping" },
-        payment: { $first: "$payment" },
-        shippingCharge: { $first: "$shippingCharge" },
-        orderNotes: { $first: "$orderNotes" },
-        orderSource: { $first: "$orderSource" },
-        products: { $push: "$product" },
-        createdAt: { $first: "$createdAt" },
-      },
-    },
+    ...OrderHelper.orderDetailsCustomerPipeline,
   ];
-
   const result = (await Order.aggregate(pipeline))[0];
 
   return result;
 };
 
-const getAllOrderCustomersFromDB = async (user: TOptionalAuthGuardPayload) => {
-  const userQuery = optionalAuthUserQuery(user);
-  if (userQuery.userId) {
-    userQuery.userId = new Types.ObjectId(userQuery.userId);
-  }
-
-  const matchQuery = {
-    ...userQuery,
-  };
-
-  const pipeline = [
-    { $match: matchQuery },
-    {
-      $lookup: {
-        from: "shippings",
-        localField: "shipping",
-        foreignField: "_id",
-        as: "shippingData",
-      },
-    },
-    {
-      $unwind: "$shippingData",
-    },
-    {
-      $lookup: {
-        from: "orderpayments",
-        localField: "payment",
-        foreignField: "_id",
-        as: "payment",
-      },
-    },
-    {
-      $unwind: "$payment",
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        advance: 1,
-        status: 1,
-        shipping: {
-          fullName: "$shippingData.fullName",
-          phoneNumber: "$shippingData.phoneNumber",
-          fullAddress: "$shippingData.fullAddress",
-        },
-        payment: {
-          phoneNumber: "$payment.phoneNumber",
-          transactionId: "$payment.transactionId",
-        },
-        productDetails: 1,
-        createdAt: 1,
-      },
-    },
-    {
-      $unwind: "$productDetails",
-    },
-    {
-      $lookup: {
-        from: "products",
-        localField: "productDetails.product",
-        foreignField: "_id",
-        as: "productInfo",
-      },
-    },
-    {
-      $unwind: "$productInfo",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "productInfo.image.thumbnail",
-        foreignField: "_id",
-        as: "productThumb",
-      },
-    },
-    {
-      $unwind: "$productThumb",
-    },
-    {
-      $project: {
-        _id: 1,
-        orderId: 1,
-        subtotal: 1,
-        total: 1,
-        discount: 1,
-        advance: 1,
-        status: 1,
-        shipping: 1,
-        orderNotes: 1,
-        payment: 1,
-        product: {
-          _id: "$productDetails._id",
-          productId: "$productInfo._id",
-          title: "$productInfo.title",
-          image: {
-            src: "$productThumb.src",
-            alt: "$productThumb.alt",
-          },
-          unitPrice: "$productDetails.unitPrice",
-          quantity: "$productDetails.quantity",
-          total: "$productDetails.total",
-        },
-        createdAt: 1,
-      },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        orderId: { $first: "$orderId" },
-        total: { $first: "$total" },
-        subtotal: { $first: "$subtotal" },
-        discount: { $first: "$discount" },
-        advance: { $first: "$advance" },
-        status: { $first: "$status" },
-        shipping: { $first: "$shipping" },
-        payment: { $first: "$payment" },
-        orderNotes: { $first: "$orderNotes" },
-        products: { $push: "$product" },
-        createdAt: { $first: "$createdAt" },
-      },
-    },
-  ];
-
-  const result = await Order.aggregate(pipeline);
-  return result;
-};
-
+/* -----------------------------------------
+        Update order initial status
+-------------------------------------------- */
 const updateOrderStatusIntoDB = async (
   user: TJwtPayload,
   payload: {
@@ -1055,6 +578,9 @@ const updateOrderStatusIntoDB = async (
   }
 };
 
+/* -----------------------------------------
+          Update processing status
+-------------------------------------------- */
 const updateProcessingStatusIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
   status: Partial<TOrderStatus>,
@@ -1178,6 +704,9 @@ const updateProcessingStatusIntoDB = async (
   }
 };
 
+/* -----------------------------------------
+                Book courier
+-------------------------------------------- */
 const bookCourierAndUpdateStatusIntoDB = async (
   orderIds: mongoose.Types.ObjectId[],
   status: Partial<TOrderStatus>,
@@ -1347,6 +876,9 @@ const bookCourierAndUpdateStatusIntoDB = async (
   };
 };
 
+/* -----------------------------------------
+    Update order details by admin
+-------------------------------------------- */
 const updateOrderDetailsByAdminIntoDB = async (
   id: mongoose.Types.ObjectId,
   payload: Record<string, unknown>
@@ -1623,6 +1155,9 @@ const updateOrderDetailsByAdminIntoDB = async (
   }
 };
 
+/* -----------------------------------------
+              Delete order 
+-------------------------------------------- */
 const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
   const session = await mongoose.startSession();
   try {
@@ -1655,6 +1190,9 @@ const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
   }
 };
 
+/* -----------------------------------------
+              Get orders counts
+-------------------------------------------- */
 const orderCountsByStatusFromBD = async () => {
   const statusMap = {
     all: 0,
@@ -1698,10 +1236,16 @@ const orderCountsByStatusFromBD = async () => {
   return formattedResult;
 };
 
+/* -----------------------------------------
+          Update order delivery status
+-------------------------------------------- */
 const updateOrdersDeliveryStatusIntoDB = async () => {
   await updateCourierStatus();
 };
 
+/* -----------------------------------------
+        Get a customers orders counts
+-------------------------------------------- */
 const getCustomersOrdersCountByPhoneFromDB = async (phoneNumber: string) => {
   const orders = await Order.aggregate([
     {
@@ -1757,7 +1301,7 @@ export const OrderServices = {
   updateOrderStatusIntoDB,
   updateProcessingStatusIntoDB,
   bookCourierAndUpdateStatusIntoDB,
-  getAllOrderCustomersFromDB,
+  getAllOrdersCustomerFromDB,
   getOrderInfoByOrderIdCustomerFromDB,
   getOrderInfoByOrderIdAdminFromDB,
   getAllOrdersAdminFromDB,
