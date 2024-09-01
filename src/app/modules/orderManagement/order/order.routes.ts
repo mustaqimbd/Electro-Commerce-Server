@@ -137,5 +137,6 @@ router.get(
   }),
   OrderController.getCustomersOrdersCountByPhone
 );
+router.get("/track/:orderId", OrderController.getOrderTrackingInfo);
 
 export const OrderRoutes = router;

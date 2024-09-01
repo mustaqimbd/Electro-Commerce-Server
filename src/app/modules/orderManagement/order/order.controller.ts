@@ -216,6 +216,15 @@ const getCustomersOrdersCountByPhone = catchAsync(
     });
   }
 );
+const getOrderTrackingInfo = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const result = await OrderServices.getOrderTrackingInfo(orderId);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Order data retrieved successfully",
+    data: result,
+  });
+});
 
 export const OrderController = {
   createOrder,
@@ -233,4 +242,5 @@ export const OrderController = {
   bookCourierAndUpdateStatus,
   getProcessingDoneCourierOrdersAdmin,
   getCustomersOrdersCountByPhone,
+  getOrderTrackingInfo,
 };

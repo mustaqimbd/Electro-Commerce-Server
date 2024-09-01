@@ -1035,10 +1035,7 @@ const updateOrderDetailsByAdminIntoDB = async (
           )[0] as { _id: Types.ObjectId; price: TPrice; inventory: TInventory };
 
           if (!productInfo) {
-            throw new ApiError(
-              httpStatus.BAD_REQUEST,
-              "Failed to find product"
-            );
+            throw new ApiError(httpStatus.BAD_REQUEST, "No product found");
           }
 
           const { salePrice, regularPrice } = productInfo?.price as TPrice;
@@ -1076,6 +1073,8 @@ const updateOrderDetailsByAdminIntoDB = async (
           );
         }
       }
+
+      // throw new ApiError(400, "Bad request---custom");
 
       findOrder.productDetails.forEach((product) => {
         if (product.isWarrantyClaim) {
@@ -1296,6 +1295,93 @@ const getCustomersOrdersCountByPhoneFromDB = async (phoneNumber: string) => {
   return formattedCount;
 };
 
+/* -----------------------------------------
+        Track order
+-------------------------------------------- */
+const getOrderTrackingInfo = async (orderId: string) => {
+  const pipeline: PipelineStage[] = [
+    {
+      $match: { orderId },
+    },
+    {
+      $lookup: {
+        from: "orderstatushistories",
+        localField: "statusHistory",
+        foreignField: "_id",
+        as: "statusHistoryDetails",
+      },
+    },
+    {
+      $unwind: "$statusHistoryDetails",
+    },
+    {
+      $lookup: {
+        from: "shippings",
+        localField: "shipping",
+        foreignField: "_id",
+        as: "shippingData",
+      },
+    },
+    {
+      $unwind: "$shippingData",
+    },
+    {
+      $lookup: {
+        from: "couriers",
+        localField: "courierDetails.courierProvider",
+        foreignField: "_id",
+        as: "courierDetailsData",
+      },
+    },
+    {
+      $unwind: "$courierDetailsData",
+    },
+    {
+      $project: {
+        status: 1,
+        statusHistory: {
+          $map: {
+            input: "$statusHistoryDetails.history",
+            as: "history",
+            in: {
+              status: "$$history.status",
+              createdAt: "$$history.createdAt",
+              updatedAt: "$$history.updatedAt",
+              // Add other fields you want to keep here
+            },
+          },
+        },
+        shipping: {
+          fullName: "$shippingData.fullName",
+          fullAddress: "$shippingData.fullAddress",
+          phoneNumber: "$shippingData.phoneNumber",
+        },
+        parcelTrackingLink: {
+          $cond: {
+            if: { $eq: ["$courierDetailsData.name", "steedfast"] },
+            then: {
+              $concat: [
+                "https://steadfast.com.bd/t/",
+                "$courierDetails.trackingId",
+              ],
+            },
+            else: {
+              $cond: {
+                if: { $eq: ["$courierDetailsData.name", "pathao"] },
+                then: "c2",
+                else: null, // Default value if none of the conditions match
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+
+  const result = await Order.aggregate(pipeline);
+  return result;
+};
+
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
@@ -1312,4 +1398,5 @@ export const OrderServices = {
   getProcessingOrdersAdminFromDB,
   getProcessingDoneCourierOrdersAdminFromDB,
   getCustomersOrdersCountByPhoneFromDB,
+  getOrderTrackingInfo,
 };
