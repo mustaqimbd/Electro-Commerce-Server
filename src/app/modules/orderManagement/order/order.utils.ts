@@ -267,6 +267,27 @@ export const createNewOrder = async (
             title: "$productDetails.title",
             isDeleted: "$productDetails.isDeleted",
             defaultInventory: "$defaultInventory._id",
+            isVariationAvailable: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $ne: ["$variation", null] }, // Ensure variation is present
+                    {
+                      $gt: [
+                        {
+                          $size: {
+                            $ifNull: ["$variationDetails.variations", []],
+                          },
+                        },
+                        0,
+                      ],
+                    }, // Ensure variationDetails.variations is non-empty
+                  ],
+                },
+                then: true,
+                else: false,
+              },
+            },
             stock: {
               $cond: {
                 if: {
@@ -377,75 +398,97 @@ export const createNewOrder = async (
     discount = 0;
   }
 
-  const orderedProductData = await Promise.all(
-    orderedProductInfo?.map(async (item) => {
-      if (item.product.isDeleted) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          `The product '${item.product.title}' is no longer available`
-        );
-      }
-      if (item?.product?.stock?.manageStock) {
-        if (item?.product?.stock?.stockQuantity < item?.quantity) {
-          throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            `The product '${item.product.title}' is out of stock, Please contact the support team`
-          );
-        }
+  const orderedProductData = orderedProductInfo?.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attributes = (item.product as any)?.variationDetails?.variations
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (item.product as any)?.variationDetails?.variations![0]?.attributes
+      : undefined;
 
-        // Update stock
-        if (item.variation) {
-          if (item?.product?.stock?.manageStock) {
-            await ProductModel.updateOne(
-              {
-                _id: item?.product?._id,
-                "variations._id": item?.variation,
-              },
-              {
-                $inc: {
-                  "variations.$.inventory.stockQuantity": -item.quantity,
-                },
-              }
-            ).session(session);
-          }
-        } else {
-          if (item?.product?.stock?.manageStock) {
-            await InventoryModel.updateOne(
-              { _id: item?.product?.defaultInventory },
-              { $inc: { stockQuantity: -item.quantity } }
-            ).session(session);
-          }
-        }
-      }
-
-      const price = Number(
-        item?.product?.price?.salePrice || item?.product?.price?.regularPrice
+    if (item.variation && item.product.isVariationAvailable === false) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `On product ${item?.product?.title}, selected variation is no longer available.`
       );
-      const result = {
-        product: item?.product?._id,
-        unitPrice: price,
-        quantity: item?.quantity,
-        total: Math.round(item?.quantity * price),
-        isWarrantyClaim: item?.isWarrantyClaim,
-        claimedCodes: item?.claimedCodes,
-        variation: item?.variation,
-      };
+    }
 
-      onlyProductsCosts += result.total;
+    if (item.product.isDeleted) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `The product '${item.product.title}' is no longer available`
+      );
+    }
 
-      return result;
+    if (
+      item?.product?.stock?.manageStock &&
+      item?.product?.stock?.stockQuantity < item?.quantity
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `The product '${item.product.title}' is out of stock, Please contact the support team`
+      );
+    }
+
+    const price = Number(
+      item?.product?.price?.salePrice || item?.product?.price?.regularPrice
+    );
+
+    const result = {
+      product: item?.product?._id,
+      unitPrice: price,
+      quantity: item?.quantity,
+      total: Math.round(item?.quantity * price),
+      isWarrantyClaim: item?.isWarrantyClaim,
+      claimedCodes: item?.claimedCodes,
+      variation: item?.variation,
+      attributes,
+    };
+
+    onlyProductsCosts += result.total;
+
+    return {
+      item,
+      result,
+    };
+  });
+
+  // Execute DB operations after mapping
+  await Promise.all(
+    orderedProductData.map(async ({ item }) => {
+      if (item?.product?.stock?.manageStock) {
+        if (item.variation) {
+          await ProductModel.updateOne(
+            {
+              _id: item?.product?._id,
+              "variations._id": item?.variation,
+            },
+            {
+              $inc: {
+                "variations.$.inventory.stockQuantity": -item.quantity,
+              },
+            }
+          ).session(session);
+        } else {
+          await InventoryModel.updateOne(
+            { _id: item?.product?.defaultInventory },
+            { $inc: { stockQuantity: -item.quantity } }
+          ).session(session);
+        }
+      }
     })
   );
 
-  // throw new ApiError(404, "break");
+  // Extract results after DB operations are done
+  const finalOrderedProductData = orderedProductData.map(
+    ({ result }) => result
+  );
 
-  orderData.productDetails = orderedProductData as TProductDetails[];
+  orderData.productDetails = finalOrderedProductData as TProductDetails[];
 
   singleOrder = {
     product: String(orderedProductInfo[0]?.product?._id),
     quantity: orderedProductInfo[0].quantity,
   };
-
   // create payment document
   const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
   if (!paymentMethod) {

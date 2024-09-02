@@ -11,6 +11,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
   variation: {
     type: Schema.Types.ObjectId,
   },
+  attributes: {
+    type: Map,
+    of: String,
+  },
   unitPrice: {
     type: Number,
     require: true,

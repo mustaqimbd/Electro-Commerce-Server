@@ -70,6 +70,7 @@ const sanitizeOrderedProducts = async (
                     regularPrice: "$$variation.price.regularPrice",
                     salePrice: "$$variation.price.salePrice",
                   },
+                  attributes: "$$variation.attributes",
                 },
               },
             },
@@ -80,7 +81,8 @@ const sanitizeOrderedProducts = async (
 
     const findVariation = product?.variations?.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (variation: any) => variation._id.toString() === item.variation.toString()
+      (variation: any) =>
+        variation._id.toString() === item?.variation?.toString()
     )[0];
 
     if (product.variations) {
@@ -97,10 +99,13 @@ const sanitizeOrderedProducts = async (
         );
       }
     }
-
+    // console.log("From helper", findVariation);
     const sanitizedData = {
       product: {
         ...product,
+        variationDetails: {
+          variations: findVariation?.attributes ? [findVariation] : null,
+        },
         price: findVariation?.price || product?.price,
         stock: findVariation?.inventory || product?.inventory,
         defaultInventory: product?.inventory?._id,
@@ -114,6 +119,7 @@ const sanitizeOrderedProducts = async (
       isWarrantyClaim: !!item?.claimedCodes?.length,
       claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
     };
+    // console.log(sanitizedData);
     data.push(sanitizedData);
   }
 
