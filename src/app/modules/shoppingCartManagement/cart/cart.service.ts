@@ -123,7 +123,7 @@ const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
                 $arrayElemAt: ["$variationDetails.variations.attributes", 0],
               },
             },
-            else: null,
+            else: "This variation is no longer available. Please select a new variation. Else you can't order the product.",
           },
         },
         price: {

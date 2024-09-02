@@ -46,7 +46,10 @@ export type TOrderSource = {
 
 export type TProductDetails = {
   product: mongoose.Types.ObjectId | TProduct;
-  variation: Types.ObjectId | TVariation;
+  variation?: Types.ObjectId | TVariation;
+  attributes?: {
+    [key: string]: string;
+  };
   unitPrice: number;
   quantity: number;
   total: number;
@@ -102,6 +105,7 @@ export type TSanitizedOrProduct = {
     isDeleted: boolean;
     stock: TInventory;
     defaultInventory: Types.ObjectId;
+    isVariationAvailable?: boolean;
   };
   quantity: number;
   variation?: Types.ObjectId;
