@@ -34,13 +34,14 @@ const checkInventory = async (payload: {
       throw new ApiError(httpStatus.BAD_REQUEST, "No product found");
     }
 
-    availableStock = productData?.stockQuantity || 0;
+    availableStock = productData?.stockAvailable || 0;
     manageStock = productData?.manageStock || false;
   } else {
     const productData = await ProductModel.findById(product, {
       inventory: 1,
     }).populate("inventory");
-    availableStock = (productData?.inventory as TInventory)?.stockQuantity || 0;
+    availableStock =
+      (productData?.inventory as TInventory)?.stockAvailable || 0;
     manageStock = (productData?.inventory as TInventory)?.manageStock || false;
   }
 

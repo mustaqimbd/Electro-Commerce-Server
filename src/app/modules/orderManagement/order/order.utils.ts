@@ -65,7 +65,7 @@ export const updateStockOnOrderCancelOrDeleteOrRetrieve = async (
 
     const updateQUantity = await InventoryModel.updateOne(
       { _id: product.inventory },
-      { $inc: { stockQuantity: updateQuey } }
+      { $inc: { stockAvailable: updateQuey } }
     ).session(session);
     if (!updateQUantity.modifiedCount) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update quantity");
@@ -306,9 +306,9 @@ export const createNewOrder = async (
                   ],
                 },
                 then: {
-                  stockQuantity: {
+                  stockAvailable: {
                     $arrayElemAt: [
-                      "$variationDetails.variations.inventory.stockQuantity",
+                      "$variationDetails.variations.inventory.stockAvailable",
                       0,
                     ],
                   },
@@ -320,7 +320,7 @@ export const createNewOrder = async (
                   },
                 },
                 else: {
-                  stockQuantity: "$defaultInventory.stockQuantity",
+                  stockAvailable: "$defaultInventory.stockAvailable",
                   manageStock: "$defaultInventory.manageStock",
                 },
               },
@@ -421,7 +421,7 @@ export const createNewOrder = async (
 
     if (
       item?.product?.stock?.manageStock &&
-      item?.product?.stock?.stockQuantity < item?.quantity
+      Number(item?.product?.stock?.stockAvailable || 0) < item?.quantity
     ) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
@@ -464,14 +464,14 @@ export const createNewOrder = async (
             },
             {
               $inc: {
-                "variations.$.inventory.stockQuantity": -item.quantity,
+                "variations.$.inventory.stockAvailable": -item.quantity,
               },
             }
           ).session(session);
         } else {
           await InventoryModel.updateOne(
             { _id: item?.product?.defaultInventory },
-            { $inc: { stockQuantity: -item.quantity } }
+            { $inc: { stockAvailable: -item.quantity } }
           ).session(session);
         }
       }
