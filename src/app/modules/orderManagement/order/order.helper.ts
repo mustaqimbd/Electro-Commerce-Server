@@ -99,7 +99,7 @@ const sanitizeOrderedProducts = async (
         );
       }
     }
-    // console.log("From helper", findVariation);
+
     const sanitizedData = {
       product: {
         ...product,
@@ -119,7 +119,6 @@ const sanitizeOrderedProducts = async (
       isWarrantyClaim: !!item?.claimedCodes?.length,
       claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
     };
-    // console.log(sanitizedData);
     data.push(sanitizedData);
   }
 
