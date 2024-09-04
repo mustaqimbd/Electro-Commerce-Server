@@ -1,7 +1,7 @@
 import mongoose, { PipelineStage } from "mongoose";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
-import { Address } from "../../addressManagement/address/address.model";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
+import { Address } from "../address/address.model";
 import { User } from "../user/user.model";
 import { isEmailOrNumberTaken } from "../user/user.util";
 import { Customer } from "./customer.model";
