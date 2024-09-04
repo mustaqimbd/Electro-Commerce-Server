@@ -6,6 +6,7 @@ import ProductModel from "../../productManagement/product/product.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import {
   TOrder,
+  TOrderStatus,
   TProductDetails,
   TSanitizedOrProduct,
 } from "./order.interface";
@@ -467,6 +468,153 @@ const orderDetailsPipeline: PipelineStage[] = [
   },
 ];
 
+const orderStatusUpdatingPipeline = (
+  orderIds: Types.ObjectId[],
+  changableStatus: Partial<TOrderStatus[]>
+) =>
+  [
+    {
+      $match: {
+        _id: {
+          $in: orderIds.map((item) => new Types.ObjectId(item)),
+        },
+        status: { $in: changableStatus },
+      },
+    },
+    {
+      $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productDetails.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "inventories",
+        localField: "productInfo.inventory",
+        foreignField: "_id",
+        as: "defaultInventoryData",
+      },
+    },
+    {
+      $unwind: "$defaultInventoryData",
+    },
+
+    {
+      $lookup: {
+        from: "shippings",
+        localField: "shipping",
+        foreignField: "_id",
+        as: "shippingInfo",
+      },
+    },
+    {
+      $unwind: "$shippingInfo",
+    },
+    {
+      $addFields: {
+        variation: {
+          $arrayElemAt: [
+            {
+              $filter: {
+                input: "$productInfo.variations",
+                as: "variation",
+                cond: {
+                  $eq: ["$$variation._id", "$productDetails.variation"],
+                },
+              },
+            },
+            0,
+          ],
+        },
+      },
+    },
+    {
+      $addFields: {
+        product: {
+          $cond: {
+            if: { $not: ["$productDetails"] },
+            then: null,
+            else: {
+              _id: "$productDetails._id",
+              productId: "$productInfo._id",
+              title: "$productInfo.title",
+              unitPrice: "$productDetails.unitPrice",
+              isWarrantyClaim: "$productDetails.isWarrantyClaim",
+              warranty: "$productDetails.warranty",
+              productWarranty: "$productInfo.warranty",
+              quantity: "$productDetails.quantity",
+              variation: "$productDetails.variation",
+              total: "$productDetails.total",
+              defaultInventory: {
+                _id: "$defaultInventoryData._id",
+                stockAvailable: "$defaultInventoryData.stockAvailable",
+                manageStock: "$defaultInventoryData.manageStock",
+                lowStockWarning: "$defaultInventoryData.lowStockWarning",
+              },
+              variationDetails: {
+                $cond: {
+                  if: {
+                    $and: [
+                      { $isArray: "$productInfo.variations" },
+                      { $gt: [{ $size: "$productInfo.variations" }, 0] },
+                    ],
+                  },
+                  then: {
+                    _id: "$variation._id",
+                    inventory: {
+                      stockAvailable: "$variation.inventory.stockAvailable",
+                      manageStock: "$variation.inventory.manageStock",
+                      lowStockWarning: "$variation.inventory.lowStockWarning",
+                    },
+                  },
+                  else: null,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        orderId: { $first: "$orderId" },
+        statusHistory: { $first: "$statusHistory" },
+        status: { $first: "$status" },
+        total: { $first: "$total" },
+        shippingData: { $first: "$shippingInfo" },
+        courierNotes: { $first: "$courierNotes" },
+        productDetails: {
+          $push: {
+            $cond: {
+              if: { $not: ["$product"] },
+              then: "$$REMOVE",
+              else: "$product",
+            },
+          },
+        },
+      },
+    },
+    {
+      $addFields: {
+        productDetails: {
+          $cond: {
+            if: { $eq: [{ $size: "$productDetails" }, 0] },
+            then: null,
+            else: "$productDetails",
+          },
+        },
+      },
+    },
+  ] as PipelineStage[];
 const orderDetailsCustomerPipeline: PipelineStage[] = [
   {
     $lookup: {
@@ -693,5 +841,6 @@ export const OrderHelper = {
   sanitizeOrderedProducts,
   findOrderForUpdatingOrder,
   orderDetailsPipeline,
+  orderStatusUpdatingPipeline,
   orderDetailsCustomerPipeline,
 };

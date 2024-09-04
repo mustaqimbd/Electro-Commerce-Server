@@ -5,7 +5,7 @@ process.on("uncaughtException", (error) => {
     "😴 `Uncaught exception` happened, exiting the process and  closing the server.",
     error
   );
-
+  consoleLogger.error(error);
   process.exit(1);
 });
 

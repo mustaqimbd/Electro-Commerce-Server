@@ -42,38 +42,73 @@ export const createOrderId = () => {
 };
 
 // This function will increase or decrease stock quantity base on command. The first parameter will receive product details, the second parameter will receive mongoDB session and the third parameter will receive a boolean value. Base on the value the stock will increase od decrease
-export const updateStockOnOrderCancelOrDeleteOrRetrieve = async (
-  productDetails: TProductDetails[],
+
+export type TUpStOnCanDelProducts = {
+  _id: Types.ObjectId;
+  productId: Types.ObjectId;
+  title: string;
+  unitPrice: number;
+  isWarrantyClaim: boolean;
+  quantity: number;
+  total: number;
+  defaultInventory: {
+    _id: Types.ObjectId;
+    stockAvailable: number;
+    manageStock: boolean;
+    lowStockWarning: number;
+  };
+  variation: Types.ObjectId;
+  variationDetails: {
+    _id: Types.ObjectId;
+    inventory: {
+      stockAvailable: number;
+      manageStock: boolean;
+      lowStockWarning: number;
+    };
+  };
+};
+
+// This function can update the stock of canceled and deleted orders
+export const updateStockOrderCancelDelete = async (
+  productDetails: TUpStOnCanDelProducts[],
   session: mongoose.mongo.ClientSession,
   inc: boolean = true
 ) => {
+  const variationMissingProducts = [];
   for (const item of productDetails) {
-    const product = await ProductModel.findById(item.product, {
-      inventory: 1,
-    })
-      .session(session)
-      .lean();
-    if (!product) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to find the product");
-    }
-
-    let updateQuey = item.quantity;
+    let updateType = item.quantity;
 
     if (!inc) {
-      updateQuey = -item.quantity;
+      updateType = -item.quantity;
     }
-
-    const updateQUantity = await InventoryModel.updateOne(
-      { _id: product.inventory },
-      { $inc: { stockAvailable: updateQuey } }
-    ).session(session);
-    if (!updateQUantity.modifiedCount) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update quantity");
+    if (item?.variation) {
+      if (item?.variationDetails) {
+        if (item?.variationDetails?.inventory?.manageStock) {
+          await ProductModel.updateOne(
+            {
+              _id: item?.productId,
+              "variations._id": item?.variation,
+            },
+            {
+              $inc: {
+                "variations.$.inventory.stockAvailable": updateType,
+              },
+            }
+          ).session(session);
+        }
+      } else {
+        variationMissingProducts.push(item.title);
+      }
+    } else {
+      if (item?.defaultInventory?.manageStock) {
+        await InventoryModel.updateOne(
+          { _id: item.defaultInventory._id },
+          { $inc: { stockAvailable: updateType } }
+        ).session(session);
+      }
     }
   }
 };
-
-// This pipeline will retrieve orders information
 
 // This function will delete warranty information from warranty collection and update order product details
 export const deleteWarrantyFromOrder = async (
@@ -90,6 +125,7 @@ export const deleteWarrantyFromOrder = async (
         ),
     },
   };
+
   await Warranty.deleteMany(deleteQuery).session(session);
   await Order.updateOne(
     { _id: orderId, "productDetails.warranty": { $exists: true } },
@@ -613,6 +649,7 @@ export const createOrderOnSteedFast = async (
       note: courierNotes || "",
     })
   );
+
   const { data } = await steedFastApi({
     credentials: courier.credentials,
     endpoints: "/create_order/bulk-order",
