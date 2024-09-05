@@ -12,6 +12,10 @@ const createProduct = catchAsync(async (req, res) => {
   req.body.title = title.replace(/\s+/g, " ").trim();
   req.body.slug = generateSlug(title, slug);
 
+  if (req.body.inventory.stockQuantity) {
+    req.body.inventory.stockAvailable = req.body.inventory.stockQuantity;
+  }
+
   modifiedPriceData(req);
 
   if (req.body.warrantyInfo?.duration) {
@@ -109,6 +113,18 @@ const updateProduct = catchAsync(async (req, res) => {
   if (price) {
     modifiedPriceData(req);
   }
+
+  if (req.body.inventory.stockQuantity) {
+    const stockQuantityIncrease =
+      req.body.inventory.stockQuantity - req.body.inventory.preStockQuantity;
+    if (
+      req.body.inventory.stockQuantity != stockQuantityIncrease &&
+      stockQuantityIncrease != 0
+    ) {
+      req.body.inventory.stockAvailable += stockQuantityIncrease;
+    }
+  }
+
   if (req.body.warrantyInfo?.duration) {
     req.body.warrantyInfo.duration = duration?.quantity + " " + duration?.unit;
   }

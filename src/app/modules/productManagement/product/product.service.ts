@@ -807,6 +807,7 @@ const getBestSellingProductsFromDB = async (query: Record<string, unknown>) => {
       $project: {
         _id: "$_id",
         title: "$product.title",
+        slug: "$product.slug",
         // shortDescription: "$product.shortDescription",
         regularPrice: "$price.regularPrice",
         salePrice: "$price.salePrice",

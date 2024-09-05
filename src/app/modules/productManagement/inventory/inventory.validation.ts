@@ -4,9 +4,9 @@ import { stockStatus } from "./inventory.const";
 const inventory = z
   .object({
     stockStatus: z.enum([...stockStatus] as [string, ...string[]]),
-    stockQuantity: z
-      .number()
-      .min(1, { message: "Stock quantity is required!" }),
+    stockQuantity: z.number().optional().default(0),
+    stockAvailable: z.number().optional().default(0),
+    preStockQuantity: z.number().optional().default(0),
     // sku: z.string().trim().optional(),
     // productCode: z.string().trim().optional(),
     manageStock: z.boolean().optional(),
@@ -24,7 +24,11 @@ const inventory = z
       message: "Low stock warning is required!",
       path: ["lowStockWarning"],
     }
-  );
+  )
+  .refine((data) => data.stockQuantity >= data.preStockQuantity, {
+    message: "Stock quantity cannot be lower than current value.",
+    path: ["stockQuantity"],
+  });
 
 export const InventoryValidation = {
   inventory,
