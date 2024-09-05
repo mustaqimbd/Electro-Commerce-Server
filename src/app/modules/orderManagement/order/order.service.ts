@@ -937,7 +937,7 @@ const updateOrderDetailsByAdminIntoDB = async (
             const currentOrder = findOrder.productDetails[
               existingProductIndex
             ] as unknown as {
-              inventoryInfo: { _id: Types.ObjectId; stockQuantity: number };
+              inventoryInfo: { _id: Types.ObjectId; stockAvailable: number };
               _id: Types.ObjectId;
               product: Types.ObjectId;
               attributes: TAttribute[];
@@ -996,12 +996,12 @@ const updateOrderDetailsByAdminIntoDB = async (
               previousQuantity !== updatedProduct.quantity
             ) {
               const quantityCalculation =
-                currentOrder?.inventoryInfo?.stockQuantity +
+                currentOrder?.inventoryInfo?.stockAvailable +
                 previousQuantity -
                 updatedProduct.quantity;
               await InventoryModel.updateOne(
                 { _id: currentOrder.inventoryInfo._id },
-                { stockQuantity: quantityCalculation },
+                { stockAvailable: quantityCalculation },
                 { session }
               );
             }
@@ -1068,7 +1068,7 @@ const updateOrderDetailsByAdminIntoDB = async (
           );
           await InventoryModel.updateOne(
             { _id: productInfo?.inventory?._id },
-            { $inc: { stockQuantity: -updatedProduct.quantity } },
+            { $inc: { stockAvailable: -updatedProduct.quantity } },
             { session }
           );
         }
@@ -1172,7 +1172,7 @@ const deleteOrdersByIdFromBD = async (orderIds: string[]) => {
           }).lean();
           await InventoryModel.updateOne(
             { _id: product?.inventory },
-            { $inc: { stockQuantity: item.quantity } }
+            { $inc: { stockAvailable: item.quantity } }
           ).session(session);
         }
         order.isDeleted = true;

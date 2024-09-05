@@ -52,7 +52,7 @@ const sanitizeOrderedProducts = async (
             },
             inventory: {
               _id: "$inventory._id",
-              stockQuantity: "$inventory.stockQuantity",
+              stockAvailable: "$inventory.stockAvailable",
               manageStock: "$inventory.manageStock",
             },
             isDeleted: 1,
@@ -63,7 +63,7 @@ const sanitizeOrderedProducts = async (
                 in: {
                   _id: "$$variation._id",
                   inventory: {
-                    stockQuantity: "$$variation.inventory.stockQuantity",
+                    stockAvailable: "$$variation.inventory.stockAvailable",
                     manageStock: "$$variation.inventory.manageStock",
                   },
                   price: {
@@ -99,7 +99,7 @@ const sanitizeOrderedProducts = async (
         );
       }
     }
-    // console.log("From helper", findVariation);
+
     const sanitizedData = {
       product: {
         ...product,
@@ -119,7 +119,6 @@ const sanitizeOrderedProducts = async (
       isWarrantyClaim: !!item?.claimedCodes?.length,
       claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
     };
-    // console.log(sanitizedData);
     data.push(sanitizedData);
   }
 
@@ -188,8 +187,8 @@ const findOrderForUpdatingOrder = async (
               claimedCodes: "$productDetails.claimedCodes",
               inventoryInfo: {
                 _id: "$productDetails.productInfo.inventoryInfo._id",
-                stockQuantity:
-                  "$productDetails.productInfo.inventoryInfo.stockQuantity",
+                stockAvailable:
+                  "$productDetails.productInfo.inventoryInfo.stockAvailable",
               },
             },
           },
@@ -411,7 +410,7 @@ const orderDetailsPipeline: PipelineStage[] = [
                   },
                   inventory: {
                     stockStatus: "$variation.inventory.stockStatus",
-                    stockQuantity: "$variation.inventory.stockQuantity",
+                    stockAvailable: "$variation.inventory.stockAvailable",
                     manageStock: "$variation.inventory.manageStock",
                     lowStockWarning: "$variation.inventory.lowStockWarning",
                   },
