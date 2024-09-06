@@ -11,6 +11,9 @@ import { CartHelper } from "./cart.helper";
 
 const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
   const query = optionalAuthUserQuery(user);
+  if (query.userId) {
+    query.userId = new Types.ObjectId(query.userId);
+  }
   const pipeline: PipelineStage[] = [
     {
       $match: query,

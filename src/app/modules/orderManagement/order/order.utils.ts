@@ -7,7 +7,6 @@ import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
-import { Cart } from "../../cartManagement/cart/cart.model";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
 import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
@@ -630,7 +629,6 @@ export const createNewOrder = async (
   }
   // clear cart and cart items
   if (!salesPage || !custom || !warrantyClaimOrderData?.warrantyClaim) {
-    await Cart.deleteOne(userQuery).session(session);
     await CartItem.deleteMany(userQuery).session(session);
   }
 
