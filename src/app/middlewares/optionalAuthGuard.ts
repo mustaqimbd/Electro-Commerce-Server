@@ -9,7 +9,11 @@ const optionalAuthGuard: RequestHandler = async (req, res, next) => {
   try {
     let token = req.headers.authorization;
     let userInfo = undefined;
-    token = token?.split(" ")[1];
+    if (token) {
+      token = token?.split(" ")[1];
+    } else {
+      token = req?.cookies["__app.ec.at"];
+    }
     if (token) {
       const verifiedUser = jwtHelper.verifyToken<TJwtPayload>(
         token,
