@@ -3,8 +3,6 @@ import { Secret } from "jsonwebtoken";
 import mongoose from "mongoose";
 import config from "../../../config/config";
 import { jwtHelper } from "../../../helper/jwt.helper";
-import { TCartData } from "../../cartManagement/cart/cart.interface";
-import { Cart } from "../../cartManagement/cart/cart.model";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TRefreshTokenData } from "../refreshToken/refreshToken.interface";
@@ -24,31 +22,13 @@ const loginUser = async (req: Request, user: Partial<TUser | null>) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const previousCartItems = await CartItem.find({
-      sessionId: previousSessionId,
-    });
+    const previousCartItems = await CartItem.find(
+      {
+        sessionId: previousSessionId,
+      },
+      { _id: 1 }
+    );
     if (previousCartItems.length) {
-      const afterLoginPreviousCarts = await Cart.findOne({
-        userId: user?._id,
-      }).session(session);
-
-      const cartItems = previousCartItems.map((item) => {
-        return {
-          item: item._id,
-        };
-      });
-      if (afterLoginPreviousCarts) {
-        afterLoginPreviousCarts?.cartItems.push(...cartItems);
-        await afterLoginPreviousCarts?.save({ session });
-      } else {
-        const newCartData: TCartData = {
-          userId: user?._id,
-          cartItems,
-        };
-        await Cart.create([newCartData], { session });
-      }
-      await Cart.deleteOne({ sessionId: previousSessionId }).session(session);
-
       await CartItem.updateMany(
         {
           _id: {
@@ -72,11 +52,12 @@ const loginUser = async (req: Request, user: Partial<TUser | null>) => {
       {
         id: user?._id,
         role: user?.role as string,
-        permissions:
-          (user?.permissions?.map(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (item: any) => item.name
-          ) as unknown as string[]) || [],
+        permissions: (user?.role !== "customer"
+          ? user?.permissions?.map(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (item: any) => item.name
+            ) || []
+          : undefined) as unknown as string[],
         uid: user?.uid as string,
         sessionId,
       },
