@@ -77,10 +77,37 @@ const courierStatusUpdateError = createLogger({
   ],
 });
 
+const lowStockWarningError = createLogger({
+  level: "error",
+  format: combine(label({ label: "Electro commerce" }), timestamp(), myFormat),
+  transports: [
+    new transports.Console(),
+    new DailyRotateFile({
+      filename: path.join(
+        process.cwd(),
+        "logs",
+        "winston",
+        "lowStockWarningFailedEmail",
+        "ec-%DATE%-error.log"
+      ),
+      datePattern: "YYYY-MM-DD-HH",
+      zippedArchive: true,
+      maxSize: "20m",
+      maxFiles: "14d",
+    }),
+  ],
+});
+
 const consoleLogger = createLogger({
   level: "info",
   format: combine(label({ label: "Electro commerce" }), timestamp(), myFormat),
   transports: [new transports.Console()],
 });
 
-export { consoleLogger, courierStatusUpdateError, errorLogger, logger };
+export {
+  consoleLogger,
+  courierStatusUpdateError,
+  errorLogger,
+  logger,
+  lowStockWarningError,
+};

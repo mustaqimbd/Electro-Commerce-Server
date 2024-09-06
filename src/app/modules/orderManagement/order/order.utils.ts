@@ -5,14 +5,15 @@ import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
-import { Address } from "../../addressManagement/address/address.model";
+import { Cart } from "../../cartManagement/cart/cart.model";
+import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
 import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import ProductModel from "../../productManagement/product/product.model";
-import { Cart } from "../../shoppingCartManagement/cart/cart.model";
-import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
+import { Address } from "../../userManagement/address/address.model";
 import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
@@ -42,38 +43,73 @@ export const createOrderId = () => {
 };
 
 // This function will increase or decrease stock quantity base on command. The first parameter will receive product details, the second parameter will receive mongoDB session and the third parameter will receive a boolean value. Base on the value the stock will increase od decrease
-export const updateStockOnOrderCancelOrDeleteOrRetrieve = async (
-  productDetails: TProductDetails[],
+
+export type TUpStOnCanDelProducts = {
+  _id: Types.ObjectId;
+  productId: Types.ObjectId;
+  title: string;
+  unitPrice: number;
+  isWarrantyClaim: boolean;
+  quantity: number;
+  total: number;
+  defaultInventory: {
+    _id: Types.ObjectId;
+    stockAvailable: number;
+    manageStock: boolean;
+    lowStockWarning: number;
+  };
+  variation: Types.ObjectId;
+  variationDetails: {
+    _id: Types.ObjectId;
+    inventory: {
+      stockAvailable: number;
+      manageStock: boolean;
+      lowStockWarning: number;
+    };
+  };
+};
+
+// This function can update the stock of canceled and deleted orders
+export const updateStockOrderCancelDelete = async (
+  productDetails: TUpStOnCanDelProducts[],
   session: mongoose.mongo.ClientSession,
   inc: boolean = true
 ) => {
+  const variationMissingProducts = [];
   for (const item of productDetails) {
-    const product = await ProductModel.findById(item.product, {
-      inventory: 1,
-    })
-      .session(session)
-      .lean();
-    if (!product) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to find the product");
-    }
-
-    let updateQuey = item.quantity;
+    let updateType = item.quantity;
 
     if (!inc) {
-      updateQuey = -item.quantity;
+      updateType = -item.quantity;
     }
-
-    const updateQUantity = await InventoryModel.updateOne(
-      { _id: product.inventory },
-      { $inc: { stockAvailable: updateQuey } }
-    ).session(session);
-    if (!updateQUantity.modifiedCount) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update quantity");
+    if (item?.variation) {
+      if (item?.variationDetails) {
+        if (item?.variationDetails?.inventory?.manageStock) {
+          await ProductModel.updateOne(
+            {
+              _id: item?.productId,
+              "variations._id": item?.variation,
+            },
+            {
+              $inc: {
+                "variations.$.inventory.stockAvailable": updateType,
+              },
+            }
+          ).session(session);
+        }
+      } else {
+        variationMissingProducts.push(item.title);
+      }
+    } else {
+      if (item?.defaultInventory?.manageStock) {
+        await InventoryModel.updateOne(
+          { _id: item.defaultInventory._id },
+          { $inc: { stockAvailable: updateType } }
+        ).session(session);
+      }
     }
   }
 };
-
-// This pipeline will retrieve orders information
 
 // This function will delete warranty information from warranty collection and update order product details
 export const deleteWarrantyFromOrder = async (
@@ -90,6 +126,7 @@ export const deleteWarrantyFromOrder = async (
         ),
     },
   };
+
   await Warranty.deleteMany(deleteQuery).session(session);
   await Order.updateOne(
     { _id: orderId, "productDetails.warranty": { $exists: true } },
@@ -306,6 +343,18 @@ export const createNewOrder = async (
                   ],
                 },
                 then: {
+                  sku: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.sku",
+                      0,
+                    ],
+                  },
+                  lowStockWarning: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.lowStockWarning",
+                      0,
+                    ],
+                  },
                   stockAvailable: {
                     $arrayElemAt: [
                       "$variationDetails.variations.inventory.stockAvailable",
@@ -320,6 +369,8 @@ export const createNewOrder = async (
                   },
                 },
                 else: {
+                  lowStockWarning: "$defaultInventory.lowStockWarning",
+                  sku: "$defaultInventory.sku",
                   stockAvailable: "$defaultInventory.stockAvailable",
                   manageStock: "$defaultInventory.manageStock",
                 },
@@ -456,6 +507,15 @@ export const createNewOrder = async (
   await Promise.all(
     orderedProductData.map(async ({ item }) => {
       if (item?.product?.stock?.manageStock) {
+        const currentStock =
+          Number(item?.product?.stock?.stockAvailable || 0) - item.quantity;
+        if (currentStock < item?.product?.stock?.lowStockWarning) {
+          await lowStockWarningEmail({
+            productName: item?.product?.title,
+            currentStock,
+            sku: item?.product?.stock?.sku,
+          });
+        }
         if (item.variation) {
           await ProductModel.updateOne(
             {
@@ -613,6 +673,7 @@ export const createOrderOnSteedFast = async (
       note: courierNotes || "",
     })
   );
+
   const { data } = await steedFastApi({
     credentials: courier.credentials,
     endpoints: "/create_order/bulk-order",

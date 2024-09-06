@@ -26,7 +26,8 @@ import {
   createNewOrder,
   createOrderOnSteedFast,
   deleteWarrantyFromOrder,
-  updateStockOnOrderCancelOrDeleteOrRetrieve,
+  TUpStOnCanDelProducts,
+  updateStockOrderCancelDelete,
 } from "./order.utils";
 
 const maxOrderStatusChangeAtATime = 20;
@@ -464,13 +465,13 @@ const updateOrderStatusIntoDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const orders = await Order.find(
-      {
-        _id: { $in: payload.orderIds },
-        status: { $in: changableOrders },
-      },
-      { orderId: 1, status: 1, statusHistory: 1, productDetails: 1 }
-    ).session(session);
+
+    const pipeline: PipelineStage[] = OrderHelper.orderStatusUpdatingPipeline(
+      payload.orderIds,
+      changableOrders
+    );
+
+    const orders = (await Order.aggregate(pipeline)) as Partial<TOrder[]>;
 
     const statusUpdateQuery: {
       updateOne: {
@@ -501,10 +502,10 @@ const updateOrderStatusIntoDB = async (
     }[] = [];
 
     orders?.forEach((order) => {
-      if (order.status !== payload.status) {
+      if (order?.status !== payload.status) {
         const statusUpdateData = {
           updateOne: {
-            filter: { _id: order._id },
+            filter: { _id: order?._id },
             update: {
               status: payload.status,
               isDeleted: payload.status === "deleted",
@@ -514,7 +515,7 @@ const updateOrderStatusIntoDB = async (
         statusUpdateQuery?.push(statusUpdateData);
         const historyUpdateData = {
           updateOne: {
-            filter: { _id: order.statusHistory as Types.ObjectId },
+            filter: { _id: order?.statusHistory as Types.ObjectId },
             update: {
               $push: {
                 history: {
@@ -539,36 +540,28 @@ const updateOrderStatusIntoDB = async (
     // Change the orders one by one
     for (const order of orders) {
       // If this order's previous status is not same as the current
-      if (order.status !== payload.status) {
-        const orderPreviousStatus = order.status;
+      if (order?.status !== payload.status) {
+        const orderPreviousStatus = order?.status;
 
-        const orderedProducts = order?.productDetails;
-
+        const orderedProducts =
+          order?.productDetails as unknown as TUpStOnCanDelProducts[];
         // If the admin try to retrieve a canceled order
         if (
           orderPreviousStatus === "canceled" &&
           !["canceled", "deleted"].includes(payload.status)
         ) {
-          await updateStockOnOrderCancelOrDeleteOrRetrieve(
-            orderedProducts,
-            session,
-            false
-          );
+          await updateStockOrderCancelDelete(orderedProducts, session, false);
         }
-
         // if the previous status is not canceled or deleted and now try to cancel the order
-        if (
-          !["canceled", "deleted"].includes(orderPreviousStatus) &&
+        else if (
+          !["canceled", "deleted"].includes(orderPreviousStatus || "") &&
           ["canceled", "deleted"].includes(payload.status)
         ) {
-          await updateStockOnOrderCancelOrDeleteOrRetrieve(
-            orderedProducts,
-            session
-          );
+          await updateStockOrderCancelDelete(orderedProducts, session);
         }
       }
     }
-
+    // throw new ApiError(400, "Break");
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -586,6 +579,11 @@ const updateProcessingStatusIntoDB = async (
   status: Partial<TOrderStatus>,
   user: TJwtPayload
 ) => {
+  const changableStatus: Partial<TOrderStatus[]> = [
+    "processing",
+    "warranty added",
+    "processing done",
+  ];
   const acceptableStatus = ["warranty added", "processing done", "canceled"];
   if (![...acceptableStatus].includes(status)) {
     throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
@@ -601,55 +599,10 @@ const updateProcessingStatusIntoDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const pipeline = [
-      {
-        $match: {
-          _id: {
-            $in: orderIds.map((item) => new mongoose.Types.ObjectId(item)),
-          },
-          status: { $in: ["processing", "warranty added", "processing done"] },
-        },
-      },
-      {
-        $unwind: "$productDetails",
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "productDetails.product",
-          foreignField: "_id",
-          as: "productInfo",
-        },
-      },
-      {
-        $unwind: "$productInfo",
-      },
-      {
-        $project: {
-          _id: 1,
-          orderId: 1,
-          status: 1,
-          statusHistory: 1,
-          product: {
-            _id: "$productDetails._id",
-            product: "$productInfo._id",
-            productTitle: "$productInfo.title",
-            warranty: "$productDetails.warranty",
-            productWarranty: "$productInfo.warranty",
-            quantity: "$productDetails.quantity",
-          },
-        },
-      },
-      {
-        $group: {
-          _id: "$_id",
-          orderId: { $first: "$orderId" },
-          status: { $first: "$status" },
-          statusHistory: { $first: "$statusHistory" },
-          productDetails: { $push: "$product" },
-        },
-      },
-    ];
+    const pipeline = OrderHelper.orderStatusUpdatingPipeline(
+      orderIds,
+      changableStatus
+    );
     const orders = await Order.aggregate(pipeline).session(session);
 
     for (const order of orders) {
@@ -657,7 +610,7 @@ const updateProcessingStatusIntoDB = async (
         for (const {
           warranty,
           productWarranty,
-          productTitle,
+          title: productTitle,
         } of order.productDetails) {
           if (productWarranty && !warranty) {
             throw new ApiError(
@@ -670,7 +623,6 @@ const updateProcessingStatusIntoDB = async (
 
       // Update order status
       await Order.updateOne({ _id: order._id }, { status }, { session });
-
       // Update order status history
       await OrderStatusHistory.updateOne(
         { _id: order.statusHistory },
@@ -684,12 +636,10 @@ const updateProcessingStatusIntoDB = async (
         },
         { session }
       );
+
       if (status === "canceled") {
         await Promise.all([
-          updateStockOnOrderCancelOrDeleteOrRetrieve(
-            order.productDetails,
-            session
-          ),
+          updateStockOrderCancelDelete(order.productDetails, session),
           deleteWarrantyFromOrder(order.productDetails, order._id, session),
         ]);
       }
@@ -733,38 +683,12 @@ const bookCourierAndUpdateStatusIntoDB = async (
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
+    const pipeline = OrderHelper.orderStatusUpdatingPipeline(orderIds, [
+      "processing done",
+    ]);
+    const orders = await Order.aggregate(pipeline).session(session);
 
-    const orders = (await Order.aggregate([
-      {
-        $match: {
-          _id: { $in: orderIds.map((item) => new Types.ObjectId(item)) },
-          status: "processing done",
-        },
-      },
-      {
-        $lookup: {
-          from: "shippings",
-          localField: "shipping",
-          foreignField: "_id",
-          as: "shippingData",
-        },
-      },
-      {
-        $unwind: "$shippingData",
-      },
-      {
-        $project: {
-          status: 1,
-          orderId: 1,
-          total: 1,
-          courierNotes: 1,
-          productDetails: 1,
-          shippingData: 1,
-          shipping: 1,
-          statusHistory: 1,
-        },
-      },
-    ])) as Partial<TOrder[]>;
+    // throw new ApiError(400, "Break");
 
     const courier = await Courier.findById(courierProvider, {
       name: 1,
@@ -782,12 +706,14 @@ const bookCourierAndUpdateStatusIntoDB = async (
 
     // courier booking request
     //Steed fast
-    if (courier.name === "steedfast") {
-      const { success: successRequests, error: failedRequests } =
-        await createOrderOnSteedFast(orders, courier);
+    if (status === "On courier") {
+      if (courier.name === "steedfast") {
+        const { success: successRequests, error: failedRequests } =
+          await createOrderOnSteedFast(orders, courier);
 
-      successCourierOrders = successRequests;
-      failedCourierOrders = failedRequests.map((item) => item.orderId);
+        successCourierOrders = successRequests;
+        failedCourierOrders = failedRequests.map((item) => item.orderId);
+      }
     }
     let successOrders = orders;
     if (failedCourierOrders.length) {
@@ -840,8 +766,9 @@ const bookCourierAndUpdateStatusIntoDB = async (
         { $set: { status: "canceled" } },
         { session }
       );
+
       for (const order of orders) {
-        await updateStockOnOrderCancelOrDeleteOrRetrieve(
+        await updateStockOrderCancelDelete(
           order?.productDetails || [],
           session
         );
@@ -862,6 +789,8 @@ const bookCourierAndUpdateStatusIntoDB = async (
     }
     await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
 
+    // throw new ApiError(400, "break");
+
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -870,9 +799,12 @@ const bookCourierAndUpdateStatusIntoDB = async (
     await session.endSession();
   }
 
+  const message = status === "canceled" ? "Canceled successfully." : undefined;
+
   return {
-    success: successCourierOrders?.length,
-    error: failedCourierOrders?.length,
+    success: status === "On courier" ? successCourierOrders?.length : undefined,
+    error: status === "On courier" ? failedCourierOrders?.length : undefined,
+    message,
   };
 };
 
