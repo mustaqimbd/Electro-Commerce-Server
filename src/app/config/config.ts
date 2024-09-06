@@ -8,6 +8,8 @@ const env = process.env;
 export default {
   env: env.NODE_ENV,
   port: env.PORT,
+  company_name: env.COMPANY_NAME,
+  admin_email: env.ADMIN_EMAIL,
   DBUrl: env.DB_URL,
   clientSideURL: env.CLIENT_SIDE_URL,
   main_domain: env.MAIN_DOMAIN,
@@ -44,4 +46,8 @@ export default {
     secret_key: env.STEAD_FAST_SECRET_KEY,
   },
   courier_provider_id: env.COURIER_PROVIDER_ID,
+  google: {
+    smtp_user: env.GOOGLE_SMTP_USER,
+    smtp_pass: env.GOOGLE_SMTP_PASS,
+  },
 };

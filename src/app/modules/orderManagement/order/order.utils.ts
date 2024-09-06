@@ -5,6 +5,7 @@ import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
 import { Cart } from "../../cartManagement/cart/cart.model";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
@@ -342,6 +343,18 @@ export const createNewOrder = async (
                   ],
                 },
                 then: {
+                  sku: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.sku",
+                      0,
+                    ],
+                  },
+                  lowStockWarning: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.lowStockWarning",
+                      0,
+                    ],
+                  },
                   stockAvailable: {
                     $arrayElemAt: [
                       "$variationDetails.variations.inventory.stockAvailable",
@@ -356,6 +369,8 @@ export const createNewOrder = async (
                   },
                 },
                 else: {
+                  lowStockWarning: "$defaultInventory.lowStockWarning",
+                  sku: "$defaultInventory.sku",
                   stockAvailable: "$defaultInventory.stockAvailable",
                   manageStock: "$defaultInventory.manageStock",
                 },
@@ -492,6 +507,15 @@ export const createNewOrder = async (
   await Promise.all(
     orderedProductData.map(async ({ item }) => {
       if (item?.product?.stock?.manageStock) {
+        const currentStock =
+          Number(item?.product?.stock?.stockAvailable || 0) - item.quantity;
+        if (currentStock < item?.product?.stock?.lowStockWarning) {
+          await lowStockWarningEmail({
+            productName: item?.product?.title,
+            currentStock,
+            sku: item?.product?.stock?.sku,
+          });
+        }
         if (item.variation) {
           await ProductModel.updateOne(
             {

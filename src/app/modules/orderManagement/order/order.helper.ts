@@ -53,6 +53,8 @@ const sanitizeOrderedProducts = async (
             },
             inventory: {
               _id: "$inventory._id",
+              sku: "$inventory.sku",
+              lowStockWarning: "$inventory.lowStockWarning",
               stockAvailable: "$inventory.stockAvailable",
               manageStock: "$inventory.manageStock",
             },
@@ -64,6 +66,8 @@ const sanitizeOrderedProducts = async (
                 in: {
                   _id: "$$variation._id",
                   inventory: {
+                    sku: "$$variation.inventory.sku",
+                    lowStockWarning: "$$variation.inventory.lowStockWarning",
                     stockAvailable: "$$variation.inventory.stockAvailable",
                     manageStock: "$$variation.inventory.manageStock",
                   },
