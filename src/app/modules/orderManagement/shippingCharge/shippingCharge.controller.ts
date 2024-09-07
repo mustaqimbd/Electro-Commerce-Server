@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
+import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { TShippingCharge } from "./shippingCharge.interface";
 import { ShippingChargeService } from "./shippingCharge.service";
 
@@ -13,7 +14,7 @@ const getShippingCharges = catchAsync(async (req: Request, res: Response) => {
   );
   successResponse<TShippingCharge[]>(res, {
     statusCode: httpStatus.CREATED,
-    message: "User created successfully",
+    message: "Created shipping charge successfully",
     data: result,
   });
 });
@@ -25,7 +26,20 @@ const createShippingCharge = catchAsync(async (req: Request, res: Response) => {
   });
   successResponse<TShippingCharge>(res, {
     statusCode: httpStatus.CREATED,
-    message: "User created successfully",
+    message: "Updated shipping charge successfully",
+    data: result,
+  });
+});
+
+const updateShippingCharge = catchAsync(async (req: Request, res: Response) => {
+  const result = await ShippingChargeService.updateShippingChangeIntoDB(
+    req.params.id,
+    req.body as unknown as Record<string, unknown>,
+    req.user as unknown as TJwtPayload
+  );
+  successResponse(res, {
+    statusCode: httpStatus.CREATED,
+    message: "Updated shipping charge successfully",
     data: result,
   });
 });
@@ -33,4 +47,5 @@ const createShippingCharge = catchAsync(async (req: Request, res: Response) => {
 export const ShippingChargeController = {
   getShippingCharges,
   createShippingCharge,
+  updateShippingCharge,
 };

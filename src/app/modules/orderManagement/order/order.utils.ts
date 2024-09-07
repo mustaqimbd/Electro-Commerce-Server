@@ -574,12 +574,12 @@ export const createNewOrder = async (
     })
   )[0]._id;
   // get shipping charge
-  const shippingCharges = await ShippingCharge.findById(shippingCharge);
+  const shippingCharges = await ShippingCharge.findOne({
+    _id: shippingCharge,
+    isActive: true,
+  });
   if (!shippingCharges) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Failed to find shipping charges"
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, "No shipping charges found");
   }
 
   let warrantyAmount = 0;
