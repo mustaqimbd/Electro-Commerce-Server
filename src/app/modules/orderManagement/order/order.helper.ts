@@ -177,6 +177,24 @@ const findOrderForUpdatingOrder = async (
         $unwind: "$shippingChargeInfo",
       },
       {
+        $addFields: {
+          variation: {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: "$productDetails.productInfo.variations",
+                  as: "variation",
+                  cond: {
+                    $eq: ["$$variation._id", "$productDetails.variation"],
+                  },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+      {
         $group: {
           _id: "$_id",
           productDetails: {
@@ -190,10 +208,45 @@ const findOrderForUpdatingOrder = async (
               warranty: "$productDetails.warranty",
               isWarrantyClaim: "$productDetails.isWarrantyClaim",
               claimedCodes: "$productDetails.claimedCodes",
+              variation: "$productDetails.variation",
+              isVariationDeleted: {
+                $cond: {
+                  if: {
+                    $and: [
+                      { $ne: ["$productDetails.variation", null] }, // Check if the productDetails.variation exists
+                      { $eq: ["$variation", null] }, // Check if the variation lookup failed
+                    ],
+                  },
+                  then: true,
+                  else: false,
+                },
+              },
               inventoryInfo: {
-                _id: "$productDetails.productInfo.inventoryInfo._id",
-                stockAvailable:
-                  "$productDetails.productInfo.inventoryInfo.stockAvailable",
+                $cond: {
+                  if: { $ne: ["$variation", null] },
+                  then: {
+                    stockStatus: "$variation.inventory.stockStatus",
+                    stockAvailable: "$variation.inventory.stockAvailable",
+                    manageStock: "$variation.inventory.manageStock",
+                    lowStockWarning: "$variation.inventory.lowStockWarning",
+                  },
+                  else: {
+                    _id: "$productDetails.productInfo.inventoryInfo._id",
+                    stockAvailable:
+                      "$productDetails.productInfo.inventoryInfo.stockAvailable",
+                    manageStock:
+                      "$productDetails.productInfo.inventoryInfo.manageStock",
+                    lowStockWarning:
+                      "$productDetails.productInfo.inventoryInfo.lowStockWarning",
+                  },
+                },
+                // _id: "$productDetails.productInfo.inventoryInfo._id",
+                // stockAvailable:
+                //   "$productDetails.productInfo.inventoryInfo.stockAvailable",
+                // manageStock:
+                //   "$productDetails.productInfo.inventoryInfo.manageStock",
+                // lowStockWarning:
+                //   "$productDetails.productInfo.inventoryInfo.lowStockWarning",
               },
             },
           },
