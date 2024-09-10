@@ -8,6 +8,7 @@ import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
+import { Coupon } from "../../coupon/coupon.model";
 import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
@@ -154,6 +155,7 @@ export const createNewOrder = async (
     orderSource,
     custom,
     salesPage,
+    coupon,
   } = payload.body as {
     payment: TPaymentData;
     shipping: TShippingData;
@@ -165,6 +167,7 @@ export const createNewOrder = async (
     custom: boolean;
     salesPage: boolean;
     orderedProducts: TProductDetails[];
+    coupon?: number;
   };
 
   let { courierNotes, officialNotes, invoiceNotes, advance, discount } =
@@ -595,6 +598,30 @@ export const createNewOrder = async (
     warrantyAmount -
     Number(discount || 0);
 
+  let couponDiscount = 0;
+  let selectedCoupon: Types.ObjectId | undefined = undefined;
+  if (coupon) {
+    const couponDetails = await Coupon.findOne(
+      {
+        code: coupon,
+        isActive: true,
+        isDeleted: false,
+        endDate: { $gt: new Date(Date.now()) },
+      },
+      { percentage: 1, limitDiscountAmount: 1, maxDiscountAmount: 1 }
+    );
+    if (!couponDetails)
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid coupon code");
+
+    selectedCoupon = couponDetails?._id;
+    couponDiscount = totalCost * (couponDetails.percentage / 100);
+    if (couponDetails.limitDiscountAmount)
+      if (couponDiscount > couponDetails.maxDiscountAmount)
+        couponDiscount = couponDetails.maxDiscountAmount;
+    couponDiscount = Math.round(couponDiscount);
+    if (couponDetails) totalCost = totalCost - couponDiscount;
+  }
+
   orderData.orderId = orderId;
   orderData.userId = !warrantyClaimOrderData?.warrantyClaim
     ? (userQuery.userId as mongoose.Types.ObjectId)
@@ -607,6 +634,8 @@ export const createNewOrder = async (
   orderData.total = totalCost;
   orderData.warrantyAmount = warrantyAmount;
   orderData.status = status;
+  orderData.couponDetails = selectedCoupon;
+  orderData.couponDiscount = couponDiscount;
 
   orderData.orderNotes = orderNotes;
   orderData.courierNotes = courierNotes;
