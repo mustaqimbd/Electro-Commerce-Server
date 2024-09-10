@@ -45,6 +45,7 @@ const createOrderValidation = z.object({
       officialNotes: z.string().optional(),
       invoiceNotes: z.string().optional(),
       courierNotes: z.string().optional(),
+      coupon: z.string().optional(),
     })
     .refine(
       (data) => {
