@@ -5,14 +5,15 @@ import ApiError from "../../../errorHandlers/ApiError";
 import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
-import { Address } from "../../addressManagement/address/address.model";
+import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
+import { Coupon } from "../../coupon/coupon.model";
 import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import ProductModel from "../../productManagement/product/product.model";
-import { Cart } from "../../shoppingCartManagement/cart/cart.model";
-import { CartItem } from "../../shoppingCartManagement/cartItem/cartItem.model";
+import { Address } from "../../userManagement/address/address.model";
 import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
@@ -42,208 +43,73 @@ export const createOrderId = () => {
 };
 
 // This function will increase or decrease stock quantity base on command. The first parameter will receive product details, the second parameter will receive mongoDB session and the third parameter will receive a boolean value. Base on the value the stock will increase od decrease
-export const updateStockOnOrderCancelOrDeleteOrRetrieve = async (
-  productDetails: TProductDetails[],
+
+export type TUpStOnCanDelProducts = {
+  _id: Types.ObjectId;
+  productId: Types.ObjectId;
+  title: string;
+  unitPrice: number;
+  isWarrantyClaim: boolean;
+  quantity: number;
+  total: number;
+  defaultInventory: {
+    _id: Types.ObjectId;
+    stockAvailable: number;
+    manageStock: boolean;
+    lowStockWarning: number;
+  };
+  variation: Types.ObjectId;
+  variationDetails: {
+    _id: Types.ObjectId;
+    inventory: {
+      stockAvailable: number;
+      manageStock: boolean;
+      lowStockWarning: number;
+    };
+  };
+};
+
+// This function can update the stock of canceled and deleted orders
+export const updateStockOrderCancelDelete = async (
+  productDetails: TUpStOnCanDelProducts[],
   session: mongoose.mongo.ClientSession,
   inc: boolean = true
 ) => {
+  const variationMissingProducts = [];
   for (const item of productDetails) {
-    const product = await ProductModel.findById(item.product, {
-      inventory: 1,
-    })
-      .session(session)
-      .lean();
-    if (!product) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to find the product");
-    }
-
-    let updateQuey = item.quantity;
+    let updateType = item.quantity;
 
     if (!inc) {
-      updateQuey = -item.quantity;
+      updateType = -item.quantity;
     }
-
-    const updateQUantity = await InventoryModel.updateOne(
-      { _id: product.inventory },
-      { $inc: { stockQuantity: updateQuey } }
-    ).session(session);
-    if (!updateQUantity.modifiedCount) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to update quantity");
+    if (item?.variation) {
+      if (item?.variationDetails) {
+        if (item?.variationDetails?.inventory?.manageStock) {
+          await ProductModel.updateOne(
+            {
+              _id: item?.productId,
+              "variations._id": item?.variation,
+            },
+            {
+              $inc: {
+                "variations.$.inventory.stockAvailable": updateType,
+              },
+            }
+          ).session(session);
+        }
+      } else {
+        variationMissingProducts.push(item.title);
+      }
+    } else {
+      if (item?.defaultInventory?.manageStock) {
+        await InventoryModel.updateOne(
+          { _id: item.defaultInventory._id },
+          { $inc: { stockAvailable: updateType } }
+        ).session(session);
+      }
     }
   }
 };
-
-// This pipeline will retrieve orders information
-export const ordersPipeline = (): PipelineStage[] => [
-  {
-    $lookup: {
-      from: "shippings",
-      localField: "shipping",
-      foreignField: "_id",
-      as: "shippingData",
-    },
-  },
-  {
-    $unwind: "$shippingData",
-  },
-  {
-    $lookup: {
-      from: "shippingcharges",
-      localField: "shippingCharge",
-      foreignField: "_id",
-      as: "shippingCharge",
-    },
-  },
-  {
-    $unwind: "$shippingCharge",
-  },
-  {
-    $project: {
-      _id: 1,
-      orderId: 1,
-      subtotal: 1,
-      total: 1,
-      discount: 1,
-      advance: 1,
-      status: 1,
-      shipping: {
-        fullName: "$shippingData.fullName",
-        phoneNumber: "$shippingData.phoneNumber",
-        fullAddress: "$shippingData.fullAddress",
-      },
-      shippingCharge: { amount: "$shippingCharge.amount" },
-      createdAt: 1,
-      officialNotes: 1,
-      invoiceNotes: 1,
-      courierNotes: 1,
-      orderSource: 1,
-      reasonNotes: 1,
-      orderNotes: 1,
-      followUpDate: 1,
-      productDetails: 1,
-    },
-  },
-  {
-    $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true },
-  },
-  {
-    $lookup: {
-      from: "products",
-      localField: "productDetails.product",
-      foreignField: "_id",
-      as: "productInfo",
-    },
-  },
-  {
-    $unwind: { path: "$productInfo", preserveNullAndEmptyArrays: true },
-  },
-  {
-    $lookup: {
-      from: "warranties",
-      localField: "productDetails.warranty",
-      foreignField: "_id",
-      as: "warranty",
-    },
-  },
-  {
-    $addFields: {
-      warranty: {
-        $cond: {
-          if: { $eq: [{ $size: "$warranty" }, 0] },
-          then: null,
-          else: { $arrayElemAt: ["$warranty", 0] },
-        },
-      },
-    },
-  },
-  {
-    $addFields: {
-      product: {
-        $cond: {
-          if: { $not: ["$productDetails"] },
-          then: null,
-          else: {
-            _id: "$productDetails._id",
-            productId: "$productInfo._id",
-            title: "$productInfo.title",
-            isProductWarrantyAvailable: "$productInfo.title",
-            warranty: "$warranty",
-            unitPrice: "$productDetails.unitPrice",
-            quantity: "$productDetails.quantity",
-            total: "$productDetails.total",
-          },
-        },
-      },
-      // Removed warrantyProduct section
-    },
-  },
-  {
-    $project: {
-      _id: 1,
-      orderId: 1,
-      subtotal: 1,
-      total: 1,
-      discount: 1,
-      advance: 1,
-      status: 1,
-      shipping: 1,
-      shippingCharge: 1,
-      createdAt: 1,
-      officialNotes: 1,
-      invoiceNotes: 1,
-      courierNotes: 1,
-      orderNotes: 1,
-      followUpDate: 1,
-      orderSource: 1,
-      reasonNotes: 1,
-      product: 1,
-      // Removed warrantyProduct field
-    },
-  },
-  {
-    $group: {
-      _id: "$_id",
-      orderId: { $first: "$orderId" },
-      total: { $first: "$total" },
-      subtotal: { $first: "$subtotal" },
-      discount: { $first: "$discount" },
-      advance: { $first: "$advance" },
-      status: { $first: "$status" },
-      shipping: { $first: "$shipping" },
-      shippingCharge: { $first: "$shippingCharge" },
-      createdAt: { $first: "$createdAt" },
-      officialNotes: { $first: "$officialNotes" },
-      invoiceNotes: { $first: "$invoiceNotes" },
-      courierNotes: { $first: "$courierNotes" },
-      orderNotes: { $first: "$orderNotes" },
-      reasonNotes: { $first: "$reasonNotes" },
-      followUpDate: { $first: "$followUpDate" },
-      orderSource: { $first: "$orderSource" },
-      products: {
-        $push: {
-          $cond: {
-            if: { $not: ["$product"] },
-            then: "$$REMOVE",
-            else: "$product",
-          },
-        },
-      },
-      // Removed warrantyProducts field
-    },
-  },
-  {
-    $addFields: {
-      products: {
-        $cond: {
-          if: { $eq: [{ $size: "$products" }, 0] },
-          then: null,
-          else: "$products",
-        },
-      },
-      // Removed warrantyProducts field
-    },
-  },
-];
 
 // This function will delete warranty information from warranty collection and update order product details
 export const deleteWarrantyFromOrder = async (
@@ -260,6 +126,7 @@ export const deleteWarrantyFromOrder = async (
         ),
     },
   };
+
   await Warranty.deleteMany(deleteQuery).session(session);
   await Order.updateOne(
     { _id: orderId, "productDetails.warranty": { $exists: true } },
@@ -288,6 +155,7 @@ export const createNewOrder = async (
     orderSource,
     custom,
     salesPage,
+    coupon,
   } = payload.body as {
     payment: TPaymentData;
     shipping: TShippingData;
@@ -299,6 +167,7 @@ export const createNewOrder = async (
     custom: boolean;
     salesPage: boolean;
     orderedProducts: TProductDetails[];
+    coupon?: number;
   };
 
   let { courierNotes, officialNotes, invoiceNotes, advance, discount } =
@@ -437,6 +306,27 @@ export const createNewOrder = async (
             title: "$productDetails.title",
             isDeleted: "$productDetails.isDeleted",
             defaultInventory: "$defaultInventory._id",
+            isVariationAvailable: {
+              $cond: {
+                if: {
+                  $and: [
+                    { $ne: ["$variation", null] }, // Ensure variation is present
+                    {
+                      $gt: [
+                        {
+                          $size: {
+                            $ifNull: ["$variationDetails.variations", []],
+                          },
+                        },
+                        0,
+                      ],
+                    }, // Ensure variationDetails.variations is non-empty
+                  ],
+                },
+                then: true,
+                else: false,
+              },
+            },
             stock: {
               $cond: {
                 if: {
@@ -455,9 +345,21 @@ export const createNewOrder = async (
                   ],
                 },
                 then: {
-                  stockQuantity: {
+                  sku: {
                     $arrayElemAt: [
-                      "$variationDetails.variations.inventory.stockQuantity",
+                      "$variationDetails.variations.inventory.sku",
+                      0,
+                    ],
+                  },
+                  lowStockWarning: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.lowStockWarning",
+                      0,
+                    ],
+                  },
+                  stockAvailable: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.stockAvailable",
                       0,
                     ],
                   },
@@ -469,7 +371,9 @@ export const createNewOrder = async (
                   },
                 },
                 else: {
-                  stockQuantity: "$defaultInventory.stockQuantity",
+                  lowStockWarning: "$defaultInventory.lowStockWarning",
+                  sku: "$defaultInventory.sku",
+                  stockAvailable: "$defaultInventory.stockAvailable",
                   manageStock: "$defaultInventory.manageStock",
                 },
               },
@@ -547,75 +451,106 @@ export const createNewOrder = async (
     discount = 0;
   }
 
-  const orderedProductData = await Promise.all(
-    orderedProductInfo?.map(async (item) => {
-      if (item.product.isDeleted) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          `The product '${item.product.title}' is no longer available`
-        );
-      }
-      if (item?.product?.stock?.manageStock) {
-        if (item?.product?.stock?.stockQuantity < item?.quantity) {
-          throw new ApiError(
-            httpStatus.BAD_REQUEST,
-            `The product '${item.product.title}' is out of stock, Please contact the support team`
-          );
-        }
+  const orderedProductData = orderedProductInfo?.map((item) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const attributes = (item.product as any)?.variationDetails?.variations
+      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (item.product as any)?.variationDetails?.variations![0]?.attributes
+      : undefined;
 
-        // Update stock
-        if (item.variation) {
-          if (item?.product?.stock?.manageStock) {
-            await ProductModel.updateOne(
-              {
-                _id: item?.product?._id,
-                "variations._id": item?.variation,
-              },
-              {
-                $inc: {
-                  "variations.$.inventory.stockQuantity": -item.quantity,
-                },
-              }
-            ).session(session);
-          }
-        } else {
-          if (item?.product?.stock?.manageStock) {
-            await InventoryModel.updateOne(
-              { _id: item?.product?.defaultInventory },
-              { $inc: { stockQuantity: -item.quantity } }
-            ).session(session);
-          }
-        }
-      }
-
-      const price = Number(
-        item?.product?.price?.salePrice || item?.product?.price?.regularPrice
+    if (item.variation && item.product.isVariationAvailable === false) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `On product ${item?.product?.title}, selected variation is no longer available.`
       );
-      const result = {
-        product: item?.product?._id,
-        unitPrice: price,
-        quantity: item?.quantity,
-        total: Math.round(item?.quantity * price),
-        isWarrantyClaim: item?.isWarrantyClaim,
-        claimedCodes: item?.claimedCodes,
-        variation: item?.variation,
-      };
+    }
 
-      onlyProductsCosts += result.total;
+    if (item.product.isDeleted) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `The product '${item.product.title}' is no longer available`
+      );
+    }
 
-      return result;
+    if (
+      item?.product?.stock?.manageStock &&
+      Number(item?.product?.stock?.stockAvailable || 0) < item?.quantity
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `The product '${item.product.title}' is out of stock, Please contact the support team`
+      );
+    }
+
+    const price = Number(
+      item?.product?.price?.salePrice || item?.product?.price?.regularPrice
+    );
+
+    const result = {
+      product: item?.product?._id,
+      unitPrice: price,
+      quantity: item?.quantity,
+      total: Math.round(item?.quantity * price),
+      isWarrantyClaim: item?.isWarrantyClaim,
+      claimedCodes: item?.claimedCodes,
+      variation: item?.variation,
+      attributes,
+    };
+
+    onlyProductsCosts += result.total;
+
+    return {
+      item,
+      result,
+    };
+  });
+
+  // Execute DB operations after mapping
+  await Promise.all(
+    orderedProductData.map(async ({ item }) => {
+      if (item?.product?.stock?.manageStock) {
+        const currentStock =
+          Number(item?.product?.stock?.stockAvailable || 0) - item.quantity;
+        if (currentStock < item?.product?.stock?.lowStockWarning) {
+          await lowStockWarningEmail({
+            productName: item?.product?.title,
+            currentStock,
+            sku: item?.product?.stock?.sku,
+          });
+        }
+        if (item.variation) {
+          await ProductModel.updateOne(
+            {
+              _id: item?.product?._id,
+              "variations._id": item?.variation,
+            },
+            {
+              $inc: {
+                "variations.$.inventory.stockAvailable": -item.quantity,
+              },
+            }
+          ).session(session);
+        } else {
+          await InventoryModel.updateOne(
+            { _id: item?.product?.defaultInventory },
+            { $inc: { stockAvailable: -item.quantity } }
+          ).session(session);
+        }
+      }
     })
   );
 
-  // throw new ApiError(404, "break");
+  // Extract results after DB operations are done
+  const finalOrderedProductData = orderedProductData.map(
+    ({ result }) => result
+  );
 
-  orderData.productDetails = orderedProductData as TProductDetails[];
+  orderData.productDetails = finalOrderedProductData as TProductDetails[];
 
   singleOrder = {
     product: String(orderedProductInfo[0]?.product?._id),
     quantity: orderedProductInfo[0].quantity,
   };
-
   // create payment document
   const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
   if (!paymentMethod) {
@@ -642,12 +577,12 @@ export const createNewOrder = async (
     })
   )[0]._id;
   // get shipping charge
-  const shippingCharges = await ShippingCharge.findById(shippingCharge);
+  const shippingCharges = await ShippingCharge.findOne({
+    _id: shippingCharge,
+    isActive: true,
+  });
   if (!shippingCharges) {
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "Failed to find shipping charges"
-    );
+    throw new ApiError(httpStatus.BAD_REQUEST, "No shipping charges found");
   }
 
   let warrantyAmount = 0;
@@ -663,6 +598,30 @@ export const createNewOrder = async (
     warrantyAmount -
     Number(discount || 0);
 
+  let couponDiscount = 0;
+  let selectedCoupon: Types.ObjectId | undefined = undefined;
+  if (coupon) {
+    const couponDetails = await Coupon.findOne(
+      {
+        code: coupon,
+        isActive: true,
+        isDeleted: false,
+        endDate: { $gt: new Date(Date.now()) },
+      },
+      { percentage: 1, limitDiscountAmount: 1, maxDiscountAmount: 1 }
+    );
+    if (!couponDetails)
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid coupon code");
+
+    selectedCoupon = couponDetails?._id;
+    couponDiscount = totalCost * (couponDetails.percentage / 100);
+    if (couponDetails.limitDiscountAmount)
+      if (couponDiscount > couponDetails.maxDiscountAmount)
+        couponDiscount = couponDetails.maxDiscountAmount;
+    couponDiscount = Math.round(couponDiscount);
+    if (couponDetails) totalCost = totalCost - couponDiscount;
+  }
+
   orderData.orderId = orderId;
   orderData.userId = !warrantyClaimOrderData?.warrantyClaim
     ? (userQuery.userId as mongoose.Types.ObjectId)
@@ -675,6 +634,8 @@ export const createNewOrder = async (
   orderData.total = totalCost;
   orderData.warrantyAmount = warrantyAmount;
   orderData.status = status;
+  orderData.couponDetails = selectedCoupon;
+  orderData.couponDiscount = couponDiscount;
 
   orderData.orderNotes = orderNotes;
   orderData.courierNotes = courierNotes;
@@ -697,7 +658,6 @@ export const createNewOrder = async (
   }
   // clear cart and cart items
   if (!salesPage || !custom || !warrantyClaimOrderData?.warrantyClaim) {
-    await Cart.deleteOne(userQuery).session(session);
     await CartItem.deleteMany(userQuery).session(session);
   }
 
@@ -740,6 +700,7 @@ export const createOrderOnSteedFast = async (
       note: courierNotes || "",
     })
   );
+
   const { data } = await steedFastApi({
     credentials: courier.credentials,
     endpoints: "/create_order/bulk-order",

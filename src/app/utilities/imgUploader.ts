@@ -40,13 +40,13 @@ const imgUploader = multer({
   storage: storage("public"),
   limits: { fileSize: Number(config.upload_image_size) }, // 1MB
   fileFilter(req, file, cb) {
-    const ext = path.extname(file.originalname);
+    const ext = path.extname(file.originalname).toLowerCase();
     const allowedExts = JSON.parse(config.upload_image_format as string);
     if (!allowedExts.includes(ext)) {
       return cb(
         new ApiError(
           httpStatus.BAD_REQUEST,
-          `Only ${allowedExts} format is allowed`
+          `Only ${allowedExts.join(", ")} formats are allowed`
         )
       );
     }

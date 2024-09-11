@@ -3,7 +3,7 @@ import { Request } from "express";
 const modifiedPriceData = (req: Request) => {
   const { price } = req.body;
   const save = price.regularPrice - price.salePrice || 0;
-  price.save = save === price.regularPrice ? 0 : save;
+  price.priceSave = save === price.regularPrice ? 0 : save;
   const calculatedPrice: Record<string, unknown> = {};
   if (price && price.salePrice) {
     calculatedPrice.discountPercent = Number(
@@ -22,6 +22,13 @@ const modifiedPriceData = (req: Request) => {
         price.regularPrice * (price.discountPercent / 100)
       ).toFixed(2)
     );
+    req.body.price = {
+      ...price,
+      ...calculatedPrice,
+    };
+  }
+  if (!calculatedPrice.salePrice) {
+    calculatedPrice.salePrice = price.regularPrice;
     req.body.price = {
       ...price,
       ...calculatedPrice,

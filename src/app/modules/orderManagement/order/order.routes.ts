@@ -34,36 +34,36 @@ router.get(
 router.get(
   "/customer",
   optionalAuthGuard,
-  OrderController.getAllOrderCustomers
+  OrderController.getAllOrdersCustomer
 );
 
 router.get(
   "/admin/all-orders",
   validateRequest(OrderValidation.getOrdersAdmin),
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   //   requiredPermission: "manage orders",
-  // }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage orders",
+  }),
   OrderController.getAllOrdersAdmin
 );
 
 router.get(
   "/admin/processing-orders",
   validateRequest(OrderValidation.getOrdersAdmin),
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   //   requiredPermission: "manage orders",
-  // }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage warehouse",
+  }),
   OrderController.getProcessingOrdersAdmin
 );
 
 router.get(
   "/admin/processing-done-on-courier-orders",
   validateRequest(OrderValidation.getOrdersAdmin),
-  // authGuard({
-  //   requiredRoles: ["admin", "staff"],
-  //   //   requiredPermission: "manage orders",
-  // }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage courier",
+  }),
   OrderController.getProcessingDoneCourierOrdersAdmin
 );
 
@@ -113,7 +113,10 @@ router.delete(
 
 router.get(
   "/orders-count-by-status",
-  // authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "super admin",
+  }),
   OrderController.orderCountsByStatus
 );
 
@@ -134,5 +137,6 @@ router.get(
   }),
   OrderController.getCustomersOrdersCountByPhone
 );
+router.get("/track/:orderId", OrderController.getOrderTrackingInfo);
 
 export const OrderRoutes = router;

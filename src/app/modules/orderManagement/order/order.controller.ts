@@ -53,8 +53,8 @@ const getOrderInfoByOrderIdAdmin = catchAsync(
   }
 );
 
-const getAllOrderCustomers = catchAsync(async (req: Request, res: Response) => {
-  const result = await OrderServices.getAllOrderCustomersFromDB(
+const getAllOrdersCustomer = catchAsync(async (req: Request, res: Response) => {
+  const result = await OrderServices.getAllOrdersCustomerFromDB(
     req.user as TOptionalAuthGuardPayload
   );
 
@@ -148,15 +148,16 @@ const bookCourierAndUpdateStatus = catchAsync(
   async (req: Request, res: Response) => {
     const { status, orderIds } = req.body;
     const courierProvider = new Types.ObjectId(config.courier_provider_id);
-    const result = await OrderServices.bookCourierAndUpdateStatusIntoDB(
-      orderIds,
-      status,
-      courierProvider,
-      req.user as TJwtPayload
-    );
+    const { message, ...result } =
+      await OrderServices.bookCourierAndUpdateStatusIntoDB(
+        orderIds,
+        status,
+        courierProvider,
+        req.user as TJwtPayload
+      );
     successResponse(res, {
       statusCode: httpStatus.CREATED,
-      message: "Courier booked successfully",
+      message: message || "Courier booked successfully",
       data: result,
     });
   }
@@ -216,12 +217,21 @@ const getCustomersOrdersCountByPhone = catchAsync(
     });
   }
 );
+const getOrderTrackingInfo = catchAsync(async (req: Request, res: Response) => {
+  const { orderId } = req.params;
+  const result = await OrderServices.getOrderTrackingInfo(orderId);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Order data retrieved successfully",
+    data: result,
+  });
+});
 
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
   getOrderInfoByOrderIdAdmin,
-  getAllOrderCustomers,
+  getAllOrdersCustomer,
   updateStatus,
   getAllOrdersAdmin,
   getProcessingOrdersAdmin,
@@ -233,4 +243,5 @@ export const OrderController = {
   bookCourierAndUpdateStatus,
   getProcessingDoneCourierOrdersAdmin,
   getCustomersOrdersCountByPhone,
+  getOrderTrackingInfo,
 };

@@ -1,5 +1,7 @@
 import express, { Router } from "express";
 import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
+import { CartRoutes } from "../modules/cartManagement/cart/cart.routes";
+import { CouponRoutes } from "../modules/coupon/coupon.routes";
 import { CourierRoutes } from "../modules/courier/courier.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
@@ -13,7 +15,6 @@ import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { ReportsRoutes } from "../modules/reports/reports.routes";
-import { CartRoutes } from "../modules/shoppingCartManagement/cart/cart.routes";
 import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
@@ -112,6 +113,10 @@ const moduleRoutes: TModuleTypes[] = [
   {
     path: "/reports",
     route: ReportsRoutes,
+  },
+  {
+    path: "/coupons",
+    route: CouponRoutes,
   },
 ];
 

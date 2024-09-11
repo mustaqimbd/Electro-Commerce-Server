@@ -2,7 +2,7 @@ import httpStatus from "http-status";
 import { ClientSession, Model } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TAddressData } from "../../../types/address";
-import { Address } from "../../addressManagement/address/address.model";
+import { Address } from "../address/address.model";
 import { TAdmin } from "../admin/admin.interface";
 import { TStaff } from "../staff/staff.interface";
 import { TUser } from "./user.interface";

@@ -11,6 +11,9 @@ import { CartHelper } from "./cart.helper";
 
 const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
   const query = optionalAuthUserQuery(user);
+  if (query.userId) {
+    query.userId = new Types.ObjectId(query.userId);
+  }
   const pipeline: PipelineStage[] = [
     {
       $match: query,
@@ -123,7 +126,7 @@ const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
                 $arrayElemAt: ["$variationDetails.variations.attributes", 0],
               },
             },
-            else: null,
+            else: "This variation is no longer available. Please select a new variation. Else you can't order the product.",
           },
         },
         price: {

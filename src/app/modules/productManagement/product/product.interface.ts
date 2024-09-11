@@ -8,7 +8,7 @@ export type TVisibilityStatus = "Public" | "Private" | "Password protected";
 export type TPublishedStatusSchema = {
   status: TPublishedStatus;
   visibility: TVisibilityStatus;
-  date: string;
+  date: string | Date;
 };
 export type TProductImage = {
   thumbnail: Types.ObjectId;

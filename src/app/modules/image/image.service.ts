@@ -2,6 +2,8 @@ import { Types } from "mongoose";
 import { QueryHelper } from "../../helper/query.helper";
 import { TImage } from "./image.interface";
 import { ImageModel } from "./image.model";
+import fsEx from "fs-extra";
+import path from "path";
 
 const createImageIntoDB = async (payload: Partial<TImage[]>) => {
   const result = await ImageModel.create(payload);
@@ -33,16 +35,18 @@ const deleteImagesFromDB = async (
   deletedBy: Types.ObjectId,
   imageIds: string[]
 ) => {
-  const result = await ImageModel.updateMany(
-    { _id: { $in: imageIds } },
-    {
-      $set: {
+  if (imageIds.length) {
+    imageIds.forEach(async (id) => {
+      const result = await ImageModel.findByIdAndUpdate(id, {
         deletedBy,
         isDeleted: true,
-      },
-    }
-  );
-  return result;
+      });
+      if (result) {
+        const folderPath = path.parse(result.src).dir;
+        fsEx.remove(folderPath);
+      }
+    });
+  }
 };
 
 export const ImageServices = {

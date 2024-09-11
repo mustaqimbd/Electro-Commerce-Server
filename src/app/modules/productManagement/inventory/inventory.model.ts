@@ -9,9 +9,10 @@ export const inventorySchema = new Schema<TInventory>(
     stockQuantity: { type: Number, required: true },
     stockAvailable: {
       type: Number,
-      default: function (this: TInventory) {
-        return this.stockQuantity;
-      },
+      required: true,
+      // default: function (this: TInventory) {
+      //   return this.stockQuantity;
+      // },
     },
     // productCode: { type: String },
     manageStock: { type: Boolean, default: false },

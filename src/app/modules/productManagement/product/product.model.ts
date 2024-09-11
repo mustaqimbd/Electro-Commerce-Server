@@ -16,7 +16,6 @@ import { AttributeModel } from "../attribute/attribute.model";
 import { BrandModel } from "../brand/brand.model";
 import { CategoryModel } from "../category/category.model";
 import { stockStatus } from "../inventory/inventory.const";
-import { TInventory } from "../inventory/inventory.interface";
 import { SubCategoryModel } from "../subCategory/subCategory.model";
 import { publishedStatus, visibilityStatus } from "./product.const";
 
@@ -48,18 +47,13 @@ export const productVariationsSchema = new Schema<TVariation>({
     regularPrice: { type: Number, required: true },
     salePrice: { type: Number },
     discountPercent: { type: Number },
-    save: { type: Number },
+    priceSave: { type: Number },
   },
   inventory: {
-    sku: { type: String, unique: true, sparse: true },
+    // sku: { type: String, unique: true, sparse: true },
     stockStatus: { type: String, enum: [...stockStatus], required: true },
-    stockQuantity: { type: Number },
-    stockAvailable: {
-      type: Number,
-      default: function (this: TInventory) {
-        return this.stockQuantity;
-      },
-    },
+    stockQuantity: { type: Number, required: true },
+    stockAvailable: { type: Number, required: true },
     productCode: { type: String },
     manageStock: { type: Boolean, default: false },
     lowStockWarning: { type: Number },
@@ -87,7 +81,11 @@ const publishedStatusSchema = new Schema<TPublishedStatusSchema>(
   {
     status: { type: String, enum: publishedStatus, required: true },
     visibility: { type: String, enum: visibilityStatus, required: true },
-    // date: { type: String, required: true },
+    date: {
+      type: String,
+      required: true,
+      default: () => new Date().toLocaleDateString("en-GB"),
+    },
   },
   { _id: false }
 );

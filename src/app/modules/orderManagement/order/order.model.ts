@@ -11,6 +11,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
   variation: {
     type: Schema.Types.ObjectId,
   },
+  attributes: {
+    type: Map,
+    of: String,
+  },
   unitPrice: {
     type: Number,
     require: true,
@@ -71,6 +75,10 @@ const OrderSchema = new Schema<TOrder>(
     couponDetails: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coupon",
+    },
+    couponDiscount: {
+      type: Number,
+      default: 0,
     },
     subtotal: {
       type: Number,
