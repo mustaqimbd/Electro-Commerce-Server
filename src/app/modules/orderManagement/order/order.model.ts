@@ -76,6 +76,10 @@ const OrderSchema = new Schema<TOrder>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Coupon",
     },
+    couponDiscount: {
+      type: Number,
+      default: 0,
+    },
     subtotal: {
       type: Number,
       required: true,

@@ -1,6 +1,7 @@
 import express, { Router } from "express";
 import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
 import { CartRoutes } from "../modules/cartManagement/cart/cart.routes";
+import { CouponRoutes } from "../modules/coupon/coupon.routes";
 import { CourierRoutes } from "../modules/courier/courier.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
@@ -112,6 +113,10 @@ const moduleRoutes: TModuleTypes[] = [
   {
     path: "/reports",
     route: ReportsRoutes,
+  },
+  {
+    path: "/coupons",
+    route: CouponRoutes,
   },
 ];
 
