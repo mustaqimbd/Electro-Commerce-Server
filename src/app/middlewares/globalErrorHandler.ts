@@ -8,6 +8,7 @@ import handleMongooseCastError from "../errorHandlers/handleMongooseCastError";
 import handleMongooseDuplicateError from "../errorHandlers/handleMongooseDuplicateError";
 import handleMongooseValidationError from "../errorHandlers/handleMongooseValidationError";
 import { TErrorMessages, TIErrorResponse } from "../types/error";
+import multer from "multer";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const globalErrorhandler: ErrorRequestHandler = (err, req, res, next) => {
@@ -40,6 +41,33 @@ const globalErrorhandler: ErrorRequestHandler = (err, req, res, next) => {
     message = modifiedError.message;
     statusCode = modifiedError.statusCode;
     errorMessages = modifiedError.errorMessages;
+  } else if (err instanceof multer.MulterError) {
+    switch (err.code) {
+      case "LIMIT_FILE_SIZE":
+        message = "File too large. Maximum size is 1MB.";
+        break;
+      case "LIMIT_FILE_COUNT":
+        message = `Too many files. Maximum ${config.upload_image_maxCount} number of files is exceeded.`;
+        break;
+      case "LIMIT_FIELD_KEY":
+        message = "Field name is too long.";
+        break;
+      case "LIMIT_FIELD_VALUE":
+        message = "Field value is too large.";
+        break;
+      case "LIMIT_FIELD_COUNT":
+        message = "Too many fields.";
+        break;
+      case "LIMIT_UNEXPECTED_FILE":
+        message = "Unexpected file field.";
+        break;
+      case "LIMIT_PART_COUNT":
+        message = "Too many parts.";
+        break;
+      default:
+        message = "An unknown error occurred during file upload.";
+        break;
+    }
   }
 
   // Send response
