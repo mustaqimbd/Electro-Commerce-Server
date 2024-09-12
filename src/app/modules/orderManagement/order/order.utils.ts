@@ -424,7 +424,7 @@ export const createNewOrder = async (
     ];
 
     const cart = await CartItem.aggregate(pipeline);
-    if (!cart) {
+    if (!cart.length) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
     }
     orderedProductInfo = cart;
