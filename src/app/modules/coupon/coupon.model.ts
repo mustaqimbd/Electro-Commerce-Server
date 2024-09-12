@@ -13,7 +13,6 @@ const CouponSchema = new Schema<TCoupon>(
     },
     shortDescription: {
       type: String,
-      required: true,
     },
     code: {
       type: String,
