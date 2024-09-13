@@ -184,6 +184,7 @@ export const createNewOrder = async (
     : "pending";
   const user = payload?.user as TOptionalAuthGuardPayload;
   const userQuery = optionalAuthUserQuery(user);
+  userQuery.userId = new Types.ObjectId(userQuery.userId);
 
   let singleOrder: { product: string; quantity: number } = {
     product: "",
