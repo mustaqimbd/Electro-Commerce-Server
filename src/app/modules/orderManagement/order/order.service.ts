@@ -1320,7 +1320,10 @@ const getOrderTrackingInfo = async (orderId: string) => {
       },
     },
     {
-      $unwind: "$courierDetailsData",
+      $unwind: {
+        path: "$courierDetailsData",
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $project: {
@@ -1365,6 +1368,7 @@ const getOrderTrackingInfo = async (orderId: string) => {
   ];
 
   const result = await Order.aggregate(pipeline);
+
   return result;
 };
 
