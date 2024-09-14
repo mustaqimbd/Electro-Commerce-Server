@@ -19,6 +19,7 @@ import { TShipping } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
+import { orderStatusWithDesc } from "./order.const";
 import { OrderHelper } from "./order.helper";
 import { TOrder, TOrderStatus, TProductDetails } from "./order.interface";
 import { Order } from "./order.model";
@@ -1335,8 +1336,6 @@ const getOrderTrackingInfo = async (orderId: string) => {
             in: {
               status: "$$history.status",
               createdAt: "$$history.createdAt",
-              updatedAt: "$$history.updatedAt",
-              // Add other fields you want to keep here
             },
           },
         },
@@ -1367,8 +1366,20 @@ const getOrderTrackingInfo = async (orderId: string) => {
     },
   ];
 
-  const result = await Order.aggregate(pipeline);
-
+  const result = (await Order.aggregate(pipeline))[0];
+  const updatedStatusHistory = result.statusHistory.map(
+    ({ status, createdAt }: { status: TOrderStatus; createdAt: string }) => {
+      const currentStatusDesc = orderStatusWithDesc.find(
+        (item) => item.status === status
+      );
+      return {
+        status,
+        description: currentStatusDesc?.description,
+        createdAt,
+      };
+    }
+  );
+  result.statusHistory = updatedStatusHistory;
   return result;
 };
 
