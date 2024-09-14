@@ -119,3 +119,11 @@ export type TCourierResponse = {
   tracking_code: string;
   status: string;
 };
+
+export type TOrderStatusWithDesc = {
+  status: TOrderStatus;
+  description: {
+    en?: string;
+    bn: string;
+  };
+};
