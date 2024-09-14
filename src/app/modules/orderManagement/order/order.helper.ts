@@ -274,7 +274,7 @@ const findOrderForUpdatingOrder = async (
   return order;
 };
 
-const orderDetailsPipeline: PipelineStage[] = [
+const orderDetailsPipeline = (): PipelineStage[] => [
   {
     $lookup: {
       from: "shippings",

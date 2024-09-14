@@ -109,7 +109,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     };
   }
 
-  const pipeline = OrderHelper.orderDetailsPipeline;
+  const pipeline = OrderHelper.orderDetailsPipeline();
   pipeline.unshift({
     $match: matchQuery,
   });
@@ -210,7 +210,7 @@ const getProcessingOrdersAdminFromDB = async (
     );
   }
 
-  const pipeline = OrderHelper.orderDetailsPipeline;
+  const pipeline = OrderHelper.orderDetailsPipeline();
 
   pipeline.unshift({
     $match: matchQuery,
@@ -298,7 +298,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     );
   }
 
-  const pipeline = OrderHelper.orderDetailsPipeline;
+  const pipeline = OrderHelper.orderDetailsPipeline();
 
   pipeline.unshift({
     $match: matchQuery,
@@ -364,7 +364,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
 const getOrderInfoByOrderIdAdminFromDB = async (
   id: mongoose.Types.ObjectId
 ): Promise<TOrder | null> => {
-  const pipeline: PipelineStage[] = OrderHelper.orderDetailsPipeline;
+  const pipeline: PipelineStage[] = OrderHelper.orderDetailsPipeline();
   pipeline.unshift({ $match: { _id: new mongoose.Types.ObjectId(id) } });
 
   const result = (await Order.aggregate(pipeline))[0];
