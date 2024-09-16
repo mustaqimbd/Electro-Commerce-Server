@@ -13,8 +13,8 @@ const getShippingCharges = catchAsync(async (req: Request, res: Response) => {
     user as TOptionalAuthGuardPayload
   );
   successResponse<TShippingCharge[]>(res, {
-    statusCode: httpStatus.CREATED,
-    message: "Created shipping charge successfully",
+    statusCode: httpStatus.OK,
+    message: "Shipping charges retrieved successfully",
     data: result,
   });
 });
@@ -26,7 +26,7 @@ const createShippingCharge = catchAsync(async (req: Request, res: Response) => {
   });
   successResponse<TShippingCharge>(res, {
     statusCode: httpStatus.CREATED,
-    message: "Updated shipping charge successfully",
+    message: "Created shipping charge successfully",
     data: result,
   });
 });
@@ -38,8 +38,8 @@ const updateShippingCharge = catchAsync(async (req: Request, res: Response) => {
     req.user as unknown as TJwtPayload
   );
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
-    message: "Updated shipping charge successfully",
+    statusCode: httpStatus.OK,
+    message: "Shipping charge updated successfully",
     data: result,
   });
 });
