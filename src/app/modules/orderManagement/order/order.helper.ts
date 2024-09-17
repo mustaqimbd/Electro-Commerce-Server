@@ -84,6 +84,9 @@ const sanitizeOrderedProducts = async (
       ])
     )[0];
 
+    if (!product)
+      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to find product.");
+
     const findVariation = product?.variations?.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (variation: any) =>
@@ -274,7 +277,7 @@ const findOrderForUpdatingOrder = async (
   return order;
 };
 
-const orderDetailsPipeline: PipelineStage[] = [
+const orderDetailsPipeline = (): PipelineStage[] => [
   {
     $lookup: {
       from: "shippings",
@@ -430,6 +433,25 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
+    $lookup: {
+      from: "warranties",
+      localField: "productDetails.warranty",
+      foreignField: "_id",
+      as: "warranty",
+    },
+  },
+  {
+    $addFields: {
+      warranty: {
+        $cond: {
+          if: { $eq: [{ $size: "$warranty" }, 0] },
+          then: null,
+          else: { $arrayElemAt: ["$warranty", 0] },
+        },
+      },
+    },
+  },
+  {
     $addFields: {
       product: {
         $cond: {
@@ -450,6 +472,15 @@ const orderDetailsPipeline: PipelineStage[] = [
             claimedCodes: "$productDetails.claimedCodes",
             quantity: "$productDetails.quantity",
             total: "$productDetails.total",
+            warranty: {
+              _id: "$warranty._id",
+              warrantyCodes: "$warranty.warrantyCodes",
+              duration: "$warranty.duration",
+              startDate: "$warranty.startDate",
+              endsDate: "$warranty.endsDate",
+              createdAt: "$warranty.createdAt",
+            },
+            isProductWarrantyAvailable: "$productInfo.warranty",
             variation: {
               $cond: {
                 if: {

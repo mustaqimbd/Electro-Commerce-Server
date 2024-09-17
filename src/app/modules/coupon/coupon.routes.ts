@@ -16,7 +16,14 @@ route.post(
   CouponController.createCoupon
 );
 
-route.get("/", CouponController.getAllCoupons);
+route.get(
+  "/",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage coupon",
+  }),
+  CouponController.getAllCoupons
+);
 
 route.patch(
   "/:id",

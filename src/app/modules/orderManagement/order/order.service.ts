@@ -19,6 +19,7 @@ import { TShipping } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
+import { orderStatusWithDesc } from "./order.const";
 import { OrderHelper } from "./order.helper";
 import { TOrder, TOrderStatus, TProductDetails } from "./order.interface";
 import { Order } from "./order.model";
@@ -108,7 +109,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     };
   }
 
-  const pipeline = OrderHelper.orderDetailsPipeline;
+  const pipeline = OrderHelper.orderDetailsPipeline();
   pipeline.unshift({
     $match: matchQuery,
   });
@@ -209,7 +210,7 @@ const getProcessingOrdersAdminFromDB = async (
     );
   }
 
-  const pipeline = OrderHelper.orderDetailsPipeline;
+  const pipeline = OrderHelper.orderDetailsPipeline();
 
   pipeline.unshift({
     $match: matchQuery,
@@ -297,7 +298,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     );
   }
 
-  const pipeline = OrderHelper.orderDetailsPipeline;
+  const pipeline = OrderHelper.orderDetailsPipeline();
 
   pipeline.unshift({
     $match: matchQuery,
@@ -363,7 +364,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
 const getOrderInfoByOrderIdAdminFromDB = async (
   id: mongoose.Types.ObjectId
 ): Promise<TOrder | null> => {
-  const pipeline: PipelineStage[] = OrderHelper.orderDetailsPipeline;
+  const pipeline: PipelineStage[] = OrderHelper.orderDetailsPipeline();
   pipeline.unshift({ $match: { _id: new mongoose.Types.ObjectId(id) } });
 
   const result = (await Order.aggregate(pipeline))[0];
@@ -1320,7 +1321,10 @@ const getOrderTrackingInfo = async (orderId: string) => {
       },
     },
     {
-      $unwind: "$courierDetailsData",
+      $unwind: {
+        path: "$courierDetailsData",
+        preserveNullAndEmptyArrays: true,
+      },
     },
     {
       $project: {
@@ -1332,8 +1336,6 @@ const getOrderTrackingInfo = async (orderId: string) => {
             in: {
               status: "$$history.status",
               createdAt: "$$history.createdAt",
-              updatedAt: "$$history.updatedAt",
-              // Add other fields you want to keep here
             },
           },
         },
@@ -1364,7 +1366,20 @@ const getOrderTrackingInfo = async (orderId: string) => {
     },
   ];
 
-  const result = await Order.aggregate(pipeline);
+  const result = (await Order.aggregate(pipeline))[0];
+  const updatedStatusHistory = result.statusHistory.map(
+    ({ status, createdAt }: { status: TOrderStatus; createdAt: string }) => {
+      const currentStatusDesc = orderStatusWithDesc.find(
+        (item) => item.status === status
+      );
+      return {
+        status,
+        description: currentStatusDesc?.description,
+        createdAt,
+      };
+    }
+  );
+  result.statusHistory = updatedStatusHistory;
   return result;
 };
 

@@ -184,6 +184,7 @@ export const createNewOrder = async (
     : "pending";
   const user = payload?.user as TOptionalAuthGuardPayload;
   const userQuery = optionalAuthUserQuery(user);
+  userQuery.userId = new Types.ObjectId(userQuery.userId);
 
   let singleOrder: { product: string; quantity: number } = {
     product: "",
@@ -424,7 +425,7 @@ export const createNewOrder = async (
     ];
 
     const cart = await CartItem.aggregate(pipeline);
-    if (!cart) {
+    if (!cart.length) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
     }
     orderedProductInfo = cart;
