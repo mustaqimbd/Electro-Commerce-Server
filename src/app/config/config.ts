@@ -50,4 +50,9 @@ export default {
     smtp_user: env.GOOGLE_SMTP_USER,
     smtp_pass: env.GOOGLE_SMTP_PASS,
   },
+  fullName: env.FULL_NAME,
+  phoneNumber: env.PHONE_NUMBER,
+  email: env.EMAIL,
+  password: env.PASSWORD,
+  fullAddress: env.FULL_ADDRESS,
 };

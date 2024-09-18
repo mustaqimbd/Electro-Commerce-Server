@@ -15,7 +15,6 @@ const AdminSchema = new Schema<TAdmin>(
     },
     emergencyContact: {
       type: String,
-      required: true,
     },
     NIDNo: {
       type: String,
