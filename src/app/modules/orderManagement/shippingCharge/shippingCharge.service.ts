@@ -12,19 +12,21 @@ import { ShippingCharge } from "./shippingCharge.model";
 const getShippingCharges = async (
   user: TOptionalAuthGuardPayload
 ): Promise<TShippingCharge[]> => {
+  const permittedFields: Record<string, number> = {
+    name: 1,
+    description: 1,
+    amount: 1,
+  };
+  const query: Record<string, boolean> = { isDeleted: false };
   if (["admin", "staff"].includes(user.role || "")) {
-    const result = await ShippingCharge.find(
-      { isDeleted: false },
-      { name: 1, description: 1, amount: 1, isActive: 1, createdAt: 1 }
-    );
-    return result;
+    permittedFields.isActive = 1;
+    permittedFields.createdAt = 1;
   } else {
-    const result = await ShippingCharge.find(
-      { isDeleted: false },
-      { name: 1, amount: 1, description: 1 }
-    );
-    return result;
+    query.isActive = true;
   }
+
+  const result = await ShippingCharge.find(query, permittedFields);
+  return result;
 };
 
 const createShippingChargeIntoDB = async (
@@ -55,6 +57,7 @@ const updateShippingChangeIntoDB = async (
       // Mark previous data as deleted
       previousData.name = `${previousData.name} - ${previousData.amount}`;
       previousData.isDeleted = true;
+      previousData.isActive = false;
       await previousData.save({ session });
 
       // Create a new document for the updated shipping charge
