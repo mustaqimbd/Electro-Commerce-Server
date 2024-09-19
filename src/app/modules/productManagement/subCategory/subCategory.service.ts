@@ -1,10 +1,10 @@
-import { Types } from "mongoose";
-import { SubCategoryModel } from "./subCategory.model";
-import { TSubCategory } from "./subCategory.interface";
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
-import { CategoryModel } from "../category/category.model";
 import { ImageModel } from "../../image/image.model";
+import { CategoryModel } from "../category/category.model";
+import { TSubCategory } from "./subCategory.interface";
+import { SubCategoryModel } from "./subCategory.model";
 
 const createSubCategoryIntoDB = async (
   createdBy: Types.ObjectId,
@@ -95,9 +95,22 @@ const deleteSubCategoryFromDB = async (
   return result;
 };
 
+const getSubCategoriesByCatgeoryFromDB = async (categoryId: string) => {
+  const result = await SubCategoryModel.find({
+    category: categoryId,
+    isDeleted: false,
+  }).populate({
+    path: "image",
+    select: "_id src alt uploadedBy isDeleted createdAt updatedAt",
+  });
+
+  return result;
+};
+
 export const SubCategoryServices = {
   createSubCategoryIntoDB,
   getAllSubCategoriesFromDB,
   updateSubCategoryIntoDB,
   deleteSubCategoryFromDB,
+  getSubCategoriesByCatgeoryFromDB,
 };
