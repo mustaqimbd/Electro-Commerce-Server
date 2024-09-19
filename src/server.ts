@@ -13,7 +13,6 @@ import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import config from "./app/config/config";
-import { setUp } from "./app/helper/setup";
 import seedSuperAdmin from "./app/utilities/seedSuperAdmin";
 
 let server: Server;
@@ -28,10 +27,6 @@ const bootstrap = async () => {
       );
     });
     await seedSuperAdmin();
-    if (config.env === "setup") {
-      await setUp();
-      consoleLogger.info("Setup is successful.");
-    }
   } catch (error) {
     errorLogger.error(`❌ Can't connect to Database.`, error);
   }
