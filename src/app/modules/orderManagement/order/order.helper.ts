@@ -93,7 +93,7 @@ const sanitizeOrderedProducts = async (
         variation._id.toString() === item?.variation?.toString()
     )[0];
 
-    if (product.variations) {
+    if (product.variations.length) {
       if (!item.variation) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
