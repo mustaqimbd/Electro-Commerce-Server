@@ -1,12 +1,12 @@
+import mongoose from "mongoose";
+import config from "../config/config";
+import { Address } from "../modules/userManagement/address/address.model";
+import { Admin } from "../modules/userManagement/admin/admin.model";
+import { permissionEnums } from "../modules/userManagement/permission/permission.const";
+import { Permission } from "../modules/userManagement/permission/permission.model";
 import { User } from "../modules/userManagement/user/user.model";
 import { createAdminOrStaffId } from "../modules/userManagement/user/user.util";
 import { consoleLogger } from "./logger";
-import { Permission } from "../modules/userManagement/permission/permission.model";
-import { Admin } from "../modules/userManagement/admin/admin.model";
-import { Address } from "../modules/userManagement/address/address.model";
-import mongoose from "mongoose";
-import { permissionEnums } from "../modules/userManagement/permission/permission.const";
-import config from "../config/config";
 
 const checkPermission = async (session: mongoose.mongo.ClientSession) => {
   const existingPermission = await Permission.findOne({ name: "super admin" });
@@ -76,7 +76,7 @@ const createSuperAdmin = async () => {
       phoneNumber: config.phoneNumber,
       email: config.email,
       password: config.password,
-      role: "superAdmin",
+      role: "admin",
       admin: admin._id,
       address: address._id,
       permissions: [superAdminPermission._id],
@@ -102,7 +102,7 @@ const createSuperAdmin = async () => {
 const seedSuperAdmin = async () => {
   try {
     // Check if super admin already exists
-    const existingSuperAdmin = await User.findOne({ role: "superAdmin" });
+    const existingSuperAdmin = await User.findOne({ role: "admin" });
     if (!existingSuperAdmin) {
       await createSuperAdmin();
     } else {
