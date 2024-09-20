@@ -1,4 +1,8 @@
 import { Request } from "express";
+import ProductModel from "./product.model";
+import { CronJob } from "cron";
+import PriceModel from "../price/price.model";
+import { InventoryModel } from "../inventory/inventory.model";
 
 const modifiedPriceData = (req: Request) => {
   const { price } = req.body;
@@ -35,5 +39,34 @@ const modifiedPriceData = (req: Request) => {
     };
   }
 };
+
+// Cron job to run every day at midnight
+export const deleteDraftProducts = new CronJob(
+  "0 0 * * *", // Every day at midnight
+  async () => {
+    const currentDate = new Date();
+    // Find products where status is 'Draft' and created more than 30 days ago
+    const draftProducts = await ProductModel.find({
+      "publishedStatus.status": "Draft",
+      createdAt: {
+        $lte: new Date(currentDate.setDate(currentDate.getDate() - 30)),
+      },
+    });
+
+    if (draftProducts.length > 0) {
+      const ids = draftProducts.map((product) => product._id);
+      const priceIds = draftProducts.map((product) => product.price);
+      const inventoryIds = draftProducts.map((product) => product.inventory);
+
+      // Delete the products
+      await ProductModel.deleteMany({ _id: { $in: ids } });
+      await PriceModel.deleteMany({ _id: { $in: priceIds } });
+      await InventoryModel.deleteMany({ _id: { $in: inventoryIds } });
+    }
+  },
+  null, // No onComplete function needed
+  true, // Start the job immediately
+  "Asia/Dhaka" // Change this to your desired timezone
+);
 
 export default modifiedPriceData;

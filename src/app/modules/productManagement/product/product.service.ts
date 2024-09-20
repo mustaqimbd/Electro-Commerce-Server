@@ -157,6 +157,7 @@ const getAProductCustomerFromDB = async (id: string) => {
         title: 1,
         slug: 1,
         description: 1,
+        shortDescription: 1,
         thumbnail: "$thumbnail",
         gallery: "$gallery",
         price: "$price",
@@ -430,20 +431,34 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
 const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   const filterQuery: Record<string, unknown> = {};
 
-  if (query.status && query.status !== "all") {
+  if (
+    (query.status && query.status === publishedStatusQuery.Published) ||
+    query.status === publishedStatusQuery.Draft
+  ) {
     const statusRegex = new RegExp(`\\b${query.status}\\b`, "i");
     filterQuery["publishedStatus.status"] = statusRegex;
   }
+
+  if (
+    (query.status && query.status == visibilityStatusQuery.Public) ||
+    query.status == visibilityStatusQuery.Private
+  ) {
+    const statusRegex = new RegExp(`\\b${query.status}\\b`, "i");
+    filterQuery["publishedStatus.visibility"] = statusRegex;
+  }
+
   if (query.category) {
     filterQuery["category._id"] = new mongoose.Types.ObjectId(
       query.category as string
     );
   }
+
   if (query.subCategory) {
     filterQuery["subcategory._id"] = new mongoose.Types.ObjectId(
       query.subCategory as string
     );
   }
+
   if (query.stock) {
     const stockRegex = new RegExp(`\\b${query.stock}\\b`, "i");
     filterQuery["inventory.stockStatus"] = stockRegex;
@@ -567,6 +582,8 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   // get counts
   const statusMap = {
     all: 0,
+    Public: 0,
+    Private: 0,
     Published: 0,
     Draft: 0,
   };
@@ -575,27 +592,68 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     {
       $match: {
         isDeleted: false,
-        "publishedStatus.status": {
-          $in: Object.keys(statusMap).filter((status) => status !== "all"),
-        },
+        $or: [
+          {
+            "publishedStatus.status": {
+              $in: [publishedStatusQuery.Published, publishedStatusQuery.Draft],
+            },
+          },
+          {
+            "publishedStatus.visibility": {
+              $in: [
+                visibilityStatusQuery.Public,
+                visibilityStatusQuery.Private,
+              ],
+            },
+          },
+        ],
       },
     },
     {
-      $group: {
-        _id: "$publishedStatus.status",
-        total: { $sum: 1 },
+      $facet: {
+        status: [
+          {
+            $group: {
+              _id: "$publishedStatus.status",
+              total: { $sum: 1 },
+            },
+          },
+        ],
+        visibility: [
+          {
+            $group: {
+              _id: "$publishedStatus.visibility",
+              total: { $sum: 1 },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $project: {
+        countsByStatus: {
+          $concatArrays: ["$status", "$visibility"],
+        },
       },
     },
   ];
 
   const result = await ProductModel.aggregate(statusPipeline);
 
-  result.forEach(({ _id, total }) => {
-    if (_id in statusMap) {
-      statusMap[_id as keyof typeof statusMap] = total;
-      statusMap.all += total;
+  result[0]?.countsByStatus?.forEach(
+    ({ _id, total }: { _id: string; total: number }) => {
+      if (_id in statusMap) {
+        statusMap[_id as keyof typeof statusMap] = total;
+      }
+      // Check if _id is "Public" or "Private" and add their totals to statusMap.all
+      if (
+        _id === visibilityStatusQuery.Public ||
+        _id === visibilityStatusQuery.Private
+      ) {
+        statusMap.all += total;
+      }
     }
-  });
+  );
 
   const formattedResult = Object.entries(statusMap).map(([name, total]) => ({
     name,
@@ -871,6 +929,15 @@ const updateProductIntoDB = async (
 
     if (isProductExist.isDeleted) {
       throw new ApiError(httpStatus.BAD_REQUEST, "The Product is deleted!");
+    }
+    if (
+      isProductExist.publishedStatus.status == "Published" &&
+      publishedStatus?.status == "Draft"
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Published product can not be Draft! Make it private to hide it from customers."
+      );
     }
 
     if (price && Object.keys(price).length) {
