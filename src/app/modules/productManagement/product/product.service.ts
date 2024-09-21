@@ -11,6 +11,10 @@ import { TProduct } from "./product.interface";
 import ProductModel from "./product.model";
 import { AggregateQueryHelperFacet } from "../../../helper/query.helper";
 import { Order } from "../../orderManagement/order/order.model";
+import {
+  commonPipelineMultipleProduct,
+  commonPipelineSingleProduct,
+} from "./product.utils";
 
 const createProductIntoDB = async (
   createdBy: Types.ObjectId,
@@ -60,160 +64,7 @@ const getAProductCustomerFromDB = async (id: string) => {
         "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
-    {
-      $lookup: {
-        from: "images",
-        localField: "image.thumbnail",
-        foreignField: "_id",
-        as: "thumbnail",
-        pipeline: [{ $project: { src: 1, alt: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "image.gallery",
-        foreignField: "_id",
-        as: "gallery",
-        pipeline: [{ $project: { src: 1, alt: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "prices",
-        localField: "price",
-        foreignField: "_id",
-        as: "price",
-        pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "inventories",
-        localField: "inventory",
-        foreignField: "_id",
-        as: "inventory",
-        pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "categories",
-        localField: "category.name",
-        foreignField: "_id",
-        as: "myCategory",
-        // pipeline: [{ $project: { name: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "subcategories",
-        localField: "category.subCategory",
-        foreignField: "_id",
-        as: "subCategory",
-        pipeline: [{ $project: { _id: 1, name: 1, slug: 1 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "attributes",
-        localField: "attributes.name",
-        foreignField: "_id",
-        as: "myAttributes",
-        pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
-      },
-    },
-    {
-      $lookup: {
-        from: "brands",
-        localField: "brand",
-        foreignField: "_id",
-        as: "brand",
-        pipeline: [{ $project: { name: 1, slug: 1 } }],
-      },
-    },
-    {
-      $unwind: "$thumbnail",
-    },
-    {
-      $unwind: "$price",
-    },
-    {
-      $unwind: "$inventory",
-    },
-    {
-      $unwind: "$myCategory",
-    },
-    {
-      $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true },
-    },
-    {
-      $unwind: { path: "$brand", preserveNullAndEmptyArrays: true },
-    },
-    {
-      $project: {
-        _id: 1,
-        id: 1,
-        title: 1,
-        slug: 1,
-        description: 1,
-        shortDescription: 1,
-        thumbnail: "$thumbnail",
-        gallery: "$gallery",
-        price: "$price",
-        inventory: "$inventory",
-        category: {
-          _id: "$myCategory._id",
-          name: "$myCategory.name",
-          slug: "$myCategory.slug",
-          subCategory: "$subCategory",
-        },
-        attributes: {
-          $map: {
-            input: "$myAttributes",
-            as: "a",
-            in: {
-              _id: "$$a._id",
-              name: "$$a.name",
-              values: {
-                $filter: {
-                  input: "$$a.values",
-                  as: "value",
-                  cond: {
-                    $in: [
-                      "$$value._id",
-                      {
-                        $arrayElemAt: [
-                          {
-                            $map: {
-                              input: {
-                                $filter: {
-                                  input: "$attributes",
-                                  as: "s",
-                                  cond: { $eq: ["$$s.name", "$$a._id"] },
-                                },
-                              },
-                              as: "sa",
-                              in: "$$sa.values",
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-            },
-          },
-        },
-        variations: 1,
-        brand: "$brand",
-        warranty: 1,
-        warrantyInfo: 1,
-        publishedStatus: 1,
-      },
-    },
+    ...commonPipelineSingleProduct(),
   ];
 
   const result = await ProductModel.aggregate(pipeline);
@@ -225,28 +76,23 @@ const getAProductCustomerFromDB = async (id: string) => {
 };
 
 const getAProductAdminFromDB = async (id: string) => {
-  const result = await ProductModel.findOne({
-    _id: id,
-  }).populate([
-    { path: "image.thumbnail", select: "src alt" },
-    { path: "image.gallery", select: "src alt" },
-    { path: "price", select: "-createdAt -updatedAt" },
-    { path: "inventory", select: "-createdAt -updatedAt" },
-    { path: "category.name", select: "name" },
-    { path: "category.subCategory", select: "name" },
-    { path: "attributes.name", select: "name" },
-    // { path: "seoData", select: "-createdAt -updatedAt" },
-    { path: "brand", select: "name" },
-    // { path: "tag", select: "name" },
-  ]);
+  const pipeline = [
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(id),
+        isDeleted: false,
+      },
+    },
+    ...commonPipelineSingleProduct(),
+  ];
+
+  const result = await ProductModel.aggregate(pipeline);
+
   if (!result) {
     throw new ApiError(httpStatus.BAD_REQUEST, "The product was not found!");
   }
-  if (result.isDeleted) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "The product is deleted!");
-  }
 
-  return result;
+  return result[0];
 };
 
 const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
@@ -283,72 +129,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
         "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
-    {
-      $lookup: {
-        from: "prices",
-        localField: "price",
-        foreignField: "_id",
-        as: "price",
-      },
-    },
-    {
-      $unwind: "$price",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "image.thumbnail",
-        foreignField: "_id",
-        as: "thumbnail",
-      },
-    },
-    {
-      $unwind: "$thumbnail",
-    },
-    {
-      $lookup: {
-        from: "inventories",
-        localField: "inventory",
-        foreignField: "_id",
-        as: "inventory",
-      },
-    },
-    {
-      $unwind: "$inventory",
-    },
-    {
-      $lookup: {
-        from: "subcategories",
-        localField: "category.subCategory",
-        foreignField: "_id",
-        as: "subcategory",
-      },
-    },
-    {
-      $lookup: {
-        from: "categories",
-        localField: "category.name",
-        foreignField: "_id",
-        as: "category",
-      },
-    },
-    { $unwind: "$category" },
-    {
-      $lookup: {
-        from: "brands",
-        localField: "brand",
-        foreignField: "_id",
-        as: "brand",
-      },
-    },
-    // {
-    //   $lookup: {
-    //     from: "reviews",
-    //     localField: "_id",
-    //     foreignField: "product",
-    //     as: "review",
-    //   },
-    // },
+    ...commonPipelineMultipleProduct,
     { $match: filterQuery },
     {
       $facet: {
@@ -466,64 +247,7 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
 
   const pipeline = [
     { $match: { isDeleted: false } },
-    {
-      $lookup: {
-        from: "prices",
-        localField: "price",
-        foreignField: "_id",
-        as: "price",
-      },
-    },
-    {
-      $unwind: "$price",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "image.thumbnail",
-        foreignField: "_id",
-        as: "thumbnail",
-      },
-    },
-    {
-      $unwind: "$thumbnail",
-    },
-    {
-      $lookup: {
-        from: "inventories",
-        localField: "inventory",
-        foreignField: "_id",
-        as: "inventory",
-      },
-    },
-    {
-      $unwind: "$inventory",
-    },
-    {
-      $lookup: {
-        from: "subcategories",
-        localField: "category.subCategory",
-        foreignField: "_id",
-        as: "subcategory",
-      },
-    },
-    {
-      $lookup: {
-        from: "categories",
-        localField: "category.name",
-        foreignField: "_id",
-        as: "category",
-      },
-    },
-    { $unwind: "$category" },
-    // {
-    //   $lookup: {
-    //     from: "reviews",
-    //     localField: "_id",
-    //     foreignField: "product",
-    //     as: "review",
-    //   },
-    // },
+    ...commonPipelineMultipleProduct,
     { $match: filterQuery },
     {
       $facet: {
@@ -692,57 +416,7 @@ const getFeaturedProductsFromDB = async (query: Record<string, unknown>) => {
         "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
-    {
-      $lookup: {
-        from: "prices",
-        localField: "price",
-        foreignField: "_id",
-        as: "price",
-      },
-    },
-    {
-      $unwind: "$price",
-    },
-    {
-      $lookup: {
-        from: "images",
-        localField: "image.thumbnail",
-        foreignField: "_id",
-        as: "thumbnail",
-      },
-    },
-    {
-      $unwind: "$thumbnail",
-    },
-    {
-      $lookup: {
-        from: "categories",
-        localField: "category.name",
-        foreignField: "_id",
-        as: "category",
-      },
-    },
-    { $unwind: "$category" },
-    {
-      $lookup: {
-        from: "inventories",
-        localField: "inventory",
-        foreignField: "_id",
-        as: "inventory",
-      },
-    },
-    {
-      $unwind: "$inventory",
-    },
-    // {
-    //   $lookup: {
-    //     from: "reviews",
-    //     localField: "_id",
-    //     foreignField: "product",
-    //     as: "review",
-    //   },
-    // },
-    // Project specific fields
+    ...commonPipelineMultipleProduct,
     {
       $project: {
         _id: 1,

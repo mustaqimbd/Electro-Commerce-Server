@@ -40,6 +40,8 @@ const modifiedPriceData = (req: Request) => {
   }
 };
 
+export default modifiedPriceData;
+
 // Cron job to run every day at midnight
 export const deleteDraftProducts = new CronJob(
   "0 0 * * *", // Every day at midnight
@@ -69,4 +71,228 @@ export const deleteDraftProducts = new CronJob(
   "Asia/Dhaka" // Change this to your desired timezone
 );
 
-export default modifiedPriceData;
+export const commonPipelineSingleProduct = () => [
+  {
+    $lookup: {
+      from: "images",
+      localField: "image.thumbnail",
+      foreignField: "_id",
+      as: "thumbnail",
+      pipeline: [{ $project: { src: 1, alt: 1 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "images",
+      localField: "image.gallery",
+      foreignField: "_id",
+      as: "gallery",
+      pipeline: [{ $project: { src: 1, alt: 1 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "prices",
+      localField: "price",
+      foreignField: "_id",
+      as: "price",
+      pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "inventories",
+      localField: "inventory",
+      foreignField: "_id",
+      as: "inventory",
+      pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "categories",
+      localField: "category.name",
+      foreignField: "_id",
+      as: "myCategory",
+      // pipeline: [{ $project: { name: 1 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "subcategories",
+      localField: "category.subCategory",
+      foreignField: "_id",
+      as: "subCategory",
+      pipeline: [{ $project: { _id: 1, name: 1, slug: 1 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "attributes",
+      localField: "attributes.name",
+      foreignField: "_id",
+      as: "myAttributes",
+      pipeline: [{ $project: { createdAt: 0, updatedAt: 0 } }],
+    },
+  },
+  {
+    $lookup: {
+      from: "brands",
+      localField: "brand",
+      foreignField: "_id",
+      as: "brand",
+      pipeline: [{ $project: { name: 1, slug: 1 } }],
+    },
+  },
+  {
+    $unwind: "$thumbnail",
+  },
+  {
+    $unwind: "$price",
+  },
+  {
+    $unwind: "$inventory",
+  },
+  {
+    $unwind: "$myCategory",
+  },
+  {
+    $unwind: { path: "$subCategory", preserveNullAndEmptyArrays: true },
+  },
+  {
+    $unwind: { path: "$brand", preserveNullAndEmptyArrays: true },
+  },
+  {
+    $project: {
+      _id: 1,
+      id: 1,
+      title: 1,
+      slug: 1,
+      description: 1,
+      shortDescription: 1,
+      thumbnail: "$thumbnail",
+      gallery: "$gallery",
+      price: "$price",
+      inventory: "$inventory",
+      category: {
+        _id: "$myCategory._id",
+        name: "$myCategory.name",
+        slug: "$myCategory.slug",
+        subCategory: "$subCategory",
+      },
+      attributes: {
+        $map: {
+          input: "$myAttributes",
+          as: "a",
+          in: {
+            _id: "$$a._id",
+            name: "$$a.name",
+            values: {
+              $filter: {
+                input: "$$a.values",
+                as: "value",
+                cond: {
+                  $in: [
+                    "$$value._id",
+                    {
+                      $arrayElemAt: [
+                        {
+                          $map: {
+                            input: {
+                              $filter: {
+                                input: "$attributes",
+                                as: "s",
+                                cond: { $eq: ["$$s.name", "$$a._id"] },
+                              },
+                            },
+                            as: "sa",
+                            in: "$$sa.values",
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      variations: 1,
+      brand: "$brand",
+      warranty: 1,
+      warrantyInfo: 1,
+      publishedStatus: 1,
+    },
+  },
+];
+
+export const commonPipelineMultipleProduct = [
+  {
+    $lookup: {
+      from: "prices",
+      localField: "price",
+      foreignField: "_id",
+      as: "price",
+    },
+  },
+  {
+    $unwind: "$price",
+  },
+  {
+    $lookup: {
+      from: "images",
+      localField: "image.thumbnail",
+      foreignField: "_id",
+      as: "thumbnail",
+    },
+  },
+  {
+    $unwind: "$thumbnail",
+  },
+  {
+    $lookup: {
+      from: "inventories",
+      localField: "inventory",
+      foreignField: "_id",
+      as: "inventory",
+    },
+  },
+  {
+    $unwind: "$inventory",
+  },
+  {
+    $lookup: {
+      from: "subcategories",
+      localField: "category.subCategory",
+      foreignField: "_id",
+      as: "subcategory",
+    },
+  },
+  {
+    $lookup: {
+      from: "categories",
+      localField: "category.name",
+      foreignField: "_id",
+      as: "category",
+    },
+  },
+  { $unwind: "$category" },
+  {
+    $lookup: {
+      from: "brands",
+      localField: "brand",
+      foreignField: "_id",
+      as: "brand",
+    },
+  },
+  // {
+  //   $lookup: {
+  //     from: "reviews",
+  //     localField: "_id",
+  //     foreignField: "product",
+  //     as: "review",
+  //   },
+  // },
+];
