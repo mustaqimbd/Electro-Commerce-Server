@@ -90,10 +90,10 @@ const sanitizeOrderedProducts = async (
     const findVariation = product?.variations?.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (variation: any) =>
-        variation._id.toString() === item?.variation?.toString()
+        variation?._id?.toString() === item?.variation?.toString()
     )[0];
 
-    if (product.variations.length) {
+    if (product?.variations?.length) {
       if (!item.variation) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -122,7 +122,7 @@ const sanitizeOrderedProducts = async (
       },
       quantity: item.quantity,
       variation: item?.variation
-        ? new Types.ObjectId(String(item.variation))
+        ? new Types.ObjectId(String(item?.variation))
         : undefined,
       isWarrantyClaim: !!item?.claimedCodes?.length,
       claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
