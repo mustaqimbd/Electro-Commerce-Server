@@ -1,4 +1,5 @@
 import {
+  TOrderDeliveryStatus,
   TOrderSourceName,
   TOrderStatus,
   TOrderStatusWithDesc,
@@ -122,4 +123,18 @@ export const orderStatusWithDesc: TOrderStatusWithDesc[] = [
       en: "Your order has been deleted.",
     },
   },
+];
+
+export const orderDeliveryStatus: TOrderDeliveryStatus[] = [
+  "pending",
+  "delivered_approval_pending",
+  "partial_delivered_approval_pending",
+  "cancelled_approval_pending",
+  "unknown_approval_pending",
+  "delivered",
+  "partial_delivered",
+  "cancelled",
+  "hold",
+  "in_review",
+  "unknown",
 ];

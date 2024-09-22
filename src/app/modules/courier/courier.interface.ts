@@ -5,6 +5,7 @@ export type TCourierCredentials = [string, string];
 
 export type TCourierData = {
   name: string;
+  slug: string;
   image: mongoose.Types.ObjectId | TImage;
   website?: string;
   credentials: TCourierCredentials[];

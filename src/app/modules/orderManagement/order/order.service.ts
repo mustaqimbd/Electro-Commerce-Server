@@ -21,7 +21,12 @@ import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { orderStatusWithDesc } from "./order.const";
 import { OrderHelper } from "./order.helper";
-import { TOrder, TOrderStatus, TProductDetails } from "./order.interface";
+import {
+  TOrder,
+  TOrderDeliveryStatus,
+  TOrderStatus,
+  TProductDetails,
+} from "./order.interface";
 import { Order } from "./order.model";
 import {
   createNewOrder,
@@ -343,6 +348,107 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
     {
       $group: {
         _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  countRes.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+  });
+  const formattedCount = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
+
+  return { countsByStatus: formattedCount, meta, data };
+};
+
+/* -----------------------------------------
+        Get delivery details
+----------------------------------------- */
+const getOrdersByDeliveryStatusFromDB = async (
+  query: Record<string, string>
+) => {
+  const matchQuery: Record<string, unknown> = {};
+  const acceptableStatus: TOrderDeliveryStatus[] = [
+    "pending",
+    "delivered_approval_pending",
+    "partial_delivered_approval_pending",
+    "cancelled_approval_pending",
+    "unknown_approval_pending",
+    "partial_delivered",
+    "cancelled",
+    "hold",
+    "in_review",
+    "unknown",
+  ];
+
+  if (query.deliveryStatus) {
+    matchQuery.deliveryStatus = query?.deliveryStatus as string;
+  }
+
+  if (
+    (!query.deliveryStatus || query.deliveryStatus === "all") &&
+    !query.search
+  ) {
+    matchQuery.deliveryStatus = {
+      $in: acceptableStatus,
+    };
+  }
+
+  const pipeline = OrderHelper.orderDetailsPipeline();
+
+  pipeline.unshift({
+    $match: { ...matchQuery, status: "On courier" },
+  });
+
+  if (query.search) {
+    pipeline.push({
+      $match: {
+        $expr: {
+          $or: [
+            { $eq: ["$shipping.phoneNumber", query.search] },
+            { $eq: ["$orderId", query.search] },
+          ],
+        },
+      },
+    });
+  }
+
+  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
+    .sort()
+    .paginate();
+
+  const data = await orderQuery.model;
+  const total =
+    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
+      ?.total || 0;
+  const meta = orderQuery.metaData(total);
+
+  // Orders counts
+  const statusMap = {
+    pending: 0,
+    delivered_approval_pending: 0,
+    partial_delivered_approval_pending: 0,
+    cancelled_approval_pending: 0,
+    unknown_approval_pending: 0,
+    partial_delivered: 0,
+    cancelled: 0,
+    hold: 0,
+    in_review: 0,
+    unknown: 0,
+  };
+  const countRes = await Order.aggregate([
+    {
+      $match: {
+        deliveryStatus: {
+          $in: Object.keys(statusMap),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$deliveryStatus",
         total: { $sum: 1 },
       },
     },
@@ -693,6 +799,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
 
     const courier = await Courier.findById(courierProvider, {
       name: 1,
+      slug: 1,
       credentials: 1,
       isActive: 1,
     });
@@ -708,7 +815,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
     // courier booking request
     //Steed fast
     if (status === "On courier") {
-      if (courier.name === "steedfast") {
+      if (courier.slug === "steedfast") {
         const { success: successRequests, error: failedRequests } =
           await createOrderOnSteedFast(orders, courier);
 
@@ -1346,7 +1453,7 @@ const getOrderTrackingInfo = async (orderId: string) => {
         },
         parcelTrackingLink: {
           $cond: {
-            if: { $eq: ["$courierDetailsData.name", "steedfast"] },
+            if: { $eq: ["$courierDetailsData.slug", "steedfast"] },
             then: {
               $concat: [
                 "https://steadfast.com.bd/t/",
@@ -1355,7 +1462,7 @@ const getOrderTrackingInfo = async (orderId: string) => {
             },
             else: {
               $cond: {
-                if: { $eq: ["$courierDetailsData.name", "pathao"] },
+                if: { $eq: ["$courierDetailsData.slug", "pathao"] },
                 then: "c2",
                 else: null, // Default value if none of the conditions match
               },
@@ -1400,4 +1507,5 @@ export const OrderServices = {
   getProcessingDoneCourierOrdersAdminFromDB,
   getCustomersOrdersCountByPhoneFromDB,
   getOrderTrackingInfo,
+  getOrdersByDeliveryStatusFromDB,
 };
