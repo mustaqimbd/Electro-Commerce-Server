@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
-import { TOptionalAuthGuardPayload } from "../../../types/common";
 import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
@@ -8,16 +7,25 @@ import { TShippingCharge } from "./shippingCharge.interface";
 import { ShippingChargeService } from "./shippingCharge.service";
 
 const getShippingCharges = catchAsync(async (req: Request, res: Response) => {
-  const { user } = req;
-  const result = await ShippingChargeService.getShippingCharges(
-    user as TOptionalAuthGuardPayload
-  );
+  const result = await ShippingChargeService.getShippingCharges();
   successResponse<TShippingCharge[]>(res, {
     statusCode: httpStatus.OK,
     message: "Shipping charges retrieved successfully",
     data: result,
   });
 });
+
+const getShippingChargesAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const result =
+      await ShippingChargeService.getShippingChargesForAdminFromDB();
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Shipping charges retrieved successfully",
+      data: result,
+    });
+  }
+);
 
 const createShippingCharge = catchAsync(async (req: Request, res: Response) => {
   const result = await ShippingChargeService.createShippingChargeIntoDB({
@@ -48,4 +56,5 @@ export const ShippingChargeController = {
   getShippingCharges,
   createShippingCharge,
   updateShippingCharge,
+  getShippingChargesAdmin,
 };
