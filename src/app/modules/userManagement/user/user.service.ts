@@ -31,10 +31,11 @@ const getAllAdminAndStaffFromDB = async (
   query: Record<string, string>,
   user: TJwtPayload
 ) => {
-  const matchQuery = {
+  const matchQuery: Record<string, unknown> = {
     role: { $in: ["admin", "staff"] },
     status: { $ne: "deleted" },
   };
+
   const fields = [
     "fullName",
     "emergencyContact",
@@ -118,6 +119,18 @@ const getAllAdminAndStaffFromDB = async (
       },
     },
   ];
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // Partial case-insensitive match
+    pipeline.push({
+      $match: {
+        $or: [
+          { fullName: { $regex: searchRegex } }, // Match name with partial search
+          { uid: { $regex: searchRegex } }, // Match userId with partial search
+        ],
+      },
+    });
+  }
 
   if (isSuperAdmin) {
     pipeline.splice(4, 0, {
