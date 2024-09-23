@@ -324,6 +324,26 @@ const orderDetailsPipeline = (): PipelineStage[] => [
   },
   {
     $lookup: {
+      from: "couriers",
+      localField: "courierDetails.courierProvider",
+      foreignField: "_id",
+      as: "courierData",
+    },
+  },
+  {
+    $unwind: "$courierData",
+  },
+  {
+    $lookup: {
+      from: "images",
+      localField: "courierData.image",
+      foreignField: "_id",
+      as: "courierImage",
+    },
+  },
+  { $unwind: "$courierImage" },
+  {
+    $lookup: {
       from: "images",
       localField: "paymentMethod.image",
       foreignField: "_id",
@@ -375,6 +395,16 @@ const orderDetailsPipeline = (): PipelineStage[] => [
         phoneNumber: "$payment.phoneNumber",
         transactionId: "$payment.transactionId",
       },
+      courier: {
+        name: "$courierData.name",
+        slug: "$courierData.slug",
+        image: {
+          src: {
+            $concat: [config.image_server, "/", "$courierImage.src"],
+          },
+          alt: "$courierImage.alt",
+        },
+      },
       statusHistory: {
         refunded: "$statusHistory.refunded",
         history: "$statusHistory.history",
@@ -386,6 +416,8 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       followUpDate: 1,
       orderSource: 1,
       productDetails: 1,
+      deliveryStatus: 1,
+      reasonNotes: 1,
       createdAt: 1,
     },
   },
@@ -521,12 +553,15 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       discount: { $first: "$discount" },
       advance: { $first: "$advance" },
       status: { $first: "$status" },
+      deliveryStatus: { $first: "$deliveryStatus" },
       shipping: { $first: "$shipping" },
       payment: { $first: "$payment" },
+      courier: { $first: "$courier" },
       shippingCharge: { $first: "$shippingCharge" },
       officialNotes: { $first: "$officialNotes" },
       invoiceNotes: { $first: "$invoiceNotes" },
       courierNotes: { $first: "$courierNotes" },
+      reasonNotes: { $first: "$reasonNotes" },
       orderNotes: { $first: "$orderNotes" },
       followUpDate: { $first: "$followUpDate" },
       orderSource: { $first: "$orderSource" },
@@ -558,7 +593,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
 
 const orderStatusUpdatingPipeline = (
   orderIds: Types.ObjectId[],
-  changableStatus: Partial<TOrderStatus[]>
+  changeableStatus: Partial<TOrderStatus[]>
 ) =>
   [
     {
@@ -566,7 +601,7 @@ const orderStatusUpdatingPipeline = (
         _id: {
           $in: orderIds.map((item) => new Types.ObjectId(item)),
         },
-        status: { $in: changableStatus },
+        status: { $in: changeableStatus },
       },
     },
     {

@@ -8,6 +8,11 @@ const CourierSchema = new Schema<TCourier>(
       required: true,
       unique: true,
     },
+    slug: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     image: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
