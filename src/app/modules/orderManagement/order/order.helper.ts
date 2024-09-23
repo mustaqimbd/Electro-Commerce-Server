@@ -287,7 +287,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$shippingData",
+    $unwind: { path: "$shippingData", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -298,7 +298,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$shippingCharge",
+    $unwind: { path: "$shippingCharge", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -309,7 +309,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$payment",
+    $unwind: { path: "$payment", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -320,7 +320,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$paymentMethod",
+    $unwind: { path: "$paymentMethod", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -331,7 +331,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$courierData",
+    $unwind: { path: "$courierData", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -341,7 +341,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       as: "courierImage",
     },
   },
-  { $unwind: "$courierImage" },
+  { $unwind: { path: "$courierImage", preserveNullAndEmptyArrays: true } },
   {
     $lookup: {
       from: "images",
@@ -351,7 +351,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$paymentMethodImage",
+    $unwind: { path: "$paymentMethodImage", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -362,7 +362,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
     },
   },
   {
-    $unwind: "$statusHistory",
+    $unwind: { path: "$statusHistory", preserveNullAndEmptyArrays: true },
   },
   {
     $project: {
