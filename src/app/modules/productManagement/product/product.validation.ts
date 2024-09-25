@@ -62,7 +62,7 @@ const product = z.object({
       // type: z.string().optional(),
       // slug: z.string().optional(),
       description: z.string().trim().optional(),
-      // shortDescription: z.string().optional(),
+      shortDescription: z.string().optional(),
       // downloadable: z.boolean().optional(),
       // review: z.boolean().optional(),
       image: ProductImageValidation.productImage,

@@ -67,6 +67,16 @@ router.get(
   OrderController.getProcessingDoneCourierOrdersAdmin
 );
 
+router.get(
+  "/admin/order-deliver-status",
+  validateRequest(OrderValidation.getOrdersAdmin),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage courier",
+  }),
+  OrderController.getOrdersByDeliveryStatus
+);
+
 router.patch(
   "/update-status",
   authGuard({

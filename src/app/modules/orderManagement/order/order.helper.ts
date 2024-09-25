@@ -84,13 +84,16 @@ const sanitizeOrderedProducts = async (
       ])
     )[0];
 
+    if (!product)
+      throw new ApiError(httpStatus.BAD_REQUEST, "Failed to find product.");
+
     const findVariation = product?.variations?.filter(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (variation: any) =>
-        variation._id.toString() === item?.variation?.toString()
+        variation?._id?.toString() === item?.variation?.toString()
     )[0];
 
-    if (product.variations) {
+    if (product?.variations?.length) {
       if (!item.variation) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -119,7 +122,7 @@ const sanitizeOrderedProducts = async (
       },
       quantity: item.quantity,
       variation: item?.variation
-        ? new Types.ObjectId(String(item.variation))
+        ? new Types.ObjectId(String(item?.variation))
         : undefined,
       isWarrantyClaim: !!item?.claimedCodes?.length,
       claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
@@ -274,7 +277,7 @@ const findOrderForUpdatingOrder = async (
   return order;
 };
 
-const orderDetailsPipeline: PipelineStage[] = [
+const orderDetailsPipeline = (): PipelineStage[] => [
   {
     $lookup: {
       from: "shippings",
@@ -284,7 +287,7 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$shippingData",
+    $unwind: { path: "$shippingData", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -295,7 +298,7 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$shippingCharge",
+    $unwind: { path: "$shippingCharge", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -306,7 +309,7 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$payment",
+    $unwind: { path: "$payment", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -317,8 +320,28 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$paymentMethod",
+    $unwind: { path: "$paymentMethod", preserveNullAndEmptyArrays: true },
   },
+  {
+    $lookup: {
+      from: "couriers",
+      localField: "courierDetails.courierProvider",
+      foreignField: "_id",
+      as: "courierData",
+    },
+  },
+  {
+    $unwind: { path: "$courierData", preserveNullAndEmptyArrays: true },
+  },
+  {
+    $lookup: {
+      from: "images",
+      localField: "courierData.image",
+      foreignField: "_id",
+      as: "courierImage",
+    },
+  },
+  { $unwind: { path: "$courierImage", preserveNullAndEmptyArrays: true } },
   {
     $lookup: {
       from: "images",
@@ -328,7 +351,7 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$paymentMethodImage",
+    $unwind: { path: "$paymentMethodImage", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -339,7 +362,7 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$statusHistory",
+    $unwind: { path: "$statusHistory", preserveNullAndEmptyArrays: true },
   },
   {
     $project: {
@@ -372,6 +395,16 @@ const orderDetailsPipeline: PipelineStage[] = [
         phoneNumber: "$payment.phoneNumber",
         transactionId: "$payment.transactionId",
       },
+      courier: {
+        name: "$courierData.name",
+        slug: "$courierData.slug",
+        image: {
+          src: {
+            $concat: [config.image_server, "/", "$courierImage.src"],
+          },
+          alt: "$courierImage.alt",
+        },
+      },
       statusHistory: {
         refunded: "$statusHistory.refunded",
         history: "$statusHistory.history",
@@ -383,6 +416,8 @@ const orderDetailsPipeline: PipelineStage[] = [
       followUpDate: 1,
       orderSource: 1,
       productDetails: 1,
+      deliveryStatus: 1,
+      reasonNotes: 1,
       createdAt: 1,
     },
   },
@@ -430,6 +465,25 @@ const orderDetailsPipeline: PipelineStage[] = [
     },
   },
   {
+    $lookup: {
+      from: "warranties",
+      localField: "productDetails.warranty",
+      foreignField: "_id",
+      as: "warranty",
+    },
+  },
+  {
+    $addFields: {
+      warranty: {
+        $cond: {
+          if: { $eq: [{ $size: "$warranty" }, 0] },
+          then: null,
+          else: { $arrayElemAt: ["$warranty", 0] },
+        },
+      },
+    },
+  },
+  {
     $addFields: {
       product: {
         $cond: {
@@ -450,6 +504,15 @@ const orderDetailsPipeline: PipelineStage[] = [
             claimedCodes: "$productDetails.claimedCodes",
             quantity: "$productDetails.quantity",
             total: "$productDetails.total",
+            warranty: {
+              _id: "$warranty._id",
+              warrantyCodes: "$warranty.warrantyCodes",
+              duration: "$warranty.duration",
+              startDate: "$warranty.startDate",
+              endsDate: "$warranty.endsDate",
+              createdAt: "$warranty.createdAt",
+            },
+            isProductWarrantyAvailable: "$productInfo.warranty",
             variation: {
               $cond: {
                 if: {
@@ -490,12 +553,15 @@ const orderDetailsPipeline: PipelineStage[] = [
       discount: { $first: "$discount" },
       advance: { $first: "$advance" },
       status: { $first: "$status" },
+      deliveryStatus: { $first: "$deliveryStatus" },
       shipping: { $first: "$shipping" },
       payment: { $first: "$payment" },
+      courier: { $first: "$courier" },
       shippingCharge: { $first: "$shippingCharge" },
       officialNotes: { $first: "$officialNotes" },
       invoiceNotes: { $first: "$invoiceNotes" },
       courierNotes: { $first: "$courierNotes" },
+      reasonNotes: { $first: "$reasonNotes" },
       orderNotes: { $first: "$orderNotes" },
       followUpDate: { $first: "$followUpDate" },
       orderSource: { $first: "$orderSource" },
@@ -527,7 +593,7 @@ const orderDetailsPipeline: PipelineStage[] = [
 
 const orderStatusUpdatingPipeline = (
   orderIds: Types.ObjectId[],
-  changableStatus: Partial<TOrderStatus[]>
+  changeableStatus: Partial<TOrderStatus[]>
 ) =>
   [
     {
@@ -535,7 +601,7 @@ const orderStatusUpdatingPipeline = (
         _id: {
           $in: orderIds.map((item) => new Types.ObjectId(item)),
         },
-        status: { $in: changableStatus },
+        status: { $in: changeableStatus },
       },
     },
     {

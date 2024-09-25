@@ -44,6 +44,7 @@ const updateCourierStatus = async () => {
           deliveryStatus: 1,
           courier: {
             name: "$courier.name",
+            slug: "$courier.slug",
             credentials: "$courier.credentials",
           },
         },
@@ -61,7 +62,7 @@ const updateCourierStatus = async () => {
           let responseData: Record<string, unknown> = {};
 
           // for steedfast
-          if (order?.courier?.name === "steedfast") {
+          if (order?.courier?.slug === "steedfast") {
             const data = await steedFastApi({
               credentials: order?.courier?.credentials,
               endpoints: `/status_by_invoice/${order.orderId}`,

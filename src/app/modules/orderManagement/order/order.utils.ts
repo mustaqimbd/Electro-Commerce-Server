@@ -185,6 +185,10 @@ export const createNewOrder = async (
   const user = payload?.user as TOptionalAuthGuardPayload;
   const userQuery = optionalAuthUserQuery(user);
 
+  userQuery.userId = userQuery.userId
+    ? new Types.ObjectId(userQuery.userId)
+    : undefined;
+
   let singleOrder: { product: string; quantity: number } = {
     product: "",
     quantity: 0,
@@ -195,8 +199,6 @@ export const createNewOrder = async (
   let onlyProductsCosts = 0;
   const orderId = createOrderId();
   let orderedProductInfo: TSanitizedOrProduct[] = [];
-
-  // console.log(user);
 
   if (custom || warrantyClaimOrderData?.warrantyClaim) {
     if (!user.id) {
@@ -424,7 +426,7 @@ export const createNewOrder = async (
     ];
 
     const cart = await CartItem.aggregate(pipeline);
-    if (!cart) {
+    if (!cart.length) {
       throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
     }
     orderedProductInfo = cart;

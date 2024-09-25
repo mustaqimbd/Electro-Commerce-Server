@@ -1,7 +1,6 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import ApiError from "../../../errorHandlers/ApiError";
-import { TOptionalAuthGuardPayload } from "../../../types/common";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import {
   TShippingCharge,
@@ -9,22 +8,23 @@ import {
 } from "./shippingCharge.interface";
 import { ShippingCharge } from "./shippingCharge.model";
 
-const getShippingCharges = async (
-  user: TOptionalAuthGuardPayload
-): Promise<TShippingCharge[]> => {
-  if (["admin", "staff"].includes(user.role || "")) {
-    const result = await ShippingCharge.find(
-      { isDeleted: false },
-      { name: 1, description: 1, amount: 1, isActive: 1, createdAt: 1 }
-    );
-    return result;
-  } else {
-    const result = await ShippingCharge.find(
-      { isDeleted: false },
-      { name: 1, amount: 1, description: 1 }
-    );
-    return result;
-  }
+const getShippingCharges = async () => {
+  const permittedFields: Record<string, number> = {
+    name: 1,
+    description: 1,
+    amount: 1,
+  };
+
+  const result = await ShippingCharge.find(
+    { isActive: true, isDeleted: false },
+    permittedFields
+  );
+  return result;
+};
+
+const getShippingChargesForAdminFromDB = async () => {
+  const result = await ShippingCharge.find({ isDeleted: false });
+  return result;
 };
 
 const createShippingChargeIntoDB = async (
@@ -48,13 +48,13 @@ const updateShippingChangeIntoDB = async (
   }
 
   const session = await mongoose.startSession();
-
   try {
     session.startTransaction();
     if (Number(payload.amount) > -1 && payload.amount !== previousData.amount) {
       // Mark previous data as deleted
       previousData.name = `${previousData.name} - ${previousData.amount}`;
       previousData.isDeleted = true;
+      previousData.isActive = false;
       await previousData.save({ session });
 
       // Create a new document for the updated shipping charge
@@ -70,11 +70,15 @@ const updateShippingChangeIntoDB = async (
         session,
       });
     } else {
-      previousData.name = payload.name as string;
-      previousData.description = payload.description as string;
+      previousData.name = (payload.name || previousData.name) as string;
+      previousData.description = (payload.description ||
+        previousData.description) as string;
       previousData.isActive =
-        (payload.isActive as boolean) || previousData.isActive;
+        payload.isActive !== undefined
+          ? (payload.isActive as boolean)
+          : previousData.isActive;
       previousData.isDeleted = (payload.isDeleted as boolean) || false;
+
       await previousData.save({ session });
     }
     await session.commitTransaction();
@@ -90,4 +94,5 @@ export const ShippingChargeService = {
   createShippingChargeIntoDB,
   getShippingCharges,
   updateShippingChangeIntoDB,
+  getShippingChargesForAdminFromDB,
 };

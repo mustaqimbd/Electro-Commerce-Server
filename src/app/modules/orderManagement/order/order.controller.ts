@@ -117,6 +117,24 @@ const getProcessingDoneCourierOrdersAdmin = catchAsync(
   }
 );
 
+const getOrdersByDeliveryStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    const { countsByStatus, meta, data } =
+      await OrderServices.getOrdersByDeliveryStatusFromDB(
+        req.query as unknown as Record<string, string>
+      );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Orders delivery status retrieved successfully",
+      meta,
+      data: {
+        countsByStatus,
+        data,
+      },
+    });
+  }
+);
+
 const updateStatus = catchAsync(async (req: Request, res: Response) => {
   const user = req.user;
 
@@ -244,4 +262,5 @@ export const OrderController = {
   getProcessingDoneCourierOrdersAdmin,
   getCustomersOrdersCountByPhone,
   getOrderTrackingInfo,
+  getOrdersByDeliveryStatus,
 };

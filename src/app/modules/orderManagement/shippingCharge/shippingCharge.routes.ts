@@ -9,6 +9,16 @@ const router = Router();
 
 router.get("/", optionalAuthGuard, ShippingChargeController.getShippingCharges);
 
+router.get(
+  "/admin",
+  optionalAuthGuard,
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage shipping charges",
+  }),
+  ShippingChargeController.getShippingChargesAdmin
+);
+
 router.post(
   "/",
   authGuard({

@@ -119,3 +119,24 @@ export type TCourierResponse = {
   tracking_code: string;
   status: string;
 };
+
+export type TOrderStatusWithDesc = {
+  status: TOrderStatus;
+  description: {
+    en?: string;
+    bn: string;
+  };
+};
+
+export type TOrderDeliveryStatus =
+  | "pending"
+  | "delivered_approval_pending"
+  | "partial_delivered_approval_pending"
+  | "cancelled_approval_pending"
+  | "unknown_approval_pending"
+  | "delivered"
+  | "partial_delivered"
+  | "cancelled"
+  | "hold"
+  | "in_review"
+  | "unknown";

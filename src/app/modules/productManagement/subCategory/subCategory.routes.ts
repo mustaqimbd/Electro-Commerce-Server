@@ -1,8 +1,8 @@
 import express from "express";
+import authGuard from "../../../middlewares/authGuard";
+import validateRequest from "../../../middlewares/validateRequest";
 import { SubCategoryControllers } from "./subCategory.controller";
 import { SubCategoryValidation } from "./subCategory.validation";
-import validateRequest from "../../../middlewares/validateRequest";
-import authGuard from "../../../middlewares/authGuard";
 
 const router = express.Router();
 
@@ -27,5 +27,6 @@ router.delete(
   authGuard({ requiredRoles: ["superAdmin", "admin"] }),
   SubCategoryControllers.deleteSubCategory
 );
+router.get("/:id", SubCategoryControllers.getAllsubCategoriesbyCategory);
 
 export const SubCategoryRoutes = router;

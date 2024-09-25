@@ -1,8 +1,8 @@
 import httpStatus from "http-status";
-import { SubCategoryServices } from "./subCategory.service";
 import catchAsync from "../../../utilities/catchAsync";
-import successResponse from "../../../utilities/successResponse";
 import generateSlug from "../../../utilities/generateSlug";
+import successResponse from "../../../utilities/successResponse";
+import { SubCategoryServices } from "./subCategory.service";
 
 const createSubCategory = catchAsync(async (req, res) => {
   const createdBy = req.user.id;
@@ -58,10 +58,21 @@ const deleteSubCategory = catchAsync(async (req, res) => {
     data: null,
   });
 });
+const getAllsubCategoriesbyCategory = catchAsync(async (req, res) => {
+  const categoryId = req.params.id;
+  const result =
+    await SubCategoryServices.getSubCategoriesByCatgeoryFromDB(categoryId);
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Sub categories retrieved successfully",
+    data: result,
+  });
+});
 
 export const SubCategoryControllers = {
   createSubCategory,
   getAllSubCategories,
   updateSubCategory,
   deleteSubCategory,
+  getAllsubCategoriesbyCategory,
 };

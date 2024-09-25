@@ -13,7 +13,8 @@ import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import config from "./app/config/config";
-import { setUp } from "./app/helper/setup";
+import seedSuperAdmin from "./app/utilities/seedSuperAdmin";
+import { deleteDraftProducts } from "./app/modules/productManagement/product/product.utils";
 
 let server: Server;
 const bootstrap = async () => {
@@ -26,11 +27,8 @@ const bootstrap = async () => {
         `😍 The server is running on http://localhost:${config.port}`
       );
     });
-
-    if (config.env === "setup") {
-      await setUp();
-      consoleLogger.info("Setup is successful.");
-    }
+    await seedSuperAdmin();
+    deleteDraftProducts.start();
   } catch (error) {
     errorLogger.error(`❌ Can't connect to Database.`, error);
   }
