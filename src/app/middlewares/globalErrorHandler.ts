@@ -1,4 +1,5 @@
 import { ErrorRequestHandler } from "express";
+import multer from "multer";
 import { ZodError } from "zod";
 import config from "../config/config";
 import ApiError from "../errorHandlers/ApiError";
@@ -8,10 +9,32 @@ import handleMongooseCastError from "../errorHandlers/handleMongooseCastError";
 import handleMongooseDuplicateError from "../errorHandlers/handleMongooseDuplicateError";
 import handleMongooseValidationError from "../errorHandlers/handleMongooseValidationError";
 import { TErrorMessages, TIErrorResponse } from "../types/error";
-import multer from "multer";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const globalErrorhandler: ErrorRequestHandler = (err, req, res, next) => {
+/**
+ * The function `globalErrorhandler` handles various types of errors and sends a formatted response
+ * with appropriate status code and error message.
+ * @param err - The `err` parameter in the `globalErrorhandler` function represents the error object
+ * that is passed to the error handling middleware in an Express application. This object contains
+ * information about the error that occurred during the request processing. Depending on the type of
+ * error, different actions are taken within the error handler to
+ * @param req - The `req` parameter in the `globalErrorhandler` function represents the HTTP request
+ * object, which contains information about the incoming request such as headers, parameters, body,
+ * etc. It is used to access and manipulate the request data within the error handling middleware.
+ * @param res - The `res` parameter in the `globalErrorhandler` function is the response object in
+ * Express.js. It is used to send a response back to the client making the request. In the provided
+ * code snippet, `res` is used to set the HTTP status code, send a JSON response with error
+ * @param next - The `next` parameter in the `globalErrorhandler` function is a callback function that
+ * is used to pass control to the next middleware function in the stack. It is typically used in
+ * Express.js middleware functions to pass an error to the next error-handling middleware. If an error
+ * occurs in the current
+ */
+const globalErrorhandler: ErrorRequestHandler = (
+  err,
+  req,
+  res,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  next
+) => {
   let statusCode = 500;
   let message =
     "Something went wrong. Please try again later or contact to the support";
