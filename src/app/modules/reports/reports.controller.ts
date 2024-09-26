@@ -4,6 +4,7 @@ import catchAsync from "../../utilities/catchAsync";
 import successResponse from "../../utilities/successResponse";
 import {
   ReportsServices,
+  TGetStatsQuery,
   TOrdersCountQuery,
   TOrdersSourceCountQuery,
 } from "./reports.service";
@@ -66,7 +67,9 @@ const getBestSellingProducts = catchAsync(
 );
 
 const getStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await ReportsServices.getStatsFromDB();
+  const result = await ReportsServices.getStatsFromDB(
+    req.query as unknown as TGetStatsQuery
+  );
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Stats retrieved successfully.",

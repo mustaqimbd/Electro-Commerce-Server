@@ -198,6 +198,15 @@ const getSourceCountsFromDB = async (query: TOrdersSourceCountQuery) => {
   return completeList;
 };
 
+/**
+ * The function `getOrderStatusChangeCountsFromDB` retrieves and processes order status change counts
+ * from a database based on a specified date or the current date.
+ * @param {string} dateParam - The `dateParam` parameter is a string representing a date in the format
+ * "YYYY-MM-DD". If a `dateParam` is provided, it will be used to filter the order status change counts
+ * for that specific date. If no `dateParam` is provided, the current date will be used
+ * @returns The function `getOrderStatusChangeCountsFromDB` returns a list of objects containing the
+ * date, status, and count of order status changes for a specific date or the current date.
+ */
 const getOrderStatusChangeCountsFromDB = async (dateParam: string) => {
   const date = dateParam ? new Date(dateParam) : new Date();
   const formattedDate = date.toISOString().split("T")[0];
@@ -328,13 +337,9 @@ const getBestSellingProductsFromDB = async () => {
   return result;
 };
 
-const getStatsFromDB = async () => {
+export type TGetStatsQuery = TReportsQuery & { zone: string };
+const getStatsFromDB = async (query: TGetStatsQuery) => {
   const pipeline: PipelineStage[] = [
-    {
-      $match: {
-        status: { $in: ["completed", "partial completed"] },
-      },
-    },
     {
       $facet: {
         totalSalesAmount: [
@@ -402,6 +407,37 @@ const getStatsFromDB = async () => {
       $replaceRoot: { newRoot: "$results" },
     },
   ];
+  query.type = query.type || "allTime";
+  let start, end;
+  if (query.type !== "allTime") {
+    const { start: startTime, end: endTime } = getTimePeriod({
+      period: query.type,
+      customDate: query.customDate,
+      startDate: query.startDate,
+      endDate: query.endDate,
+      zone: query.zone,
+    });
+    start = startTime;
+    end = endTime;
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let matchQuery: any = {
+    status: { $ne: "deleted" },
+  };
+
+  if (query.type !== undefined && query.type !== "allTime") {
+    matchQuery = {
+      ...matchQuery,
+      createdAt: {
+        $gte: start,
+        $lt: end,
+      },
+    };
+  }
+
+  pipeline.unshift({
+    $match: matchQuery,
+  });
   const result = await Order.aggregate(pipeline);
   return result;
 };
