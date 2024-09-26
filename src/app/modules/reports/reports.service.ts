@@ -422,7 +422,7 @@ const getStatsFromDB = async (query: TGetStatsQuery) => {
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let matchQuery: any = {
-    status: { $ne: "deleted" },
+    status: { $in: ["completed", "partial completed"] },
   };
 
   if (query.type !== undefined && query.type !== "allTime") {
