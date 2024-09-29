@@ -1,17 +1,15 @@
 import { Router } from "express";
 import authGuard from "../../../middlewares/authGuard";
-import optionalAuthGuard from "../../../middlewares/optionalAuthGuard";
 import validateRequest from "../../../middlewares/validateRequest";
 import { ShippingChargeController } from "./shippingCharge.controller";
 import { ShippingCHargeValidation } from "./shippingCharge.validate";
 
 const router = Router();
 
-router.get("/", optionalAuthGuard, ShippingChargeController.getShippingCharges);
+router.get("/", ShippingChargeController.getShippingCharges);
 
 router.get(
   "/admin",
-  optionalAuthGuard,
   authGuard({
     requiredRoles: ["admin", "staff"],
     requiredPermission: "manage shipping charges",

@@ -120,14 +120,14 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -222,14 +222,14 @@ const getProcessingOrdersAdminFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -310,14 +310,14 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -403,14 +403,14 @@ const getOrdersByDeliveryStatusFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
