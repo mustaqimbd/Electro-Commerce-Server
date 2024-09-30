@@ -120,14 +120,14 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -222,14 +222,14 @@ const getProcessingOrdersAdminFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -310,14 +310,14 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -403,14 +403,14 @@ const getOrdersByDeliveryStatusFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -541,7 +541,7 @@ const updateOrderStatusIntoDB = async (
   }
 ): Promise<void> => {
   // From this api admin can only change this orders
-  const changableOrders: Partial<TOrderStatus[]> = [
+  const changeableOrders: Partial<TOrderStatus[]> = [
     "pending",
     "confirmed",
     "follow up",
@@ -550,7 +550,7 @@ const updateOrderStatusIntoDB = async (
 
   // From this API, admins can only change to this status below.
   const acceptableStatus: Partial<TOrderStatus[]> = [
-    ...changableOrders,
+    ...changeableOrders,
     "processing",
     "canceled",
     "deleted",
@@ -575,11 +575,10 @@ const updateOrderStatusIntoDB = async (
 
     const pipeline: PipelineStage[] = OrderHelper.orderStatusUpdatingPipeline(
       payload.orderIds,
-      changableOrders
+      changeableOrders
     );
 
     const orders = (await Order.aggregate(pipeline)) as Partial<TOrder[]>;
-
     const statusUpdateQuery: {
       updateOne: {
         filter: {
@@ -686,7 +685,7 @@ const updateProcessingStatusIntoDB = async (
   status: Partial<TOrderStatus>,
   user: TJwtPayload
 ) => {
-  const changableStatus: Partial<TOrderStatus[]> = [
+  const changeableStatus: Partial<TOrderStatus[]> = [
     "processing",
     "warranty added",
     "processing done",
@@ -708,7 +707,7 @@ const updateProcessingStatusIntoDB = async (
     session.startTransaction();
     const pipeline = OrderHelper.orderStatusUpdatingPipeline(
       orderIds,
-      changableStatus
+      changeableStatus
     );
     const orders = await Order.aggregate(pipeline).session(session);
 

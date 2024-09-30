@@ -84,12 +84,33 @@ const updateCouponCodeIntoDB = async (id: string, payload: TCouponData) => {
   if (!isExist)
     throw new ApiError(httpStatus.BAD_REQUEST, "No coupon data found");
 
+  if (payload.endDate) {
+    const today = new Date(Date.now());
+    const endDate = new Date(payload.endDate);
+
+    if (isNaN(endDate.getTime())) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid date input");
+    }
+    if (today > endDate)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "The selected end date must be a future date."
+      );
+    payload.endDate = endDate;
+  }
+
   await Coupon.updateOne(
     {
       _id: new Types.ObjectId(id),
       isDeleted: false,
     },
-    { $set: { isActive: payload.isActive, isDeleted: payload.isDeleted } }
+    {
+      $set: {
+        isActive: payload.isActive,
+        isDeleted: payload.isDeleted,
+        endDate: payload.endDate,
+      },
+    }
   );
 };
 
