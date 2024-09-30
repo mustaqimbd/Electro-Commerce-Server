@@ -748,7 +748,7 @@ const orderDetailsCustomerPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$shippingData",
+    $unwind: { path: "$shippingData", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -759,7 +759,7 @@ const orderDetailsCustomerPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$shippingCharge",
+    $unwind: { path: "$shippingCharge", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -770,7 +770,7 @@ const orderDetailsCustomerPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$payment",
+    $unwind: { path: "$payment", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -781,7 +781,7 @@ const orderDetailsCustomerPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$paymentMethod",
+    $unwind: { path: "$paymentMethod", preserveNullAndEmptyArrays: true },
   },
   {
     $lookup: {
@@ -792,7 +792,7 @@ const orderDetailsCustomerPipeline: PipelineStage[] = [
     },
   },
   {
-    $unwind: "$paymentMethodImage",
+    $unwind: { path: "$paymentMethodImage", preserveNullAndEmptyArrays: true },
   },
   {
     $project: {
