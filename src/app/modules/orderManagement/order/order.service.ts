@@ -371,15 +371,16 @@ const getOrdersByDeliveryStatusFromDB = async (
 ) => {
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderDeliveryStatus[] = [
-    "pending",
-    "delivered_approval_pending",
-    "partial_delivered_approval_pending",
-    "cancelled_approval_pending",
-    "unknown_approval_pending",
-    "partial_delivered",
-    "cancelled",
-    "hold",
     "in_review",
+    "pending",
+    "hold",
+    "delivered_approval_pending",
+    "cancelled_approval_pending",
+    "partial_delivered_approval_pending",
+    "unknown_approval_pending",
+    "delivered",
+    "cancelled",
+    "partial_delivered",
     "unknown",
   ];
 
@@ -427,15 +428,16 @@ const getOrdersByDeliveryStatusFromDB = async (
 
   // Orders counts
   const statusMap = {
-    pending: 0,
-    delivered_approval_pending: 0,
-    partial_delivered_approval_pending: 0,
-    cancelled_approval_pending: 0,
-    unknown_approval_pending: 0,
-    partial_delivered: 0,
-    cancelled: 0,
-    hold: 0,
     in_review: 0,
+    pending: 0,
+    hold: 0,
+    delivered_approval_pending: 0,
+    cancelled_approval_pending: 0,
+    partial_delivered_approval_pending: 0,
+    unknown_approval_pending: 0,
+    delivered: 0,
+    cancelled: 0,
+    partial_delivered: 0,
     unknown: 0,
   };
   const countRes = await Order.aggregate([
