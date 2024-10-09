@@ -794,26 +794,23 @@ const bookCourierAndUpdateStatusIntoDB = async (
     ]);
     const orders = await Order.aggregate(pipeline).session(session);
 
-    // throw new ApiError(400, "Break");
-
-    const courier = await Courier.findById(courierProvider, {
-      name: 1,
-      slug: 1,
-      credentials: 1,
-      isActive: 1,
-    });
-
-    if (!courier)
-      throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
-    if (!courier.isActive)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `Courier '${courier.name}' is not active`
-      );
-
     // courier booking request
     //Steed fast
     if (status === "On courier") {
+      const courier = await Courier.findById(courierProvider, {
+        name: 1,
+        slug: 1,
+        credentials: 1,
+        isActive: 1,
+      });
+
+      if (!courier)
+        throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
+      if (!courier.isActive)
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Courier '${courier.name}' is not active`
+        );
       if (courier.slug === "steedfast") {
         const { success: successRequests, error: failedRequests } =
           await createOrderOnSteedFast(orders, courier);
