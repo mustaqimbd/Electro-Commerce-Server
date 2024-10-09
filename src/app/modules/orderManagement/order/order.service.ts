@@ -497,7 +497,7 @@ const getAllOrdersCustomerFromDB = async (user: TOptionalAuthGuardPayload) => {
 
   const pipeline = [
     { $match: matchQuery },
-    ...OrderHelper.orderDetailsCustomerPipeline,
+    ...OrderHelper.orderDetailsCustomerPipeline(),
   ];
 
   const result = await Order.aggregate(pipeline);
@@ -523,7 +523,7 @@ const getOrderInfoByOrderIdCustomerFromDB = async (
 
   const pipeline = [
     { $match: matchQuery },
-    ...OrderHelper.orderDetailsCustomerPipeline,
+    ...OrderHelper.orderDetailsCustomerPipeline(),
   ];
   const result = (await Order.aggregate(pipeline))[0];
 
@@ -930,6 +930,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     officialNotes,
     courierNotes,
     followUpDate,
+    riderNotes,
     productDetails: updatedProductDetails,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
@@ -1227,6 +1228,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
+    updatedDoc.riderNotes = riderNotes;
 
     await Order.findByIdAndUpdate(
       id,

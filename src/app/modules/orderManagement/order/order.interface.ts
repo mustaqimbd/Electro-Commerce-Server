@@ -90,6 +90,7 @@ export type TOrderData = {
   officialNotes?: string;
   invoiceNotes?: string;
   courierNotes?: string;
+  riderNotes?: string;
   reasonNotes?: string;
   courierDetails?: TCourierDetails;
   orderSource: TOrderSource;

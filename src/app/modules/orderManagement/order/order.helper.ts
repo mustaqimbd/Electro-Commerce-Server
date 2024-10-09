@@ -411,6 +411,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       },
       officialNotes: 1,
       invoiceNotes: 1,
+      riderNotes: 1,
       courierNotes: 1,
       orderNotes: 1,
       followUpDate: 1,
@@ -560,6 +561,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       shippingCharge: { $first: "$shippingCharge" },
       officialNotes: { $first: "$officialNotes" },
       invoiceNotes: { $first: "$invoiceNotes" },
+      riderNotes: { $first: "$riderNotes" },
       courierNotes: { $first: "$courierNotes" },
       reasonNotes: { $first: "$reasonNotes" },
       orderNotes: { $first: "$orderNotes" },
@@ -738,7 +740,7 @@ const orderStatusUpdatingPipeline = (
       },
     },
   ] as PipelineStage[];
-const orderDetailsCustomerPipeline: PipelineStage[] = [
+const orderDetailsCustomerPipeline = (): PipelineStage[] => [
   {
     $lookup: {
       from: "shippings",
