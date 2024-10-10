@@ -371,15 +371,16 @@ const getOrdersByDeliveryStatusFromDB = async (
 ) => {
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderDeliveryStatus[] = [
-    "pending",
-    "delivered_approval_pending",
-    "partial_delivered_approval_pending",
-    "cancelled_approval_pending",
-    "unknown_approval_pending",
-    "partial_delivered",
-    "cancelled",
-    "hold",
     "in_review",
+    "pending",
+    "hold",
+    "delivered_approval_pending",
+    "cancelled_approval_pending",
+    "partial_delivered_approval_pending",
+    "unknown_approval_pending",
+    "delivered",
+    "cancelled",
+    "partial_delivered",
     "unknown",
   ];
 
@@ -427,15 +428,16 @@ const getOrdersByDeliveryStatusFromDB = async (
 
   // Orders counts
   const statusMap = {
-    pending: 0,
-    delivered_approval_pending: 0,
-    partial_delivered_approval_pending: 0,
-    cancelled_approval_pending: 0,
-    unknown_approval_pending: 0,
-    partial_delivered: 0,
-    cancelled: 0,
-    hold: 0,
     in_review: 0,
+    pending: 0,
+    hold: 0,
+    delivered_approval_pending: 0,
+    cancelled_approval_pending: 0,
+    partial_delivered_approval_pending: 0,
+    unknown_approval_pending: 0,
+    delivered: 0,
+    cancelled: 0,
+    partial_delivered: 0,
     unknown: 0,
   };
   const countRes = await Order.aggregate([
@@ -497,7 +499,7 @@ const getAllOrdersCustomerFromDB = async (user: TOptionalAuthGuardPayload) => {
 
   const pipeline = [
     { $match: matchQuery },
-    ...OrderHelper.orderDetailsCustomerPipeline,
+    ...OrderHelper.orderDetailsCustomerPipeline(),
   ];
 
   const result = await Order.aggregate(pipeline);
@@ -523,7 +525,7 @@ const getOrderInfoByOrderIdCustomerFromDB = async (
 
   const pipeline = [
     { $match: matchQuery },
-    ...OrderHelper.orderDetailsCustomerPipeline,
+    ...OrderHelper.orderDetailsCustomerPipeline(),
   ];
   const result = (await Order.aggregate(pipeline))[0];
 
@@ -794,26 +796,23 @@ const bookCourierAndUpdateStatusIntoDB = async (
     ]);
     const orders = await Order.aggregate(pipeline).session(session);
 
-    // throw new ApiError(400, "Break");
-
-    const courier = await Courier.findById(courierProvider, {
-      name: 1,
-      slug: 1,
-      credentials: 1,
-      isActive: 1,
-    });
-
-    if (!courier)
-      throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
-    if (!courier.isActive)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `Courier '${courier.name}' is not active`
-      );
-
     // courier booking request
     //Steed fast
     if (status === "On courier") {
+      const courier = await Courier.findById(courierProvider, {
+        name: 1,
+        slug: 1,
+        credentials: 1,
+        isActive: 1,
+      });
+
+      if (!courier)
+        throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
+      if (!courier.isActive)
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Courier '${courier.name}' is not active`
+        );
       if (courier.slug === "steedfast") {
         const { success: successRequests, error: failedRequests } =
           await createOrderOnSteedFast(orders, courier);
@@ -930,6 +929,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     officialNotes,
     courierNotes,
     followUpDate,
+    riderNotes,
     productDetails: updatedProductDetails,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
@@ -1227,6 +1227,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
+    updatedDoc.riderNotes = riderNotes;
 
     await Order.findByIdAndUpdate(
       id,
