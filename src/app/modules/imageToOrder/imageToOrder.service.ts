@@ -20,4 +20,9 @@ const createIntoDB = async (
   return result;
 };
 
-export const ImageToOrderService = { createIntoDB };
+const getAllReqAdminFromDB = async () => {
+  const result = await ImageToOrder.find();
+  return result;
+};
+
+export const ImageToOrderService = { createIntoDB, getAllReqAdminFromDB };

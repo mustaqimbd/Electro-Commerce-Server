@@ -23,6 +23,17 @@ const createReq = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getAllReqAdmin = catchAsync(async (req: Request, res: Response) => {
+  const result = await ImageToOrderService.getAllReqAdminFromDB();
+
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "All Image to order request retrieved successfully",
+    data: result,
+  });
+});
+
 export const ImageToOrderController = {
   createReq,
+  getAllReqAdmin,
 };

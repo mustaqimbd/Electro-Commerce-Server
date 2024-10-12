@@ -1,4 +1,5 @@
 import { Router } from "express";
+import authGuard from "../../middlewares/authGuard";
 import optionalAuthGuard from "../../middlewares/optionalAuthGuard";
 import validateRequest from "../../middlewares/validateRequest";
 import { ImageToOrderImgUploader } from "../../utilities/imgUploader";
@@ -13,6 +14,15 @@ router.post(
   ImageToOrderImgUploader.array("images", 5),
   validateRequest(ImageToOrderValidate.createReq),
   ImageToOrderController.createReq
+);
+
+router.get(
+  "/",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage image to order",
+  }),
+  ImageToOrderController.getAllReqAdmin
 );
 
 export const ImageToOrderRoutes = router;
