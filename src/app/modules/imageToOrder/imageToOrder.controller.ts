@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import { TOptionalAuthGuardPayload } from "../../types/common";
 import catchAsync from "../../utilities/catchAsync";
 import successResponse from "../../utilities/successResponse";
@@ -33,7 +34,22 @@ const getAllReqAdmin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateReqByAdmin = catchAsync(async (req: Request, res: Response) => {
+  const reqId = req.params.id;
+  const result = await ImageToOrderService.updateReqByAdminIntoDB(
+    reqId as unknown as Types.ObjectId,
+    req.body
+  );
+
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Image to order request updated successfully",
+    data: result,
+  });
+});
+
 export const ImageToOrderController = {
   createReq,
   getAllReqAdmin,
+  updateReqByAdmin,
 };

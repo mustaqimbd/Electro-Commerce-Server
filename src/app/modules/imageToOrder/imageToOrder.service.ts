@@ -1,4 +1,8 @@
+import fsEx from "fs-extra";
+import httpStatus from "http-status";
 import { Types } from "mongoose";
+import path from "path";
+import ApiError from "../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../types/common";
 import optionalAuthUserQuery from "../../types/optionalAuthUserQuery";
 import { TImageToOrder } from "./imageToOrder.interface";
@@ -25,4 +29,47 @@ const getAllReqAdminFromDB = async () => {
   return result;
 };
 
-export const ImageToOrderService = { createIntoDB, getAllReqAdminFromDB };
+const updateReqByAdminIntoDB = async (
+  reqId: Types.ObjectId,
+  payload: TImageToOrder
+) => {
+  const existingData = await ImageToOrder.findById(reqId);
+
+  const updatedDoc: Partial<TImageToOrder> = {};
+  if (payload.contactStatus) updatedDoc.contactStatus = payload.contactStatus;
+  if (payload.status) {
+    updatedDoc.status = payload.status;
+
+    if (existingData?.contactStatus !== "confirmed") {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Please contact to the customer first"
+      );
+    }
+    if (payload.status === "canceled") {
+      updatedDoc.images = [];
+      if (existingData?.images?.length) {
+        existingData?.images?.forEach((item) => {
+          try {
+            const folderPath = path.parse(item.path).dir;
+            fsEx.remove(folderPath);
+            // eslint-disable-next-line no-empty
+          } finally {
+          }
+        });
+      }
+    }
+  }
+  const result = await ImageToOrder.findOneAndUpdate(
+    { _id: existingData?._id },
+    updatedDoc,
+    { new: true }
+  );
+  return result;
+};
+
+export const ImageToOrderService = {
+  createIntoDB,
+  getAllReqAdminFromDB,
+  updateReqByAdminIntoDB,
+};

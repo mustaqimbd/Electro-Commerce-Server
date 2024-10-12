@@ -25,4 +25,14 @@ router.get(
   ImageToOrderController.getAllReqAdmin
 );
 
+router.patch(
+  "/:id",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage image to order",
+  }),
+  validateRequest(ImageToOrderValidate.updateRequest),
+  ImageToOrderController.updateReqByAdmin
+);
+
 export const ImageToOrderRoutes = router;
