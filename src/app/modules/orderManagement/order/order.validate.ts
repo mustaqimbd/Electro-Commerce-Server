@@ -34,6 +34,7 @@ const createOrderValidation = z.object({
         .object({
           quantity: z.number(),
           product: z.string(),
+          variation: z.string().optional(),
         })
         .array()
         .optional(),

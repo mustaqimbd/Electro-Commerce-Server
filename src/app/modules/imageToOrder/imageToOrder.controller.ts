@@ -34,6 +34,18 @@ const getAllReqAdmin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getReqByIdAdmin = catchAsync(async (req: Request, res: Response) => {
+  const result = await ImageToOrderService.getReqByIdAdminFromDB(
+    req.params.id as unknown as Types.ObjectId
+  );
+
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "An Image to order request retrieved successfully",
+    data: result,
+  });
+});
+
 const updateReqByAdmin = catchAsync(async (req: Request, res: Response) => {
   const reqId = req.params.id;
   const result = await ImageToOrderService.updateReqByAdminIntoDB(
@@ -65,6 +77,7 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
 export const ImageToOrderController = {
   createReq,
   getAllReqAdmin,
+  getReqByIdAdmin,
   updateReqByAdmin,
   createOrder,
 };

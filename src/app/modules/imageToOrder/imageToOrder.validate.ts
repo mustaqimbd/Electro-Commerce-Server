@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { paymentZodSchema } from "../orderManagement/orderPayment/orderPayment.validation";
 import { shippingValidationZodSchema } from "../orderManagement/shipping/shipping.validation";
 import { ImageToOrderConst } from "./imageToOrder.const";
 
@@ -20,7 +21,33 @@ const updateRequest = z.object({
   }),
 });
 
+const createOrder = z.object({
+  body: z.object({
+    payment: paymentZodSchema,
+    shippingCharge: z.string({
+      required_error: "Shipping charge id is required",
+    }),
+    shipping: shippingValidationZodSchema(true),
+    orderedProducts: z
+      .object({
+        quantity: z.number(),
+        product: z.string(),
+        variation: z.string().optional(),
+      })
+      .array()
+      .optional(),
+    advance: z.number().optional(),
+    discount: z.number().optional(),
+    orderNotes: z.string().optional(),
+    officialNotes: z.string().optional(),
+    invoiceNotes: z.string().optional(),
+    courierNotes: z.string().optional(),
+    coupon: z.string().optional(),
+  }),
+});
+
 export const ImageToOrderValidate = {
   createReq,
   updateRequest,
+  createOrder,
 };

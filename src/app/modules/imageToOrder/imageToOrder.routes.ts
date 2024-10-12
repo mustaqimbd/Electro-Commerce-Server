@@ -25,6 +25,15 @@ router.get(
   ImageToOrderController.getAllReqAdmin
 );
 
+router.get(
+  "/:id",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage image to order",
+  }),
+  ImageToOrderController.getReqByIdAdmin
+);
+
 router.patch(
   "/:id",
   authGuard({
@@ -41,7 +50,7 @@ router.post(
     requiredRoles: ["admin", "staff"],
     requiredPermission: "manage image to order",
   }),
-  // validateRequest(ImageToOrderValidate.updateRequest),
+  validateRequest(ImageToOrderValidate.createOrder),
   ImageToOrderController.createOrder
 );
 

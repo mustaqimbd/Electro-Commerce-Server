@@ -27,7 +27,12 @@ const createIntoDB = async (
 };
 
 const getAllReqAdminFromDB = async () => {
-  const result = await ImageToOrder.find();
+  const result = await ImageToOrder.find({ status: "pending" });
+  return result;
+};
+
+const getReqByIdAdminFromDB = async (id: Types.ObjectId) => {
+  const result = await ImageToOrder.findOne({ _id: id, status: "pending" });
   return result;
 };
 
@@ -95,6 +100,9 @@ const createOrderIntoDB = async (id: Types.ObjectId, req: Request) => {
 
     req.body.custom = true;
     req.body.orderNotes = orderReq.customerNotes;
+    req.body.orderSource = {
+      name: "Image to order",
+    };
 
     order = await createNewOrder(
       req as unknown as Record<string, unknown>,
@@ -116,6 +124,7 @@ const createOrderIntoDB = async (id: Types.ObjectId, req: Request) => {
     await ImageToOrder.findByIdAndUpdate(orderReq?._id, {
       status: "completed",
       orderId: order?._id,
+      images: [],
     });
 
     await session.commitTransaction();
@@ -131,6 +140,7 @@ const createOrderIntoDB = async (id: Types.ObjectId, req: Request) => {
 export const ImageToOrderService = {
   createIntoDB,
   getAllReqAdminFromDB,
+  getReqByIdAdminFromDB,
   updateReqByAdminIntoDB,
   createOrderIntoDB,
 };
