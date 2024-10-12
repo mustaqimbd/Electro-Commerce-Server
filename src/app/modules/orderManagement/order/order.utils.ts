@@ -210,6 +210,7 @@ export const createNewOrder = async (
   }
   let fromWebsite = false;
   if (custom) {
+    userQuery.userId = undefined;
     orderedProductInfo =
       await OrderHelper.sanitizeOrderedProducts(orderedProducts);
   } else if (salesPage) {

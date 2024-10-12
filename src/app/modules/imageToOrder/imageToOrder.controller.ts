@@ -48,8 +48,23 @@ const updateReqByAdmin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const createOrder = catchAsync(async (req: Request, res: Response) => {
+  const reqId = req.params.id;
+  const result = await ImageToOrderService.createOrderIntoDB(
+    reqId as unknown as Types.ObjectId,
+    req
+  );
+
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "New order created successfully",
+    data: result,
+  });
+});
+
 export const ImageToOrderController = {
   createReq,
   getAllReqAdmin,
   updateReqByAdmin,
+  createOrder,
 };

@@ -1,10 +1,12 @@
+import { Request } from "express";
 import fsEx from "fs-extra";
 import httpStatus from "http-status";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import path from "path";
 import ApiError from "../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../types/common";
 import optionalAuthUserQuery from "../../types/optionalAuthUserQuery";
+import { createNewOrder } from "../orderManagement/order/order.utils";
 import { TImageToOrder } from "./imageToOrder.interface";
 import { ImageToOrder } from "./imageToOrder.model";
 import { ImageToOrderUtils } from "./imageToOrder.utils";
@@ -68,8 +70,67 @@ const updateReqByAdminIntoDB = async (
   return result;
 };
 
+const createOrderIntoDB = async (id: Types.ObjectId, req: Request) => {
+  const session = await mongoose.startSession();
+  let order;
+  try {
+    session.startTransaction();
+
+    const orderReq = await ImageToOrder.findById(id);
+    if (!orderReq)
+      throw new ApiError(httpStatus.BAD_REQUEST, "No image to order found");
+
+    if (orderReq?.orderId)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "This request already processed"
+      );
+
+    if (orderReq?.status === "canceled")
+      throw new ApiError(httpStatus.BAD_REQUEST, "This request is canceled");
+
+    if (orderReq?.status !== "confirmed") {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Please confirm the order");
+    }
+
+    req.body.custom = true;
+    req.body.orderNotes = orderReq.customerNotes;
+
+    order = await createNewOrder(
+      req as unknown as Record<string, unknown>,
+      session,
+      { warrantyClaim: false }
+    );
+
+    if (orderReq?.images?.length) {
+      orderReq?.images?.forEach((item) => {
+        try {
+          const folderPath = path.parse(item.path).dir;
+          fsEx.remove(folderPath);
+          // eslint-disable-next-line no-empty
+        } finally {
+        }
+      });
+    }
+
+    await ImageToOrder.findByIdAndUpdate(orderReq?._id, {
+      status: "completed",
+      orderId: order?._id,
+    });
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+  return order;
+};
+
 export const ImageToOrderService = {
   createIntoDB,
   getAllReqAdminFromDB,
   updateReqByAdminIntoDB,
+  createOrderIntoDB,
 };
