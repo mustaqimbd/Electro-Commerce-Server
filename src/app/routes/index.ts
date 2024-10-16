@@ -4,6 +4,7 @@ import { CartRoutes } from "../modules/cartManagement/cart/cart.routes";
 import { CouponRoutes } from "../modules/coupon/coupon.routes";
 import { CourierRoutes } from "../modules/courier/courier.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
+import { ImageToOrderRoutes } from "../modules/imageToOrder/imageToOrder.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { paymentMethodRoutes } from "../modules/paymentMethod/paymentMethod.routes";
@@ -117,6 +118,10 @@ const moduleRoutes: TModuleTypes[] = [
   {
     path: "/coupons",
     route: CouponRoutes,
+  },
+  {
+    path: "/image-to-order",
+    route: ImageToOrderRoutes,
   },
 ];
 

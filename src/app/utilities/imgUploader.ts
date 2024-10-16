@@ -54,6 +54,24 @@ const imgUploader = multer({
   },
 });
 
+export const ImageToOrderImgUploader = multer({
+  storage: storage("image_to_order"),
+  limits: { fileSize: Number(config.upload_image_size) }, // 1MB
+  fileFilter(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExts = JSON.parse(config.upload_image_format as string);
+    if (!allowedExts.includes(ext)) {
+      return cb(
+        new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Only ${allowedExts.join(", ")} formats are allowed`
+        )
+      );
+    }
+    cb(null, true);
+  },
+});
+
 export const imageAndVideoUploader = multer({
   storage: storage("warranty_claim"),
   limits: { fileSize: Number(config.upload_video_size) },
