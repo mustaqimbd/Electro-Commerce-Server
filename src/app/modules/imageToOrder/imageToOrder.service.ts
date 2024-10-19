@@ -1,7 +1,7 @@
 import { Request } from "express";
 import fsEx from "fs-extra";
 import httpStatus from "http-status";
-import mongoose, { Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import path from "path";
 import ApiError from "../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../types/common";
@@ -27,12 +27,32 @@ const createIntoDB = async (
 };
 
 const getAllReqAdminFromDB = async () => {
-  const result = await ImageToOrder.find({ status: "pending" });
+  const pipeline = ImageToOrderUtils.getRequestPipeline();
+
+  const matchQuery: PipelineStage = {
+    $match: {
+      status: "pending",
+    },
+  };
+
+  pipeline.unshift(matchQuery);
+  const result = await ImageToOrder.aggregate(pipeline);
   return result;
 };
 
 const getReqByIdAdminFromDB = async (id: Types.ObjectId) => {
-  const result = await ImageToOrder.findOne({ _id: id, status: "pending" });
+  const pipeline = ImageToOrderUtils.getRequestPipeline();
+
+  const matchQuery: PipelineStage = {
+    $match: {
+      _id: new Types.ObjectId(id),
+      status: "pending",
+    },
+  };
+
+  pipeline.unshift(matchQuery);
+  const result = (await ImageToOrder.aggregate(pipeline))[0];
+
   return result;
 };
 
