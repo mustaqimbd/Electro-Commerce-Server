@@ -117,10 +117,8 @@ const updateProduct = catchAsync(async (req, res) => {
   if (req.body.inventory.stockQuantity) {
     const stockQuantityIncrease =
       req.body.inventory.stockQuantity - req.body.inventory.preStockQuantity;
-    if (
-      req.body.inventory.stockQuantity != stockQuantityIncrease &&
-      stockQuantityIncrease != 0
-    ) {
+
+    if (stockQuantityIncrease > 0) {
       req.body.inventory.stockAvailable += stockQuantityIncrease;
     }
   }

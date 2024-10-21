@@ -42,10 +42,24 @@ const createProductIntoDB = async (
     //   )[0]._id;
     // }
 
-    const product = (await ProductModel.create([payload], { session }))[0];
+    const isProductDeleted = await ProductModel.findOne({
+      title: { $regex: new RegExp(payload.title, "i") },
+      isDeleted: true,
+    });
 
-    await session.commitTransaction();
-    return product;
+    if (isProductDeleted) {
+      const product = await ProductModel.findByIdAndUpdate(
+        isProductDeleted._id,
+        { ...payload, isDeleted: false },
+        { new: true, session }
+      );
+      await session.commitTransaction();
+      return product;
+    } else {
+      const product = (await ProductModel.create([payload], { session }))[0];
+      await session.commitTransaction();
+      return product;
+    }
   } catch (error) {
     await session.abortTransaction();
     throw error;
