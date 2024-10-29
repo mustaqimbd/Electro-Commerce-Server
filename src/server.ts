@@ -24,7 +24,7 @@ let server: Server;
 const bootstrap = async () => {
   try {
     await mongoose.connect(config.DBUrl as string);
-    consoleLogger.info(`===${config.env}===`);
+    consoleLogger.info(`👉 The server is running on ${config.env} mode`);
     logger.info(`👌 Database is connected successfully.`);
     server = app.listen(config.port, () => {
       logger.info(

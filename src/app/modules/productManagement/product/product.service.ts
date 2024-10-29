@@ -125,14 +125,25 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     };
   }
 
-  if (category) {
-    filterQuery["category.slug"] = query.category;
+  if (typeof category === "string") {
+    const categoryArray = category?.split(",") || []; // Split the comma-separated category slugs into an array
+    if (categoryArray.length > 0) {
+      filterQuery["category.slug"] = { $in: categoryArray }; // Use $in to match any slug in the array
+    }
   }
-  if (subCategory) {
-    filterQuery["subcategory.slug"] = query.subCategory;
+
+  if (typeof subCategory === "string") {
+    const subcategoryArray = subCategory?.split(",") || []; // Split the comma-separated subcategory slugs into an array
+    if (subcategoryArray.length > 0) {
+      filterQuery["subcategory.slug"] = { $in: subcategoryArray };
+    }
   }
-  if (brand) {
-    filterQuery["brand.slug"] = query.brand;
+
+  if (typeof brand === "string") {
+    const brandArray = brand?.split(",") || []; // Split the comma-separated brand slugs into an array
+    if (brandArray.length > 0) {
+      filterQuery["brand.slug"] = { $in: brandArray };
+    }
   }
 
   const pipeline = [
