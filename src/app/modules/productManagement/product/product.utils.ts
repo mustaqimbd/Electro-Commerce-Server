@@ -170,6 +170,8 @@ export const commonPipelineSingleProduct = () => [
       slug: 1,
       description: 1,
       shortDescription: 1,
+      additionalInfo: 1,
+      usageGuidelines: 1,
       thumbnail: "$thumbnail",
       gallery: "$gallery",
       price: "$price",
