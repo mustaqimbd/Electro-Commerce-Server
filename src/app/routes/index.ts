@@ -16,6 +16,7 @@ import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { ReportsRoutes } from "../modules/reports/reports.routes";
+import { SliderBannerRoutes } from "../modules/themeOption/sliderSection/sliderSection.routes";
 import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
@@ -122,6 +123,10 @@ const moduleRoutes: TModuleTypes[] = [
   {
     path: "/image-to-order",
     route: ImageToOrderRoutes,
+  },
+  {
+    path: "/slider-banner",
+    route: SliderBannerRoutes,
   },
 ];
 
