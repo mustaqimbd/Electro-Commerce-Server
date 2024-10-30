@@ -22,6 +22,7 @@ const getRequestPipeline = (): PipelineStage[] => [
         },
       },
       contactStatus: 1,
+      customerNotes: 1,
       status: 1,
       createdAt: 1,
     },

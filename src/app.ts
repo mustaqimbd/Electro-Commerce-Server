@@ -70,6 +70,13 @@ app.use(
   express.static(employProfilePicture)
 );
 
+const imageToOrder = path.join(__dirname, "..", "uploads/image_to_order");
+app.use(
+  "/uploads/image_to_order",
+  enableCrossOriginResourcePolicy,
+  express.static(imageToOrder)
+);
+
 // Warranty claim request videos and images
 const warrantyclaimVideosImages = path.join(
   __dirname,
