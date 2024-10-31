@@ -235,6 +235,7 @@ const getCustomersOrdersCountByPhone = catchAsync(
     });
   }
 );
+
 const getOrderTrackingInfo = catchAsync(async (req: Request, res: Response) => {
   const { orderId } = req.params;
   const result = await OrderServices.getOrderTrackingInfo(orderId);
@@ -244,6 +245,21 @@ const getOrderTrackingInfo = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+const returnAndPartialManagement = catchAsync(
+  async (req: Request, res: Response) => {
+    const { orderIds, status } = req.body;
+    await OrderServices.returnAndPartialManagementIntoDB(
+      orderIds,
+      status,
+      req.user as TJwtPayload
+    );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Operation success",
+    });
+  }
+);
 
 export const OrderController = {
   createOrder,
@@ -263,4 +279,5 @@ export const OrderController = {
   getCustomersOrdersCountByPhone,
   getOrderTrackingInfo,
   getOrdersByDeliveryStatus,
+  returnAndPartialManagement,
 };
