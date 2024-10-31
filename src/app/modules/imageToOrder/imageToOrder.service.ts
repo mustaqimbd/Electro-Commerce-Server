@@ -31,7 +31,7 @@ const getAllReqAdminFromDB = async () => {
 
   const matchQuery: PipelineStage = {
     $match: {
-      status: "pending",
+      status: { $in: ["pending", "confirmed"] },
     },
   };
 
