@@ -118,9 +118,10 @@ const updateProduct = catchAsync(async (req, res) => {
     const stockQuantityIncrease =
       req.body.inventory.stockQuantity - req.body.inventory.preStockQuantity;
 
-    if (stockQuantityIncrease > 0) {
-      req.body.inventory.stockAvailable += stockQuantityIncrease;
-    }
+    // if (stockQuantityIncrease > 0) {
+    //   req.body.inventory.stockAvailable += stockQuantityIncrease;
+    // }
+    req.body.inventory.stockAvailable += stockQuantityIncrease;
   }
 
   if (req.body.warrantyInfo?.duration) {
