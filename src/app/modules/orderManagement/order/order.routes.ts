@@ -147,6 +147,16 @@ router.get(
   }),
   OrderController.getCustomersOrdersCountByPhone
 );
+
 router.get("/track/:orderId", OrderController.getOrderTrackingInfo);
+
+router.patch(
+  "/manage-return-partial",
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+    requiredPermission: "manage warehouse",
+  }),
+  OrderController.returnAndPartialManagement
+);
 
 export const OrderRoutes = router;

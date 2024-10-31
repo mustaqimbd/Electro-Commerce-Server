@@ -1490,6 +1490,70 @@ const getOrderTrackingInfo = async (orderId: string) => {
   return result;
 };
 
+/* -----------------------------------------
+    Manage return and partial return orders
+-------------------------------------------- */
+const returnAndPartialManagementIntoDB = async (
+  orderIds: mongoose.Types.ObjectId[],
+  status: Partial<TOrderStatus>,
+  user: TJwtPayload
+) => {
+  const changeableStatus: Partial<TOrderStatus[]> = ["On courier"];
+  const acceptableStatus = ["partial completed", "returned"];
+  if (![...acceptableStatus].includes(status)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
+  }
+
+  if (orderIds.length > maxOrderStatusChangeAtATime) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't update more than ${maxOrderStatusChangeAtATime} orders at a time`
+    );
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const pipeline = OrderHelper.orderStatusUpdatingPipeline(
+      orderIds,
+      changeableStatus
+    );
+    const orders = await Order.aggregate(pipeline).session(session);
+
+    for (const order of orders) {
+      // Update order status
+      await Order.updateOne({ _id: order._id }, { status }, { session });
+      // Update order status history
+      await OrderStatusHistory.updateOne(
+        { _id: order.statusHistory },
+        {
+          $push: {
+            history: {
+              status,
+              updatedBy: user.id,
+            },
+          },
+        },
+        { session }
+      );
+
+      if (status === "returned") {
+        await Promise.all([
+          updateStockOrderCancelDelete(order.productDetails, session),
+          deleteWarrantyFromOrder(order.productDetails, order._id, session),
+        ]);
+      }
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
@@ -1508,4 +1572,5 @@ export const OrderServices = {
   getCustomersOrdersCountByPhoneFromDB,
   getOrderTrackingInfo,
   getOrdersByDeliveryStatusFromDB,
+  returnAndPartialManagementIntoDB,
 };
