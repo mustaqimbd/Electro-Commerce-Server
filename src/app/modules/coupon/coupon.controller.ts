@@ -16,11 +16,14 @@ const createCoupon = catchAsync(async (req, res) => {
 });
 
 const getAllCoupons = catchAsync(async (req, res) => {
-  const result = await CouponServices.getAllCouponsFromBD();
+  const { data, meta } = await CouponServices.getAllCouponsFromBD(
+    req.query as unknown as Record<string, string>
+  );
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "All available coupon retrieved successfully!",
-    data: result,
+    data,
+    meta,
   });
 });
 
