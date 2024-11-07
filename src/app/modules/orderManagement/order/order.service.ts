@@ -74,7 +74,17 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     "follow up",
   ];
   if (query.search) {
-    acceptableStatus.push("canceled");
+    acceptableStatus.push(
+      "warranty processing",
+      "processing done",
+      "warranty added",
+      "On courier",
+      "canceled",
+      "returned",
+      "partial completed",
+      "completed",
+      "deleted"
+    );
   }
   if (
     ![...acceptableStatus, "canceled", "deleted", "all", undefined].includes(
@@ -198,6 +208,20 @@ const getProcessingOrdersAdminFromDB = async (
     "processing done",
   ];
 
+  if (query.search) {
+    acceptableStatus.push(
+      "pending",
+      "confirmed",
+      "follow up",
+      "On courier",
+      "canceled",
+      "returned",
+      "partial completed",
+      "completed",
+      "deleted"
+    );
+  }
+
   if (query.status) {
     matchQuery.status = query?.status as string;
   }
@@ -285,6 +309,22 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
 ) => {
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
+
+  if (query.search) {
+    acceptableStatus.push(
+      "pending",
+      "confirmed",
+      "processing",
+      "warranty processing",
+      "follow up",
+      "warranty added",
+      "canceled",
+      "returned",
+      "partial completed",
+      "completed",
+      "deleted"
+    );
+  }
 
   if (query.status) {
     matchQuery.status = query?.status as string;

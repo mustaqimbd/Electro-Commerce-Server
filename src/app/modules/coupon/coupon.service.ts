@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import { Types } from "mongoose";
+import { PipelineStage, Types } from "mongoose";
 import ApiError from "../../errorHandlers/ApiError";
 import { TJwtPayload } from "../authManagement/auth/auth.interface";
 import { TCouponData } from "./coupon.interface";
@@ -29,24 +29,46 @@ const createCouponIntoDB = async (payload: TCouponData, user: TJwtPayload) => {
   await Coupon.create(payload);
 };
 
-const getAllCouponsFromBD = async () => {
-  const today = new Date(Date.now());
-  const result = await Coupon.find(
-    { isDeleted: false, endDate: { $gt: today } },
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getAllCouponsFromBD = async (query: Record<string, string>) => {
+  const pipeline: PipelineStage[] = [
     {
-      name: 1,
-      slug: 1,
-      shortDescription: 1,
-      code: 1,
-      percentage: 1,
-      endDate: 1,
-      maxDiscountAmount: 1,
-      limitDiscountAmount: 1,
-      isActive: 1,
-      createdAt: 1,
-    }
-  ).sort({ createsAt: -1 });
-  return result;
+      $match: {
+        isDeleted: false,
+      },
+    },
+    {
+      $project: {
+        name: 1,
+        slug: 1,
+        shortDescription: 1,
+        code: 1,
+        percentage: 1,
+        endDate: 1,
+        maxDiscountAmount: 1,
+        limitDiscountAmount: 1,
+        isActive: 1,
+        isDeleted: 1,
+        createdAt: 1,
+      },
+    },
+  ];
+
+  // const couponQuery = new AggregateQueryHelper(
+  //   Coupon.aggregate(pipeline),
+  //   query
+  // )
+  //   .sort()
+  //   .paginate();
+
+  const data = await Coupon.aggregate(pipeline);
+
+  // const total = (await Coupon.aggregate([{ $count: "total" }]))![0]?.total || 0;
+  // const meta = couponQuery.metaData(total);
+  const meta = undefined;
+  // const data = await couponQuery.model;
+
+  return { data, meta };
 };
 
 const getSingleCouponFromBD = async (couponCode: string) => {
