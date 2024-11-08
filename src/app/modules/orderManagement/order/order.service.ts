@@ -74,7 +74,17 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     "follow up",
   ];
   if (query.search) {
-    acceptableStatus.push("canceled");
+    acceptableStatus.push(
+      "warranty processing",
+      "processing done",
+      "warranty added",
+      "On courier",
+      "canceled",
+      "returned",
+      "partial completed",
+      "completed",
+      "deleted"
+    );
   }
   if (
     ![...acceptableStatus, "canceled", "deleted", "all", undefined].includes(
@@ -120,14 +130,14 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -198,6 +208,20 @@ const getProcessingOrdersAdminFromDB = async (
     "processing done",
   ];
 
+  if (query.search) {
+    acceptableStatus.push(
+      "pending",
+      "confirmed",
+      "follow up",
+      "On courier",
+      "canceled",
+      "returned",
+      "partial completed",
+      "completed",
+      "deleted"
+    );
+  }
+
   if (query.status) {
     matchQuery.status = query?.status as string;
   }
@@ -222,14 +246,14 @@ const getProcessingOrdersAdminFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -286,6 +310,22 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
 
+  if (query.search) {
+    acceptableStatus.push(
+      "pending",
+      "confirmed",
+      "processing",
+      "warranty processing",
+      "follow up",
+      "warranty added",
+      "canceled",
+      "returned",
+      "partial completed",
+      "completed",
+      "deleted"
+    );
+  }
+
   if (query.status) {
     matchQuery.status = query?.status as string;
   }
@@ -310,14 +350,14 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -371,15 +411,16 @@ const getOrdersByDeliveryStatusFromDB = async (
 ) => {
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderDeliveryStatus[] = [
-    "pending",
-    "delivered_approval_pending",
-    "partial_delivered_approval_pending",
-    "cancelled_approval_pending",
-    "unknown_approval_pending",
-    "partial_delivered",
-    "cancelled",
-    "hold",
     "in_review",
+    "pending",
+    "hold",
+    "delivered_approval_pending",
+    "cancelled_approval_pending",
+    "partial_delivered_approval_pending",
+    "unknown_approval_pending",
+    "delivered",
+    "cancelled",
+    "partial_delivered",
     "unknown",
   ];
 
@@ -403,14 +444,14 @@ const getOrdersByDeliveryStatusFromDB = async (
   });
 
   if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
     pipeline.push({
       $match: {
-        $expr: {
-          $or: [
-            { $eq: ["$shipping.phoneNumber", query.search] },
-            { $eq: ["$orderId", query.search] },
-          ],
-        },
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
       },
     });
   }
@@ -427,15 +468,16 @@ const getOrdersByDeliveryStatusFromDB = async (
 
   // Orders counts
   const statusMap = {
-    pending: 0,
-    delivered_approval_pending: 0,
-    partial_delivered_approval_pending: 0,
-    cancelled_approval_pending: 0,
-    unknown_approval_pending: 0,
-    partial_delivered: 0,
-    cancelled: 0,
-    hold: 0,
     in_review: 0,
+    pending: 0,
+    hold: 0,
+    delivered_approval_pending: 0,
+    cancelled_approval_pending: 0,
+    partial_delivered_approval_pending: 0,
+    unknown_approval_pending: 0,
+    delivered: 0,
+    cancelled: 0,
+    partial_delivered: 0,
     unknown: 0,
   };
   const countRes = await Order.aggregate([
@@ -497,7 +539,7 @@ const getAllOrdersCustomerFromDB = async (user: TOptionalAuthGuardPayload) => {
 
   const pipeline = [
     { $match: matchQuery },
-    ...OrderHelper.orderDetailsCustomerPipeline,
+    ...OrderHelper.orderDetailsCustomerPipeline(),
   ];
 
   const result = await Order.aggregate(pipeline);
@@ -523,7 +565,7 @@ const getOrderInfoByOrderIdCustomerFromDB = async (
 
   const pipeline = [
     { $match: matchQuery },
-    ...OrderHelper.orderDetailsCustomerPipeline,
+    ...OrderHelper.orderDetailsCustomerPipeline(),
   ];
   const result = (await Order.aggregate(pipeline))[0];
 
@@ -541,7 +583,7 @@ const updateOrderStatusIntoDB = async (
   }
 ): Promise<void> => {
   // From this api admin can only change this orders
-  const changableOrders: Partial<TOrderStatus[]> = [
+  const changeableOrders: Partial<TOrderStatus[]> = [
     "pending",
     "confirmed",
     "follow up",
@@ -550,7 +592,7 @@ const updateOrderStatusIntoDB = async (
 
   // From this API, admins can only change to this status below.
   const acceptableStatus: Partial<TOrderStatus[]> = [
-    ...changableOrders,
+    ...changeableOrders,
     "processing",
     "canceled",
     "deleted",
@@ -575,11 +617,10 @@ const updateOrderStatusIntoDB = async (
 
     const pipeline: PipelineStage[] = OrderHelper.orderStatusUpdatingPipeline(
       payload.orderIds,
-      changableOrders
+      changeableOrders
     );
 
     const orders = (await Order.aggregate(pipeline)) as Partial<TOrder[]>;
-
     const statusUpdateQuery: {
       updateOne: {
         filter: {
@@ -686,7 +727,7 @@ const updateProcessingStatusIntoDB = async (
   status: Partial<TOrderStatus>,
   user: TJwtPayload
 ) => {
-  const changableStatus: Partial<TOrderStatus[]> = [
+  const changeableStatus: Partial<TOrderStatus[]> = [
     "processing",
     "warranty added",
     "processing done",
@@ -708,7 +749,7 @@ const updateProcessingStatusIntoDB = async (
     session.startTransaction();
     const pipeline = OrderHelper.orderStatusUpdatingPipeline(
       orderIds,
-      changableStatus
+      changeableStatus
     );
     const orders = await Order.aggregate(pipeline).session(session);
 
@@ -795,26 +836,23 @@ const bookCourierAndUpdateStatusIntoDB = async (
     ]);
     const orders = await Order.aggregate(pipeline).session(session);
 
-    // throw new ApiError(400, "Break");
-
-    const courier = await Courier.findById(courierProvider, {
-      name: 1,
-      slug: 1,
-      credentials: 1,
-      isActive: 1,
-    });
-
-    if (!courier)
-      throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
-    if (!courier.isActive)
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `Courier '${courier.name}' is not active`
-      );
-
     // courier booking request
     //Steed fast
     if (status === "On courier") {
+      const courier = await Courier.findById(courierProvider, {
+        name: 1,
+        slug: 1,
+        credentials: 1,
+        isActive: 1,
+      });
+
+      if (!courier)
+        throw new ApiError(httpStatus.BAD_REQUEST, "No courier data found");
+      if (!courier.isActive)
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Courier '${courier.name}' is not active`
+        );
       if (courier.slug === "steedfast") {
         const { success: successRequests, error: failedRequests } =
           await createOrderOnSteedFast(orders, courier);
@@ -931,6 +969,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     officialNotes,
     courierNotes,
     followUpDate,
+    riderNotes,
     productDetails: updatedProductDetails,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
@@ -1032,7 +1071,7 @@ const updateOrderDetailsByAdminIntoDB = async (
               updatedProduct.quantity &&
               previousQuantity !== updatedProduct.quantity
             ) {
-              if (currentOrder.inventoryInfo.manageStock) {
+              if (currentOrder.inventoryInfo?.manageStock) {
                 if (currentOrder.variation) {
                   if (currentOrder.isVariationDeleted !== true) {
                     await ProductModel.updateOne(
@@ -1228,6 +1267,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
+    updatedDoc.riderNotes = riderNotes;
 
     await Order.findByIdAndUpdate(
       id,
@@ -1490,6 +1530,70 @@ const getOrderTrackingInfo = async (orderId: string) => {
   return result;
 };
 
+/* -----------------------------------------
+    Manage return and partial return orders
+-------------------------------------------- */
+const returnAndPartialManagementIntoDB = async (
+  orderIds: mongoose.Types.ObjectId[],
+  status: Partial<TOrderStatus>,
+  user: TJwtPayload
+) => {
+  const changeableStatus: Partial<TOrderStatus[]> = ["On courier"];
+  const acceptableStatus = ["partial completed", "returned"];
+  if (![...acceptableStatus].includes(status)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
+  }
+
+  if (orderIds.length > maxOrderStatusChangeAtATime) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't update more than ${maxOrderStatusChangeAtATime} orders at a time`
+    );
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const pipeline = OrderHelper.orderStatusUpdatingPipeline(
+      orderIds,
+      changeableStatus
+    );
+    const orders = await Order.aggregate(pipeline).session(session);
+
+    for (const order of orders) {
+      // Update order status
+      await Order.updateOne({ _id: order._id }, { status }, { session });
+      // Update order status history
+      await OrderStatusHistory.updateOne(
+        { _id: order.statusHistory },
+        {
+          $push: {
+            history: {
+              status,
+              updatedBy: user.id,
+            },
+          },
+        },
+        { session }
+      );
+
+      if (status === "returned") {
+        await Promise.all([
+          updateStockOrderCancelDelete(order.productDetails, session),
+          deleteWarrantyFromOrder(order.productDetails, order._id, session),
+        ]);
+      }
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
@@ -1508,4 +1612,5 @@ export const OrderServices = {
   getCustomersOrdersCountByPhoneFromDB,
   getOrderTrackingInfo,
   getOrdersByDeliveryStatusFromDB,
+  returnAndPartialManagementIntoDB,
 };

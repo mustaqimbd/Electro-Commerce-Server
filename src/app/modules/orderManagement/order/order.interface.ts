@@ -34,7 +34,8 @@ export type TOrderSourceName =
   | "Phone Call"
   | "Social Media"
   | "From Office"
-  | "Warranty Claimed";
+  | "Warranty Claimed"
+  | "Image to order";
 
 export type TCourierProviders = "steadfast";
 
@@ -90,6 +91,7 @@ export type TOrderData = {
   officialNotes?: string;
   invoiceNotes?: string;
   courierNotes?: string;
+  riderNotes?: string;
   reasonNotes?: string;
   courierDetails?: TCourierDetails;
   orderSource: TOrderSource;

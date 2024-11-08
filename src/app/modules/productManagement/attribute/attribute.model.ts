@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 import { TAttribute, TAttributeValues } from "./attribute.interface";
 
 const attributeValuesSchema = new Schema<TAttributeValues>({
-  name: { type: String, unique: true },
+  name: { type: String },
   isDeleted: { type: Boolean, default: false },
 });
 

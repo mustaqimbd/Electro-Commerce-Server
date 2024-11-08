@@ -99,6 +99,8 @@ export const productSchema = new Schema<TProduct>(
     slug: { type: String, required: true, unique: true },
     description: { type: String },
     shortDescription: { type: String },
+    additionalInfo: { type: String },
+    usageGuidelines: { type: String },
     // downloadable: { type: Boolean, default: false },
     featured: { type: Boolean, default: false },
     // review: { type: Boolean, default: false },

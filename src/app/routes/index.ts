@@ -4,6 +4,7 @@ import { CartRoutes } from "../modules/cartManagement/cart/cart.routes";
 import { CouponRoutes } from "../modules/coupon/coupon.routes";
 import { CourierRoutes } from "../modules/courier/courier.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
+import { ImageToOrderRoutes } from "../modules/imageToOrder/imageToOrder.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { paymentMethodRoutes } from "../modules/paymentMethod/paymentMethod.routes";
@@ -15,6 +16,7 @@ import { ReviewRoutes } from "../modules/productManagement/review/review.route";
 import { SubCategoryRoutes } from "../modules/productManagement/subCategory/subCategory.routes";
 import { TagRoutes } from "../modules/productManagement/tag/tag.route";
 import { ReportsRoutes } from "../modules/reports/reports.routes";
+import { SliderBannerRoutes } from "../modules/themeOption/sliderSection/sliderSection.routes";
 import { AdminRoutes } from "../modules/userManagement/admin/admin.routes";
 import { CustomerRoutes } from "../modules/userManagement/customer/customer.routes";
 import { PermissionRoutes } from "../modules/userManagement/permission/permission.routes";
@@ -117,6 +119,14 @@ const moduleRoutes: TModuleTypes[] = [
   {
     path: "/coupons",
     route: CouponRoutes,
+  },
+  {
+    path: "/image-to-order",
+    route: ImageToOrderRoutes,
+  },
+  {
+    path: "/slider-banner",
+    route: SliderBannerRoutes,
   },
 ];
 

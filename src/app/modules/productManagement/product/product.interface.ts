@@ -45,6 +45,8 @@ export type TProduct = {
   slug?: string;
   description: string;
   shortDescription?: string;
+  additionalInfo?: string;
+  usageGuidelines?: string;
   downloadable?: boolean;
   featured?: boolean;
   review?: boolean;

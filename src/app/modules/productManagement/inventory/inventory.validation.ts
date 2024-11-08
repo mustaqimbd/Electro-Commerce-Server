@@ -24,11 +24,11 @@ const inventory = z
       message: "Low stock warning is required!",
       path: ["lowStockWarning"],
     }
-  )
-  .refine((data) => data.stockQuantity >= data.preStockQuantity, {
-    message: "Stock quantity cannot be lower than current value.",
-    path: ["stockQuantity"],
-  });
+  );
+// .refine((data) => data.stockQuantity >= data.preStockQuantity, {
+//   message: "Stock quantity cannot be lower than current value.",
+//   path: ["stockQuantity"],
+// });
 
 export const InventoryValidation = {
   inventory,

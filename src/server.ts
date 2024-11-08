@@ -13,14 +13,18 @@ import { Server } from "http";
 import mongoose from "mongoose";
 import app from "./app";
 import config from "./app/config/config";
-import seedSuperAdmin from "./app/utilities/seedSuperAdmin";
 import { deleteDraftProducts } from "./app/modules/productManagement/product/product.utils";
+import seedSuperAdmin from "./app/utilities/seedSuperAdmin";
 
 let server: Server;
+/**
+ * The `bootstrap` function connects to a database, starts a server, seeds a super admin, and handles
+ * unhandled rejections.
+ */
 const bootstrap = async () => {
   try {
     await mongoose.connect(config.DBUrl as string);
-    consoleLogger.info(`===${config.env}===`);
+    consoleLogger.info(`👉 The server is running on ${config.env} mode`);
     logger.info(`👌 Database is connected successfully.`);
     server = app.listen(config.port, () => {
       logger.info(
