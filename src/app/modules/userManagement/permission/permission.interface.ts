@@ -2,6 +2,7 @@ import { Document } from "mongoose";
 
 export type TPermissionNames =
   | "super admin"
+  | "manage product"
   | "manage permission"
   | "manage admin or staff"
   | "manage coupon"

@@ -1071,7 +1071,7 @@ const updateOrderDetailsByAdminIntoDB = async (
               updatedProduct.quantity &&
               previousQuantity !== updatedProduct.quantity
             ) {
-              if (currentOrder.inventoryInfo.manageStock) {
+              if (currentOrder.inventoryInfo?.manageStock) {
                 if (currentOrder.variation) {
                   if (currentOrder.isVariationDeleted !== true) {
                     await ProductModel.updateOne(

@@ -8,7 +8,10 @@ const router = express.Router();
 
 router.post(
   "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   validateRequest(TagValidation.tag),
   TagControllers.createTag
 );
@@ -17,14 +20,20 @@ router.get("/", TagControllers.getAllTags);
 
 router.patch(
   "/:id",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   validateRequest(TagValidation.tag),
   TagControllers.updateTag
 );
 
 router.delete(
   "/:id",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   TagControllers.deleteTag
 );
 
