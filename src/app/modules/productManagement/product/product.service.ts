@@ -171,6 +171,7 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
               discountPercent: "$price.discountPercent",
               priceSave: "$price.priceSave",
               stockStatus: "$inventory.stockStatus",
+              sku: "$inventory.sku",
               // stockAvailable: "$inventory.stockAvailable",
               // totalReview: { $size: "$review" },
               // averageRating: { $avg: "$review.rating" },
@@ -221,6 +222,8 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
   )
     .search([
       "title",
+      "inventory.salePrice",
+      "inventory.sku",
       "description",
       "category.name",
       "subcategory.name",
@@ -416,8 +419,8 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
   )
     .search([
       "title",
-      "price",
-      "sku",
+      "inventory.salePrice",
+      "inventory.sku",
       "description",
       "category.name",
       "subcategory.name",

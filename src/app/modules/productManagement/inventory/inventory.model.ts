@@ -4,7 +4,7 @@ import { stockStatus } from "./inventory.const";
 
 export const inventorySchema = new Schema<TInventory>(
   {
-    // sku: { type: String, unique: true, sparse: true },
+    sku: { type: String, unique: true, sparse: true },
     stockStatus: { type: String, enum: [...stockStatus], required: true },
     stockQuantity: { type: Number, required: true },
     stockAvailable: {
