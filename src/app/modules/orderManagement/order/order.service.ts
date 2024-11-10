@@ -207,6 +207,8 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing",
     "warranty added",
     "processing done",
+    "returned",
+    "partial completed",
   ];
 
   if (query.search) {
@@ -276,6 +278,8 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing": 0,
     "warranty added": 0,
     "processing done": 0,
+    returned: 0,
+    "partial completed": 0,
   };
   const countRes = await Order.aggregate([
     {
