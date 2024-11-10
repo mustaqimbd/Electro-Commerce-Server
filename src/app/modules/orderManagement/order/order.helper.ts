@@ -170,6 +170,20 @@ const findOrderForUpdatingOrder = async (
       },
       {
         $lookup: {
+          from: "warranties",
+          localField: "productDetails.warranty",
+          foreignField: "_id",
+          as: "productWarrantyDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$productWarrantyDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
           from: "shippingcharges",
           localField: "shippingCharge",
           foreignField: "_id",
@@ -204,14 +218,19 @@ const findOrderForUpdatingOrder = async (
             $push: {
               _id: "$productDetails._id",
               product: "$productDetails.product",
+              productTitle: "$productDetails.productInfo.title",
               attributes: "$productDetails.attributes",
               unitPrice: "$productDetails.unitPrice",
               quantity: "$productDetails.quantity",
               total: "$productDetails.total",
               warranty: "$productDetails.warranty",
+              productWarrantyDetails: {
+                warrantyCodes: "$productWarrantyDetails.warrantyCodes",
+              },
               isWarrantyClaim: "$productDetails.isWarrantyClaim",
               claimedCodes: "$productDetails.claimedCodes",
               variation: "$productDetails.variation",
+              variations: "$productDetails.productInfo.variations",
               isVariationDeleted: {
                 $cond: {
                   if: {
