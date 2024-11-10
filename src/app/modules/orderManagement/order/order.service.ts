@@ -976,6 +976,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     followUpDate,
     riderNotes,
     productDetails: updatedProductDetails,
+    status,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
   const findOrder = await OrderHelper.findOrderForUpdatingOrder(id);
@@ -1294,6 +1295,12 @@ const updateOrderDetailsByAdminIntoDB = async (
       decrements += discount;
     } else {
       decrements += findOrder.discount || 0;
+    }
+
+    if (status) {
+      if (status !== "partial completed")
+        throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
+      updatedDoc.status = status;
     }
 
     const totalIncDec = increments - decrements;

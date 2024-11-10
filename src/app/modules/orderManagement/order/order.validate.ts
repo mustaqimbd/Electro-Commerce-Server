@@ -139,6 +139,7 @@ const updateOrderDetailsByAdmin = z.object({
         })
       )
       .optional(),
+    status: z.string().optional(),
   }),
 });
 
