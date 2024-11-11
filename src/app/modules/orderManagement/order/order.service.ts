@@ -313,7 +313,11 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   query: Record<string, string>
 ) => {
   const matchQuery: Record<string, unknown> = {};
-  const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
+  const acceptableStatus: TOrderStatus[] = [
+    "processing done",
+    "On courier",
+    "completed",
+  ];
 
   if (query.search) {
     acceptableStatus.push(
@@ -381,6 +385,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   const statusMap = {
     "processing done": 0,
     "On courier": 0,
+    completed: 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -483,7 +488,6 @@ const getOrdersByDeliveryStatusFromDB = async (
     delivered: 0,
     cancelled: 0,
     partial_delivered: 0,
-    unknown: 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -491,6 +495,7 @@ const getOrdersByDeliveryStatusFromDB = async (
         deliveryStatus: {
           $in: Object.keys(statusMap),
         },
+        status: "On courier",
       },
     },
     {

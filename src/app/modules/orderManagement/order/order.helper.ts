@@ -439,6 +439,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       deliveryStatus: 1,
       reasonNotes: 1,
       createdAt: 1,
+      courierDetails: 1,
     },
   },
   {
@@ -587,6 +588,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       followUpDate: { $first: "$followUpDate" },
       orderSource: { $first: "$orderSource" },
       statusHistory: { $first: "$statusHistory" },
+      courierDetails: { $first: "$courierDetails" },
       products: {
         $push: {
           $cond: {
