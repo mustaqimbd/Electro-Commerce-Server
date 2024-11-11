@@ -72,7 +72,7 @@ router.get(
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({
     requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage courier",
+    // requiredPermission: "manage courier",
   }),
   OrderController.getOrdersByDeliveryStatus
 );
@@ -143,7 +143,7 @@ router.get(
   "/get-customer-order-count/:phoneNumber",
   authGuard({
     requiredRoles: ["admin", "staff"],
-    requiredPermission: "manage orders",
+    // requiredPermission: "manage orders",
   }),
   OrderController.getCustomersOrdersCountByPhone
 );

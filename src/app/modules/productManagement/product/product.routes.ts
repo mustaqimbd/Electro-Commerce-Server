@@ -10,7 +10,10 @@ const router = express.Router();
 
 router.post(
   "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   // imgUploader.fields([
   //   { name: "thumbnail", maxCount: 1 },
   //   { name: "gallery", maxCount: 5 },
@@ -26,13 +29,19 @@ router.get("/featured", ProductControllers.getFeaturedProducts);
 
 router.get(
   "/admin",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   ProductControllers.getAllProductsAdmin
 );
 
 router.get(
   "/:id/admin",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   ProductControllers.getAProductAdmin
 );
 
@@ -42,7 +51,10 @@ router.get("/", ProductControllers.getAllProductsCustomer);
 
 router.patch(
   "/:id",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   // imgUploader.fields([
   //   { name: "thumbnail", maxCount: 1 },
   //   { name: "gallery", maxCount: 5 },
@@ -54,7 +66,10 @@ router.patch(
 
 router.delete(
   "/delete",
-  authGuard({ requiredRoles: ["admin", "superAdmin"] }),
+  authGuard({
+    requiredRoles: ["superAdmin", "admin", "staff"],
+    requiredPermission: "manage product",
+  }),
   ProductControllers.deleteProduct
 );
 

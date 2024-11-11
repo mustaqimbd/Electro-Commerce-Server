@@ -29,6 +29,9 @@ const getAllBrands = catchAsync(async (req, res) => {
 const updateBrand = catchAsync(async (req, res) => {
   const updatedBy = req.user.id;
   const brandId = req.params.id;
+  const { name } = req.body;
+  req.body.slug = generateSlug(name);
+
   const result = await BrandServices.updateBrandIntoDB(
     updatedBy,
     brandId,
