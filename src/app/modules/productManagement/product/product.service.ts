@@ -111,9 +111,9 @@ const getAProductAdminFromDB = async (id: string) => {
 
 const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
   let filterQuery: Record<string, unknown> = {};
-
   const { minPrice, maxPrice, category, subCategory, brand } = query;
 
+  // Price filter
   if (minPrice && maxPrice) {
     filterQuery = {
       $expr: {
@@ -125,25 +125,35 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
     };
   }
 
+  const filterConditions = [];
+
+  // Category filter
   if (typeof category === "string") {
     const categoryArray = category?.split(",") || []; // Split the comma-separated category slugs into an array
     if (categoryArray.length > 0) {
-      filterQuery["category.slug"] = { $in: categoryArray }; // Use $in to match any slug in the array
+      filterConditions.push({ "category.slug": { $in: categoryArray } }); // Use $in to match any slug in the array
     }
   }
 
+  // Subcategory filter
   if (typeof subCategory === "string") {
     const subcategoryArray = subCategory?.split(",") || []; // Split the comma-separated subcategory slugs into an array
     if (subcategoryArray.length > 0) {
-      filterQuery["subcategory.slug"] = { $in: subcategoryArray };
+      filterConditions.push({ "subcategory.slug": { $in: subcategoryArray } });
     }
   }
 
+  // Brand filter
   if (typeof brand === "string") {
     const brandArray = brand?.split(",") || []; // Split the comma-separated brand slugs into an array
     if (brandArray.length > 0) {
       filterQuery["brand.slug"] = { $in: brandArray };
     }
+  }
+
+  // Apply $or for category or subcategory
+  if (filterConditions.length > 0) {
+    filterQuery["$or"] = filterConditions; // Match either category or subcategory
   }
 
   const pipeline = [
@@ -154,8 +164,8 @@ const getAllProductsCustomerFromDB = async (query: Record<string, unknown>) => {
         "publishedStatus.visibility": visibilityStatusQuery.Public,
       },
     },
-    ...commonPipelineMultipleProduct,
-    { $match: filterQuery },
+    ...commonPipelineMultipleProduct, // Assuming this handles common transformations
+    { $match: filterQuery }, // Filter by category or subcategory, price, brand, etc.
     {
       $facet: {
         // Define sub-pipeline 2: For other operations
@@ -256,17 +266,19 @@ const getAllProductsAdminFromDB = async (query: Record<string, unknown>) => {
     filterQuery["publishedStatus.visibility"] = statusRegex;
   }
 
+  // Category or Subcategory ID filter
   if (query.category) {
-    filterQuery["category._id"] = new mongoose.Types.ObjectId(
-      query.category as string
-    );
+    const categoryId = new mongoose.Types.ObjectId(query.category as string); // Convert the category query to ObjectId
+    filterQuery["$or"] = [
+      { "category._id": categoryId },
+      { "subcategory._id": categoryId },
+    ];
   }
-
-  if (query.subCategory) {
-    filterQuery["subcategory._id"] = new mongoose.Types.ObjectId(
-      query.subCategory as string
-    );
-  }
+  // if (query.subCategory) {
+  //   filterQuery["subcategory._id"] = new mongoose.Types.ObjectId(
+  //     query.subCategory as string
+  //   );
+  // }
 
   if (query.stock) {
     const stockRegex = new RegExp(`\\b${query.stock}\\b`, "i");
