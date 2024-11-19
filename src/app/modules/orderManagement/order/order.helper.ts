@@ -57,6 +57,7 @@ const sanitizeOrderedProducts = async (
               lowStockWarning: "$inventory.lowStockWarning",
               stockAvailable: "$inventory.stockAvailable",
               manageStock: "$inventory.manageStock",
+              stockStatus: "$inventory.stockStatus",
             },
             isDeleted: 1,
             variations: {
@@ -70,6 +71,7 @@ const sanitizeOrderedProducts = async (
                     lowStockWarning: "$$variation.inventory.lowStockWarning",
                     stockAvailable: "$$variation.inventory.stockAvailable",
                     manageStock: "$$variation.inventory.manageStock",
+                    stockStatus: "$$variation.inventory.stockStatus",
                   },
                   price: {
                     regularPrice: "$$variation.price.regularPrice",

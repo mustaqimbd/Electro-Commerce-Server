@@ -372,12 +372,19 @@ export const createNewOrder = async (
                       0,
                     ],
                   },
+                  stockStatus: {
+                    $arrayElemAt: [
+                      "$variationDetails.variations.inventory.stockStatus",
+                      0,
+                    ],
+                  },
                 },
                 else: {
                   lowStockWarning: "$defaultInventory.lowStockWarning",
                   sku: "$defaultInventory.sku",
                   stockAvailable: "$defaultInventory.stockAvailable",
                   manageStock: "$defaultInventory.manageStock",
+                  stockStatus: "$defaultInventory.stockStatus",
                 },
               },
             },
@@ -476,12 +483,13 @@ export const createNewOrder = async (
     }
 
     if (
-      item?.product?.stock?.manageStock &&
-      Number(item?.product?.stock?.stockAvailable || 0) < item?.quantity
+      (item?.product?.stock?.manageStock &&
+        Number(item?.product?.stock?.stockAvailable || 0) < item?.quantity) ||
+      item?.product?.stock?.stockStatus === "Out of stock"
     ) {
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        `The product '${item.product.title}' is out of stock, Please contact the support team`
+        `The product '${item.product.title}' is 'Out of stock', please contact the support team`
       );
     }
 
