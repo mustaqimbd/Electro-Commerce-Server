@@ -170,6 +170,20 @@ const findOrderForUpdatingOrder = async (
       },
       {
         $lookup: {
+          from: "warranties",
+          localField: "productDetails.warranty",
+          foreignField: "_id",
+          as: "productWarrantyDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$productWarrantyDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
           from: "shippingcharges",
           localField: "shippingCharge",
           foreignField: "_id",
@@ -204,14 +218,19 @@ const findOrderForUpdatingOrder = async (
             $push: {
               _id: "$productDetails._id",
               product: "$productDetails.product",
+              productTitle: "$productDetails.productInfo.title",
               attributes: "$productDetails.attributes",
               unitPrice: "$productDetails.unitPrice",
               quantity: "$productDetails.quantity",
               total: "$productDetails.total",
               warranty: "$productDetails.warranty",
+              productWarrantyDetails: {
+                warrantyCodes: "$productWarrantyDetails.warrantyCodes",
+              },
               isWarrantyClaim: "$productDetails.isWarrantyClaim",
               claimedCodes: "$productDetails.claimedCodes",
               variation: "$productDetails.variation",
+              variations: "$productDetails.productInfo.variations",
               isVariationDeleted: {
                 $cond: {
                   if: {
@@ -420,6 +439,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       deliveryStatus: 1,
       reasonNotes: 1,
       createdAt: 1,
+      courierDetails: 1,
     },
   },
   {
@@ -568,6 +588,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       followUpDate: { $first: "$followUpDate" },
       orderSource: { $first: "$orderSource" },
       statusHistory: { $first: "$statusHistory" },
+      courierDetails: { $first: "$courierDetails" },
       products: {
         $push: {
           $cond: {

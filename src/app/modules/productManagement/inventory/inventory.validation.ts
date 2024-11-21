@@ -7,7 +7,7 @@ const inventory = z
     stockQuantity: z.number().optional().default(0),
     stockAvailable: z.number().optional().default(0),
     preStockQuantity: z.number().optional().default(0),
-    // sku: z.string().trim().optional(),
+    sku: z.string().trim().min(1, { message: "SKU is required!" }),
     // productCode: z.string().trim().optional(),
     manageStock: z.boolean().optional(),
     lowStockWarning: z.number().min(0).optional(),

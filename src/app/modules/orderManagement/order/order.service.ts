@@ -14,6 +14,7 @@ import { InventoryModel } from "../../productManagement/inventory/inventory.mode
 import { TPrice } from "../../productManagement/price/price.interface";
 import { TVariation } from "../../productManagement/product/product.interface";
 import ProductModel from "../../productManagement/product/product.model";
+import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
 import { TShipping } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
@@ -206,6 +207,8 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing",
     "warranty added",
     "processing done",
+    "returned",
+    "partial completed",
   ];
 
   if (query.search) {
@@ -275,6 +278,8 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing": 0,
     "warranty added": 0,
     "processing done": 0,
+    returned: 0,
+    "partial completed": 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -308,7 +313,11 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   query: Record<string, string>
 ) => {
   const matchQuery: Record<string, unknown> = {};
-  const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
+  const acceptableStatus: TOrderStatus[] = [
+    "processing done",
+    "On courier",
+    "completed",
+  ];
 
   if (query.search) {
     acceptableStatus.push(
@@ -376,6 +385,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   const statusMap = {
     "processing done": 0,
     "On courier": 0,
+    completed: 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -478,7 +488,6 @@ const getOrdersByDeliveryStatusFromDB = async (
     delivered: 0,
     cancelled: 0,
     partial_delivered: 0,
-    unknown: 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -486,6 +495,7 @@ const getOrdersByDeliveryStatusFromDB = async (
         deliveryStatus: {
           $in: Object.keys(statusMap),
         },
+        status: "On courier",
       },
     },
     {
@@ -971,6 +981,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     followUpDate,
     riderNotes,
     productDetails: updatedProductDetails,
+    status,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
   const findOrder = await OrderHelper.findOrderForUpdatingOrder(id);
@@ -1013,35 +1024,66 @@ const updateOrderDetailsByAdminIntoDB = async (
             findOrder.productDetails.splice(existingProductIndex, 1);
           } else {
             // Update existing product details
-            const currentOrder = findOrder.productDetails[
+            const currentProduct = findOrder.productDetails[
               existingProductIndex
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ] as any;
-            // console.log(currentOrder);
-            const previousQuantity = currentOrder.quantity;
+
+            const previousQuantity = currentProduct.quantity;
             if (updatedProduct.quantity) {
-              currentOrder.total =
-                currentOrder.unitPrice * updatedProduct.quantity;
-              currentOrder.quantity = updatedProduct.quantity;
+              currentProduct.total =
+                currentProduct.unitPrice * updatedProduct.quantity;
+              currentProduct.quantity = updatedProduct.quantity;
+
+              if (currentProduct?.warranty) {
+                if (
+                  (updatedProduct?.warrantyCodes?.length || 0) !==
+                  currentProduct?.quantity
+                ) {
+                  throw new ApiError(
+                    httpStatus.BAD_REQUEST,
+                    `Product '${currentProduct?.productTitle}' quantity is ${currentProduct?.quantity} but got ${updatedProduct?.warrantyCodes?.length || 0} warranty codes. Please update warranty codes`
+                  );
+                }
+
+                const seen = new Set();
+                for (const item of updatedProduct?.warrantyCodes || []) {
+                  if (seen.has(item.code)) {
+                    throw new ApiError(
+                      httpStatus.BAD_REQUEST,
+                      `Warranty codes for product '${currentProduct?.productTitle}' - code ${item.code} got more than once`
+                    );
+                  }
+                  seen.add(item.code);
+                }
+
+                await Warranty.updateOne(
+                  { _id: new Types.ObjectId(currentProduct?.warranty) },
+                  {
+                    $set: {
+                      warrantyCodes: updatedProduct?.warrantyCodes,
+                    },
+                  }
+                );
+              }
             }
-            if (currentOrder.selectedVariation)
-              currentOrder.variation =
-                currentOrder.selectedVariation || undefined;
+            if (updatedProduct.variation)
+              currentProduct.variation = currentProduct.variation || undefined;
 
             if (
-              currentOrder.isWarrantyClaim &&
+              currentProduct.isWarrantyClaim &&
               updatedProduct.isWarrantyClaim === false
             ) {
-              currentOrder.isWarrantyClaim = false;
-              currentOrder.claimedCodes = undefined;
+              currentProduct.isWarrantyClaim = false;
+              currentProduct.claimedCodes = undefined;
             }
 
             if (
-              currentOrder.isWarrantyClaim &&
+              currentProduct.isWarrantyClaim &&
               updatedProduct?.claimedCodes?.length
             ) {
               if (
-                updatedProduct?.claimedCodes?.length !== currentOrder.quantity
+                updatedProduct?.claimedCodes?.length !== currentProduct.quantity
               ) {
                 throw new ApiError(
                   httpStatus.BAD_REQUEST,
@@ -1051,10 +1093,10 @@ const updateOrderDetailsByAdminIntoDB = async (
             }
 
             if (updatedProduct.isWarrantyClaim) {
-              currentOrder.isWarrantyClaim = updatedProduct.isWarrantyClaim;
-              currentOrder.claimedCodes = updatedProduct.claimedCodes;
+              currentProduct.isWarrantyClaim = updatedProduct.isWarrantyClaim;
+              currentProduct.claimedCodes = updatedProduct.claimedCodes;
               if (
-                currentOrder?.claimedCodes?.length !== currentOrder.quantity
+                currentProduct?.claimedCodes?.length !== currentProduct.quantity
               ) {
                 throw new ApiError(
                   httpStatus.BAD_REQUEST,
@@ -1063,7 +1105,7 @@ const updateOrderDetailsByAdminIntoDB = async (
               }
             }
             const quantityCalculation =
-              currentOrder?.inventoryInfo?.stockAvailable +
+              currentProduct?.inventoryInfo?.stockAvailable +
               previousQuantity -
               updatedProduct.quantity;
 
@@ -1071,13 +1113,13 @@ const updateOrderDetailsByAdminIntoDB = async (
               updatedProduct.quantity &&
               previousQuantity !== updatedProduct.quantity
             ) {
-              if (currentOrder.inventoryInfo?.manageStock) {
-                if (currentOrder.variation) {
-                  if (currentOrder.isVariationDeleted !== true) {
+              if (currentProduct.inventoryInfo.manageStock) {
+                if (currentProduct.variation) {
+                  if (currentProduct.isVariationDeleted !== true) {
                     await ProductModel.updateOne(
                       {
-                        _id: currentOrder.product,
-                        "variations._id": currentOrder.variation,
+                        _id: currentProduct.product,
+                        "variations._id": currentProduct.variation,
                       },
                       {
                         "variations.$.inventory.stockAvailable":
@@ -1087,7 +1129,7 @@ const updateOrderDetailsByAdminIntoDB = async (
                   }
                 } else {
                   await InventoryModel.updateOne(
-                    { _id: currentOrder.inventoryInfo._id },
+                    { _id: currentProduct.inventoryInfo._id },
                     { stockAvailable: quantityCalculation },
                     { session }
                   );
@@ -1258,6 +1300,12 @@ const updateOrderDetailsByAdminIntoDB = async (
       decrements += discount;
     } else {
       decrements += findOrder.discount || 0;
+    }
+
+    if (status) {
+      if (status !== "partial completed")
+        throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
+      updatedDoc.status = status;
     }
 
     const totalIncDec = increments - decrements;

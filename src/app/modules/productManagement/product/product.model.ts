@@ -50,7 +50,7 @@ export const productVariationsSchema = new Schema<TVariation>({
     priceSave: { type: Number },
   },
   inventory: {
-    // sku: { type: String, unique: true, sparse: true },
+    sku: { type: String, unique: true, sparse: true },
     stockStatus: { type: String, enum: [...stockStatus], required: true },
     stockQuantity: { type: Number, required: true },
     stockAvailable: { type: Number, required: true },
