@@ -17,8 +17,15 @@ const getCartInfo = catchAsync(async (req: Request, res: Response) => {
 
 const addToCart = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as TOptionalAuthGuardPayload;
+  const { eventId, ...data } = req.body;
 
-  await CartServices.addToCartIntoDB(user, req.body);
+  await CartServices.addToCartIntoDB(
+    user,
+    data,
+    req.ip || "",
+    req.headers["user-agent"] || "",
+    eventId
+  );
   successResponse(res, {
     statusCode: httpStatus.CREATED,
     message: "Added to cart successfully",

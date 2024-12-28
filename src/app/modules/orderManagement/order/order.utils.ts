@@ -1,10 +1,11 @@
+import { Request } from "express";
 import httpStatus from "http-status";
 import mongoose, { ClientSession, PipelineStage, Types } from "mongoose";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
-import { purchaseEventHelper } from "../../../helper/conversationAPI.helper";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
+import { ConversationAPI } from "../../../utilities/ConversationAPI/ConversationAPI";
 import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
@@ -189,10 +190,10 @@ export const createNewOrder = async (
     ? new Types.ObjectId(userQuery.userId)
     : undefined;
 
-  let singleOrder: { product: string; quantity: number } = {
-    product: "",
-    quantity: 0,
-  };
+  // let singleOrder: { product: string; quantity: number } = {
+  //   product: "",
+  //   quantity: 0,
+  // };
   let totalCost = 0;
 
   const orderData: Partial<TOrder> = {};
@@ -558,10 +559,10 @@ export const createNewOrder = async (
 
   orderData.productDetails = finalOrderedProductData as TProductDetails[];
 
-  singleOrder = {
-    product: String(orderedProductInfo[0]?.product?._id),
-    quantity: orderedProductInfo[0].quantity,
-  };
+  // singleOrder = {
+  //   product: String(orderedProductInfo[0]?.product?._id),
+  //   quantity: orderedProductInfo[0].quantity,
+  // };
   // create payment document
   const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
   if (!paymentMethod) {
@@ -673,17 +674,29 @@ export const createNewOrder = async (
   }
 
   if (!custom && !warrantyClaimOrderData?.warrantyClaim) {
-    purchaseEventHelper(
-      shipping,
-      {
-        productId: singleOrder.product,
-        quantity: singleOrder.quantity,
-        totalCost,
+    await ConversationAPI({
+      eventName: "Purchase",
+      userData: {
+        ip: (payload.ip as string) || "",
+        userAgent:
+          ((payload as unknown as Request)?.headers!["user-agent"] as string) ||
+          "",
       },
-      orderSource,
-      payload,
-      eventId
-    );
+      custom_data: { value: totalCost },
+      eventId,
+    });
+
+    // purchaseEventHelper(
+    //   shipping,
+    //   {
+    //     productId: singleOrder.product,
+    //     quantity: singleOrder.quantity,
+    //     totalCost,
+    //   },
+    //   orderSource,
+    //   payload,
+    //   eventId
+    // );
   }
 
   return orderRes;
