@@ -741,6 +741,7 @@ const updateProcessingStatusIntoDB = async (
     "processing",
     "warranty added",
     "processing done",
+    "warranty processing",
   ];
   const acceptableStatus = ["warranty added", "processing done", "canceled"];
   if (![...acceptableStatus].includes(status)) {
