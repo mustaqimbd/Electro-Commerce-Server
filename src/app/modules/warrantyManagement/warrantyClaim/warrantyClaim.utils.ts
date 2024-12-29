@@ -107,6 +107,7 @@ const getWarrantyData = async (
             warrantyCodes: "$warranty.warrantyCodes",
           },
           variation: "$productDetails.variation",
+          attributes: "$productDetails.attributes",
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
         },
@@ -184,8 +185,19 @@ const validateWarranty = async ({
       warranty.products as {
         _id: Types.ObjectId;
         productId: Types.ObjectId;
-        warranty: { warrantyCodes: { code: string }[]; endsDate: string };
+        warranty: {
+          warrantyCodes: { code: string }[];
+          endsDate: string;
+          duration?: string;
+          startDate?: string;
+        };
         variation: Types.ObjectId;
+        attributes?: {
+          [key: string]: string;
+        };
+        duration?: string;
+        startDate?: string;
+        endsDate?: string;
       }[]
     ).map((product) => {
       if (product?.warranty?.warrantyCodes)
@@ -193,6 +205,7 @@ const validateWarranty = async ({
           ...product.warranty.warrantyCodes.map(({ code }) => code)
         );
       const endsDate = new Date(product?.warranty?.endsDate);
+
       const today = new Date();
       if (today > endsDate) {
         const expiredCodes = product.warranty.warrantyCodes
@@ -211,9 +224,20 @@ const validateWarranty = async ({
       const data: Record<string, unknown> = {
         order_id: warranty._id,
       };
+
       data.orderItemId = product._id;
       data.productId = product.productId;
       data.variation = product.variation;
+      data.attributes = Object.keys(product?.attributes || {})?.length
+        ? product.attributes
+        : undefined;
+      data.prevWarrantyInformation = {
+        duration: product?.warranty?.duration,
+        startDate: product?.warranty?.startDate,
+        endsDate: product?.warranty?.endsDate,
+      };
+
+      // throw new ApiError(400, "Break");
       data.claimedCodes = product?.warranty?.warrantyCodes
         .map((item) =>
           warrantyCodes.includes(item.code) ? item.code : undefined

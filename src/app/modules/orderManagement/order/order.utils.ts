@@ -222,7 +222,8 @@ export const createNewOrder = async (
     warrantyClaimOrderData?.productsDetails
   ) {
     orderedProductInfo = await OrderHelper.sanitizeOrderedProducts(
-      warrantyClaimOrderData?.productsDetails as TProductDetails[]
+      warrantyClaimOrderData?.productsDetails as TProductDetails[],
+      true
     );
   } else {
     fromWebsite = true;
@@ -441,6 +442,7 @@ export const createNewOrder = async (
     orderedProductInfo = cart;
   }
 
+  // throw new ApiError(400, "Break");
   if (config.env === "production") {
     if (salesPage || fromWebsite) {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -463,11 +465,16 @@ export const createNewOrder = async (
   }
 
   const orderedProductData = orderedProductInfo?.map((item) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const attributes = (item.product as any)?.variationDetails?.variations
-      ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (item.product as any)?.variationDetails?.variations![0]?.attributes
-      : undefined;
+    let attributes;
+    if (item.isWarrantyClaim) {
+      attributes = item?.attributes;
+    } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      attributes = (item.product as any)?.variationDetails?.variations
+        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (item.product as any)?.variationDetails?.variations![0]?.attributes
+        : undefined;
+    }
 
     if (item.variation && item.product.isVariationAvailable === false) {
       throw new ApiError(
@@ -505,6 +512,7 @@ export const createNewOrder = async (
       total: Math.round(item?.quantity * price),
       isWarrantyClaim: item?.isWarrantyClaim,
       claimedCodes: item?.claimedCodes,
+      prevWarrantyInformation: item?.prevWarrantyInformation,
       variation: item?.variation,
       attributes,
     };

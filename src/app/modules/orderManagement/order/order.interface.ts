@@ -7,7 +7,10 @@ import {
 } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
 import { TWarranty } from "../../warrantyManagement/warranty/warranty.interface";
-import { TClaimedCodes } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
+import {
+  TClaimedCodes,
+  TWarrantyClaimPrevWarrantyInformation,
+} from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TShipping } from "../shipping/shipping.interface";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
@@ -59,6 +62,7 @@ export type TProductDetails = {
   claimedCodes?: {
     code: string;
   }[];
+  prevWarrantyInformation?: TWarrantyClaimPrevWarrantyInformation;
 } & Document;
 
 export type TCourierDetails = {
@@ -114,6 +118,10 @@ export type TSanitizedOrProduct = {
   variation?: Types.ObjectId;
   isWarrantyClaim?: boolean;
   claimedCodes?: TClaimedCodes[];
+  prevWarrantyInformation?: TWarrantyClaimPrevWarrantyInformation;
+  attributes?: {
+    [key: string]: string;
+  };
 };
 
 export type TCourierResponse = {
