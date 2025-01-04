@@ -56,6 +56,21 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
             type: [String],
             required: true,
           },
+          attributes: {
+            type: Map,
+            of: String,
+          },
+          prevWarrantyInformation: {
+            duration: {
+              type: String,
+            },
+            startDate: {
+              type: String,
+            },
+            endsDate: {
+              type: String,
+            },
+          },
         },
       ],
       required: true,

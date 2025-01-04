@@ -13,6 +13,7 @@ import {
   TWarrantyClaimedContactStatus,
   TWarrantyClaimedProductCondition,
   TWarrantyClaimedProductDetails,
+  TWarrantyClaimPrevWarrantyInformation,
   TWarrantyClaimReqData,
 } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
@@ -219,10 +220,16 @@ const createNewWarrantyClaimOrderIntoDB = async (
         productId,
         claimedCodes,
         variation,
+        attributes,
+        prevWarrantyInformation,
       }: {
         productId: Types.ObjectId;
         claimedCodes: string[];
         variation?: Types.ObjectId | TVariation;
+        prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
+        attributes?: {
+          [key: string]: string;
+        };
       }) => ({
         product: productId,
         quantity: claimedCodes?.length,
@@ -230,6 +237,8 @@ const createNewWarrantyClaimOrderIntoDB = async (
           ? new Types.ObjectId(variation.toString())
           : undefined,
         claimedCodes: claimedCodes.map((item) => ({ code: item })),
+        prevWarrantyInformation,
+        attributes,
       })
     ) as Partial<TWarrantyClaimedProductDetails[]>;
 

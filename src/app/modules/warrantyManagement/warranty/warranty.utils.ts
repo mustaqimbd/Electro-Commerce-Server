@@ -54,6 +54,8 @@ export const findOrderWithWarrantyPipeline = (
           warranty: "$productInfo.warranty",
           warrantyInfo: "$productInfo.warrantyInfo",
         },
+        prevWarrantyInformation: "$productDetails.prevWarrantyInformation",
+        isWarrantyClaim: "$productDetails.isWarrantyClaim",
         warranty: {
           _id: "$warranty._id",
           warrantyCodes: "$warranty.warrantyCodes",

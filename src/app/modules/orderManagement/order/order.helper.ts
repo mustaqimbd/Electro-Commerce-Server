@@ -15,7 +15,8 @@ import { Order } from "./order.model";
 type TsnOrderProduct = TProductDetails[] | TWarrantyClaimedProductDetails[];
 
 const sanitizeOrderedProducts = async (
-  orderedProducts: TsnOrderProduct
+  orderedProducts: TsnOrderProduct,
+  isWarrantyClaim: boolean = false
 ): Promise<TSanitizedOrProduct[]> => {
   const data: TSanitizedOrProduct[] = [];
   for (const item of orderedProducts) {
@@ -126,8 +127,20 @@ const sanitizeOrderedProducts = async (
       variation: item?.variation
         ? new Types.ObjectId(String(item?.variation))
         : undefined,
-      isWarrantyClaim: !!item?.claimedCodes?.length,
-      claimedCodes: item?.claimedCodes?.length ? item?.claimedCodes : undefined,
+      attributes: isWarrantyClaim
+        ? Object.keys(item.attributes || {})?.length
+          ? item.attributes
+          : undefined
+        : undefined,
+      isWarrantyClaim: isWarrantyClaim,
+      claimedCodes: isWarrantyClaim
+        ? item?.claimedCodes?.length
+          ? item?.claimedCodes
+          : undefined
+        : undefined,
+      prevWarrantyInformation: isWarrantyClaim
+        ? item.prevWarrantyInformation
+        : undefined,
     };
     data.push(sanitizedData);
   }

@@ -42,6 +42,17 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     ],
     default: undefined,
   },
+  prevWarrantyInformation: {
+    duration: {
+      type: String,
+    },
+    startDate: {
+      type: String,
+    },
+    endsDate: {
+      type: String,
+    },
+  },
 });
 
 const CourierDetailsSchema = new Schema<TCourierDetails>(

@@ -14,12 +14,23 @@ export type TWarrantyClaimedVideosAndImages = {
   path: string;
   fileType: string;
 };
+
+export type TWarrantyClaimPrevWarrantyInformation = {
+  duration?: string;
+  startDate?: string;
+  endsDate?: string;
+};
+
 export type TWarrantyClaimReqData = {
   order_id: Types.ObjectId;
   orderItemId: Types.ObjectId | TProductDetails;
   productId: Types.ObjectId;
   variation: Types.ObjectId | TVariation;
+  attributes?: {
+    [key: string]: string;
+  };
   claimedCodes: string[];
+  prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
 };
 
 export type TClaimedCodes = { code: string; _id?: Types.ObjectId };
@@ -44,4 +55,5 @@ export type TWarrantyClaim = TWarrantyClaimData & Document;
 
 export type TWarrantyClaimedProductDetails = TProductDetails & {
   claimedCodes: TClaimedCodes[];
+  prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
 };

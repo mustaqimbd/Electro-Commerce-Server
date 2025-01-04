@@ -86,9 +86,19 @@ const createWarrantyIntoDB = async (
             `Warranty for product: '${item?.product?.title}' is already exist`
           );
         }
-        const { startDate, endDate } = warrantyDuration(
-          item?.product?.warrantyInfo?.duration
-        );
+
+        let startDate, endDate;
+
+        if (item?.isWarrantyClaim === true) {
+          startDate = item?.prevWarrantyInformation?.startDate;
+          endDate = item?.prevWarrantyInformation?.endsDate;
+        } else {
+          const { startDate: s, endDate: e } = warrantyDuration(
+            item?.product?.warrantyInfo?.duration
+          );
+          startDate = s;
+          endDate = e;
+        }
 
         if (!startDate || !endDate) {
           throw new ApiError(
@@ -119,6 +129,9 @@ const createWarrantyIntoDB = async (
             $set: {
               "productDetails.$.warranty": warrantyRes._id,
               status: "warranty added",
+            },
+            $unset: {
+              "productDetails.$.prevWarrantyInformation": 1,
             },
           },
           { session }
