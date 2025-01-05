@@ -1,11 +1,9 @@
-import { Request } from "express";
 import httpStatus from "http-status";
 import mongoose, { ClientSession, PipelineStage, Types } from "mongoose";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
-import { ConversationAPI } from "../../../utilities/ConversationAPI/ConversationAPI";
 import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
@@ -151,7 +149,6 @@ export const createNewOrder = async (
     shipping,
     shippingCharge,
     orderNotes,
-    eventId,
     orderedProducts,
     orderSource,
     custom,
@@ -163,7 +160,6 @@ export const createNewOrder = async (
     shippingCharge: mongoose.Types.ObjectId;
     orderFrom: string;
     orderNotes: string;
-    eventId: string;
     orderSource: TOrderSource;
     custom: boolean;
     salesPage: boolean;
@@ -679,32 +675,6 @@ export const createNewOrder = async (
   // clear cart and cart items
   if (!salesPage || !custom || !warrantyClaimOrderData?.warrantyClaim) {
     await CartItem.deleteMany(userQuery).session(session);
-  }
-
-  if (!custom && !warrantyClaimOrderData?.warrantyClaim) {
-    await ConversationAPI({
-      eventName: "Purchase",
-      userData: {
-        ip: (payload.ip as string) || "",
-        userAgent:
-          ((payload as unknown as Request)?.headers!["user-agent"] as string) ||
-          "",
-      },
-      custom_data: { value: totalCost },
-      eventId,
-    });
-
-    // purchaseEventHelper(
-    //   shipping,
-    //   {
-    //     productId: singleOrder.product,
-    //     quantity: singleOrder.quantity,
-    //     totalCost,
-    //   },
-    //   orderSource,
-    //   payload,
-    //   eventId
-    // );
   }
 
   return orderRes;

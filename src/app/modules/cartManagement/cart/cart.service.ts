@@ -4,7 +4,6 @@ import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
-import { ConversationAPI } from "../../../utilities/ConversationAPI/ConversationAPI";
 import ProductModel from "../../productManagement/product/product.model";
 import { TCartItem, TCartItemData } from "../cartItem/cartItem.interface";
 import { CartItem } from "../cartItem/cartItem.model";
@@ -178,10 +177,7 @@ const getCartFromDB = async (user: TOptionalAuthGuardPayload) => {
 
 const addToCartIntoDB = async (
   user: TOptionalAuthGuardPayload,
-  payload: TCartItemData,
-  ip: string,
-  userAgent: string,
-  eventId: string
+  payload: TCartItemData
 ): Promise<void> => {
   const product = await ProductModel.findOne(
     { _id: payload.product },
@@ -215,15 +211,6 @@ const addToCartIntoDB = async (
     sessionId: user.sessionId,
     ...payload,
   };
-
-  await ConversationAPI({
-    eventName: "AddToCart",
-    userData: {
-      ip,
-      userAgent,
-    },
-    eventId,
-  });
   await CartItem.create(cartItemData);
 };
 
