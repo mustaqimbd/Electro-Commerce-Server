@@ -5,9 +5,11 @@ import path from "path";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
+import { Order } from "../../orderManagement/order/order.model";
 import { createNewOrder } from "../../orderManagement/order/order.utils";
 import { TShipping } from "../../orderManagement/shipping/shipping.interface";
 import { TVariation } from "../../productManagement/product/product.interface";
+import { Warranty } from "../warranty/warranty.model";
 import {
   TWarrantyClaim,
   TWarrantyClaimedContactStatus,
@@ -246,15 +248,42 @@ const createNewWarrantyClaimOrderIntoDB = async (
       warrantyClaim: true,
       productsDetails,
     });
+
+    claimReq?.warrantyClaimReqData?.forEach(
+      async (item) => {
+        const productDetails = (
+          await Order.findOne(
+            { _id: item.order_id },
+            { "productDetails.warranty": 1, "productDetails._id": 1 }
+          )
+        )?.productDetails;
+
+        const updatingWarrantyId = productDetails
+          ?.find((pdt) => pdt?._id?.toString() === item.orderItemId.toString())
+          ?.warranty?.toString();
+
+        await Warranty.updateOne(
+          {
+            _id: updatingWarrantyId,
+          },
+          { $pull: { warrantyCodes: { code: { $in: item.claimedCodes } } } }
+        );
+      },
+      { session }
+    );
+
+    // Update the warranty claim request
     await WarrantyClaim.findOneAndUpdate(
       { _id: id },
       {
         orderId: order._id,
         approvalStatus: "approved",
         finalCheckedBy: user.id,
+        videosAndImages: undefined,
       },
       { session }
     );
+
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -262,8 +291,6 @@ const createNewWarrantyClaimOrderIntoDB = async (
   } finally {
     await session.endSession();
   }
-  claimReq.videosAndImages = undefined;
-  await claimReq.save();
 
   return order;
 };
