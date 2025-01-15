@@ -108,6 +108,7 @@ const getWarrantyData = async (
           },
           variation: "$productDetails.variation",
           attributes: "$productDetails.attributes",
+          warrantyClaimHistory: "$productDetails.warrantyClaimHistory",
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
         },
@@ -141,6 +142,7 @@ const getWarrantyData = async (
     },
   ];
   const order = await Order.aggregate(pipeline);
+
   if (!order)
     throw new ApiError(httpStatus.BAD_REQUEST, "No warranty data found");
   return order;
@@ -195,6 +197,7 @@ const validateWarranty = async ({
         attributes?: {
           [key: string]: string;
         };
+        warrantyClaimHistory: Types.ObjectId;
         duration?: string;
         startDate?: string;
         endsDate?: string;
@@ -228,6 +231,7 @@ const validateWarranty = async ({
       data.orderItemId = product._id;
       data.productId = product.productId;
       data.variation = product.variation;
+      data.warrantyClaimHistory = product.warrantyClaimHistory;
       data.attributes = Object.keys(product?.attributes || {})?.length
         ? product.attributes
         : undefined;
@@ -237,7 +241,6 @@ const validateWarranty = async ({
         endsDate: product?.warranty?.endsDate,
       };
 
-      // throw new ApiError(400, "Break");
       data.claimedCodes = product?.warranty?.warrantyCodes
         .map((item) =>
           warrantyCodes.includes(item.code) ? item.code : undefined

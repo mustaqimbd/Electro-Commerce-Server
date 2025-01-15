@@ -3,6 +3,7 @@ import { TProductDetails } from "../../orderManagement/order/order.interface";
 import { TShipping } from "../../orderManagement/shipping/shipping.interface";
 import { TVariation } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
+import { TWarrantyClaimHistory } from "../warrantyClaimHistory/warrantyClaimHistory.interface";
 
 export type TWarrantyClaimedContactStatus =
   | "pending"
@@ -31,6 +32,7 @@ export type TWarrantyClaimReqData = {
   };
   claimedCodes: string[];
   prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
+  warrantyClaimHistory: Types.ObjectId | TWarrantyClaimHistory;
 };
 
 export type TClaimedCodes = { code: string; _id?: Types.ObjectId };
@@ -56,4 +58,5 @@ export type TWarrantyClaim = TWarrantyClaimData & Document;
 export type TWarrantyClaimedProductDetails = TProductDetails & {
   claimedCodes: TClaimedCodes[];
   prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
+  warrantyClaimHistory: Types.ObjectId;
 };
