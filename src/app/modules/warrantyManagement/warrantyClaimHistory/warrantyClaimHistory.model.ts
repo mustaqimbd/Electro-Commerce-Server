@@ -4,15 +4,18 @@ import {
   TWCHClaims,
 } from "./warrantyClaimHistory.interface";
 
-const WCHClaim = new Schema<TWCHClaims>({
-  order_id: Schema.Types.ObjectId,
-  itemId: Schema.Types.ObjectId,
-  claimedCodes: [
-    {
-      type: String,
-    },
-  ],
-});
+const WCHClaim = new Schema<TWCHClaims>(
+  {
+    order_id: Schema.Types.ObjectId,
+    itemId: Schema.Types.ObjectId,
+    claimedCodes: [
+      {
+        type: String,
+      },
+    ],
+  },
+  { timestamps: true, versionKey: false }
+);
 
 const WarrantyClaimHistorySchema = new Schema<TWarrantyClaimHistory>(
   {

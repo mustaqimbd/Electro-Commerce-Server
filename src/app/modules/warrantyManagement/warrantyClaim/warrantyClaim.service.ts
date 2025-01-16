@@ -19,7 +19,12 @@ import {
 } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
+
 const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
+  if (!query.sort) {
+    query.sort = "-createdAt";
+  }
+
   const pipeline: PipelineStage[] = [
     {
       $match: {
@@ -28,22 +33,80 @@ const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
       },
     },
     {
+      $unwind: {
+        path: "$warrantyClaimReqData", // Separate each warrantyClaimReqData entry
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "products", // Collection name for products
+        localField: "warrantyClaimReqData.productId",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $lookup: {
+        from: "warranty_claim_histories", // Collection name for warranty claim histories
+        localField: "warrantyClaimReqData.warrantyClaimHistory",
+        foreignField: "_id",
+        as: "warrantyClaimHistory",
+      },
+    },
+    {
+      $unwind: {
+        path: "$warrantyClaimHistory",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
-        _id: 1,
-        reqId: 1,
+        videosAndImages: 1,
+        warrantyClaimReqData: {
+          _id: "$warrantyClaimReqData._id",
+          product: {
+            _id: {
+              $arrayElemAt: ["$productInfo._id", 0],
+            },
+            title: {
+              $arrayElemAt: ["$productInfo.title", 0],
+            },
+          },
+          warrantyClaimHistory: "$warrantyClaimHistory",
+          claimedCodes: "$warrantyClaimReqData.claimedCodes",
+          prevWarrantyInformation:
+            "$warrantyClaimReqData.prevWarrantyInformation",
+          variation: "$warrantyClaimReqData.variation",
+          attributes: "$warrantyClaimReqData.attributes",
+        },
         shipping: {
           fullName: "$shipping.fullName",
           phoneNumber: "$shipping.phoneNumber",
           fullAddress: "$shipping.fullAddress",
         },
+        reqId: 1,
         problemInDetails: 1,
-        videosAndImages: 1,
-        warrantyClaimReqData: 1,
         contactStatus: 1,
         result: 1,
         approvalStatus: 1,
         officialNotes: 1,
         createdAt: 1,
+      },
+    },
+    {
+      $group: {
+        _id: "$_id", // Group by warranty claim ID
+        reqId: { $first: "$reqId" },
+        videosAndImages: { $first: "$videosAndImages" },
+        problemInDetails: { $first: "$problemInDetails" },
+        contactStatus: { $first: "$contactStatus" },
+        result: { $first: "$result" },
+        approvalStatus: { $first: "$approvalStatus" },
+        officialNotes: { $first: "$officialNotes" },
+        shipping: { $first: "$shipping" },
+        createdAt: { $first: "$createdAt" },
+        warrantyClaimReqData: { $push: "$warrantyClaimReqData" },
       },
     },
   ];
@@ -57,6 +120,7 @@ const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
   const data = await resultQuery.model;
   const total = (await WarrantyClaim.aggregate(pipeline)).length;
   const meta = resultQuery.metaData(total);
+
   return { data, meta };
 };
 
