@@ -11,6 +11,7 @@ import {
   TClaimedCodes,
   TWarrantyClaimPrevWarrantyInformation,
 } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
+import { TWarrantyClaimHistory } from "../../warrantyManagement/warrantyClaimHistory/warrantyClaimHistory.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TShipping } from "../shipping/shipping.interface";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
@@ -59,6 +60,7 @@ export type TProductDetails = {
   total: number;
   warranty?: mongoose.Types.ObjectId | TWarranty;
   isWarrantyClaim?: boolean;
+  warrantyClaimHistory: Types.ObjectId | TWarrantyClaimHistory;
   claimedCodes?: {
     code: string;
   }[];
@@ -122,6 +124,7 @@ export type TSanitizedOrProduct = {
   attributes?: {
     [key: string]: string;
   };
+  warrantyClaimHistory?: Types.ObjectId;
 };
 
 export type TCourierResponse = {

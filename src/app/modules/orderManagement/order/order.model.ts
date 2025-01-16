@@ -32,6 +32,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     ref: "Warranty",
   },
   isWarrantyClaim: Boolean,
+  warrantyClaimHistory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "warranty_claim_histories",
+  },
   claimedCodes: {
     type: [
       {

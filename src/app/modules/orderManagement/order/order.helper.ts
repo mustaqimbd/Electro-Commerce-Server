@@ -141,6 +141,7 @@ const sanitizeOrderedProducts = async (
       prevWarrantyInformation: isWarrantyClaim
         ? item.prevWarrantyInformation
         : undefined,
+      warrantyClaimHistory: item.warrantyClaimHistory as Types.ObjectId,
     };
     data.push(sanitizedData);
   }
