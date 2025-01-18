@@ -988,7 +988,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     officialNotes,
     courierNotes,
     followUpDate,
-    riderNotes,
+    monitoringNotes,
     productDetails: updatedProductDetails,
     status,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1324,7 +1324,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
-    updatedDoc.riderNotes = riderNotes;
+    updatedDoc.monitoringNotes = monitoringNotes;
 
     await Order.findByIdAndUpdate(
       id,

@@ -171,7 +171,7 @@ const OrderSchema = new Schema<TOrder>(
     reasonNotes: {
       type: String,
     },
-    riderNotes: {
+    monitoringNotes: {
       type: String,
     },
     courierDetails: CourierDetailsSchema,
