@@ -1,4 +1,5 @@
 import mongoose, { Document, Types } from "mongoose";
+import { TCategory } from "../../productManagement/category/category.interface";
 import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { TPrice } from "../../productManagement/price/price.interface";
 import {
@@ -115,6 +116,7 @@ export type TSanitizedOrProduct = {
     stock: TInventory;
     defaultInventory: Types.ObjectId;
     isVariationAvailable?: boolean;
+    category: TCategory;
   };
   quantity: number;
   variation?: Types.ObjectId;

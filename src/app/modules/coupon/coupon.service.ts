@@ -1,35 +1,83 @@
 import httpStatus from "http-status";
-import { PipelineStage, Types } from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
 import ApiError from "../../errorHandlers/ApiError";
+import { AggregateQueryHelper } from "../../helper/query.helper";
 import { TJwtPayload } from "../authManagement/auth/auth.interface";
 import { TCouponData } from "./coupon.interface";
 import { Coupon } from "./coupon.model";
 
 const createCouponIntoDB = async (payload: TCouponData, user: TJwtPayload) => {
-  const isAlreadyExist = await Coupon.findOne({ code: payload.code });
-  if (isAlreadyExist)
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      `An coupon already exist with this code - ${payload.code}`
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const isAlreadyExist = await Coupon.findOne({ code: payload.code }).session(
+      session
     );
+    if (isAlreadyExist)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `An coupon already exist with this code - ${payload.code}`
+      );
 
-  const today = new Date(Date.now());
-  const endDate = new Date(payload.endDate);
+    const today = new Date(Date.now());
 
-  if (isNaN(endDate.getTime())) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid date input");
+    if (payload.startDate) {
+      const startDate = new Date(payload.startDate);
+      if (isNaN(startDate.getTime())) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid start date input");
+      }
+
+      if (today < startDate)
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "The selected start date must be a future date."
+        );
+    } else {
+      payload.startDate = new Date(Date.now());
+    }
+
+    const endDate = new Date(payload.endDate);
+
+    if (isNaN(endDate.getTime())) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid end date input");
+    }
+    if (today > endDate)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "The selected end date must be a future date."
+      );
+
+    // priorities the products
+    if (
+      payload?.fixedCategories?.length &&
+      payload?.fixedProducts?.length &&
+      payload?.restrictedCategories?.length
+    ) {
+      payload.fixedCategories = undefined;
+      payload.restrictedCategories = undefined;
+    } else if (
+      !payload?.fixedProducts?.length &&
+      payload?.fixedCategories?.length &&
+      payload?.restrictedCategories?.length
+    ) {
+      // keep the restricted condition
+      payload.fixedCategories = undefined;
+    }
+
+    payload.slug = payload.name.toLocaleLowerCase().split(" ").join("-");
+    payload.createdBy = user.id;
+    await Coupon.create([payload], { session });
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
   }
-  if (today > endDate)
-    throw new ApiError(
-      httpStatus.BAD_REQUEST,
-      "The selected end date must be a future date."
-    );
-  payload.slug = payload.name.toLocaleLowerCase().split(" ").join("-");
-  payload.createdBy = user.id;
-  await Coupon.create(payload);
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getAllCouponsFromBD = async (query: Record<string, string>) => {
   const pipeline: PipelineStage[] = [
     {
@@ -54,19 +102,17 @@ const getAllCouponsFromBD = async (query: Record<string, string>) => {
     },
   ];
 
-  // const couponQuery = new AggregateQueryHelper(
-  //   Coupon.aggregate(pipeline),
-  //   query
-  // )
-  //   .sort()
-  //   .paginate();
+  const couponQuery = new AggregateQueryHelper(
+    Coupon.aggregate(pipeline),
+    query
+  )
+    .sort()
+    .paginate();
 
-  const data = await Coupon.aggregate(pipeline);
+  const total = (await Coupon.aggregate([{ $count: "total" }]))![0]?.total || 0;
+  const meta = couponQuery.metaData(total);
 
-  // const total = (await Coupon.aggregate([{ $count: "total" }]))![0]?.total || 0;
-  // const meta = couponQuery.metaData(total);
-  const meta = undefined;
-  // const data = await couponQuery.model;
+  const data = await couponQuery.model;
 
   return { data, meta };
 };
@@ -135,6 +181,8 @@ const updateCouponCodeIntoDB = async (id: string, payload: TCouponData) => {
     }
   );
 };
+
+// const calculateCouponDIscount = async () => {};
 
 export const CouponServices = {
   createCouponIntoDB,

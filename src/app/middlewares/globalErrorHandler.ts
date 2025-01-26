@@ -9,6 +9,7 @@ import handleMongooseCastError from "../errorHandlers/handleMongooseCastError";
 import handleMongooseDuplicateError from "../errorHandlers/handleMongooseDuplicateError";
 import handleMongooseValidationError from "../errorHandlers/handleMongooseValidationError";
 import { TErrorMessages, TIErrorResponse } from "../types/error";
+import { consoleLogger } from "../utilities/logger";
 
 /**
  * The function `globalErrorhandler` handles various types of errors and sends a formatted response
@@ -38,6 +39,11 @@ const globalErrorhandler: ErrorRequestHandler = (
   let statusCode = 500;
   let message =
     "Something went wrong. Please try again later or contact to the support";
+
+  if (config.env === "development") {
+    consoleLogger.error(err);
+  }
+
   let errorMessages: TErrorMessages[] = [{ path: "", message }];
   if (err.name === "ValidationError") {
     const modifiedError: TIErrorResponse = handleMongooseValidationError(err);
