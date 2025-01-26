@@ -1517,6 +1517,7 @@ const orderCostAfterCoupon = async (
     couponDiscount,
     totalCostAfterCoupon,
     shippingId: shippingCharges._id,
+    shippingChange: shippingCharges.amount,
     couponId: coupon?._id,
   };
 };

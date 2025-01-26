@@ -2,7 +2,14 @@ import httpStatus from "http-status";
 import mongoose, { PipelineStage, Types } from "mongoose";
 import ApiError from "../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../helper/query.helper";
+import { TOptionalAuthGuardPayload } from "../../types/common";
+import optionalAuthUserQuery from "../../types/optionalAuthUserQuery";
 import { TJwtPayload } from "../authManagement/auth/auth.interface";
+import { OrderHelper } from "../orderManagement/order/order.helper";
+import {
+  TProductDetails,
+  TSanitizedOrProduct,
+} from "../orderManagement/order/order.interface";
 import { TCouponData } from "./coupon.interface";
 import { Coupon } from "./coupon.model";
 
@@ -182,11 +189,51 @@ const updateCouponCodeIntoDB = async (id: string, payload: TCouponData) => {
   );
 };
 
-// const calculateCouponDIscount = async () => {};
+const calculateCouponDiscount = async (
+  body: {
+    shippingCharge: mongoose.Types.ObjectId;
+    salesPage: boolean;
+    orderedProducts: TProductDetails[];
+    coupon?: string;
+  },
+  user: TOptionalAuthGuardPayload
+) => {
+  const userQuery = optionalAuthUserQuery(user);
+
+  userQuery.userId = userQuery.userId
+    ? new Types.ObjectId(userQuery.userId)
+    : undefined;
+  const { shippingCharge, orderedProducts, salesPage, coupon } = body;
+
+  if (!coupon)
+    throw new ApiError(httpStatus.BAD_REQUEST, "Please add a coupon.");
+
+  let orderedProductInfo: TSanitizedOrProduct[] = [];
+  if (salesPage) {
+    orderedProductInfo =
+      await OrderHelper.sanitizeOrderedProducts(orderedProducts);
+  } else {
+    const cart = await OrderHelper.sanitizeCartItemsForOrder(userQuery);
+    orderedProductInfo = cart;
+  }
+  const { cost } =
+    OrderHelper.validateAndSanitizeOrderedProducts(orderedProductInfo);
+
+  const { couponDiscount, shippingChange } =
+    await OrderHelper.orderCostAfterCoupon(
+      cost,
+      shippingCharge.toString(),
+      orderedProductInfo,
+      { couponCode: coupon, user }
+    );
+
+  return { couponDiscount, shippingChange, cost };
+};
 
 export const CouponServices = {
   createCouponIntoDB,
   getAllCouponsFromBD,
   getSingleCouponFromBD,
   updateCouponCodeIntoDB,
+  calculateCouponDiscount,
 };
