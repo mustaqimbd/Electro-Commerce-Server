@@ -42,6 +42,8 @@ route.get(
   CouponController.calculateCouponDiscount
 );
 
+route.get("/tags", CouponController.getAllTags);
+
 route.get("/:code", CouponController.getSingleCoupon);
 
 export const CouponRoutes = route;

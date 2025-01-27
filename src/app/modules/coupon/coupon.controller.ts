@@ -57,10 +57,20 @@ const calculateCouponDiscount = catchAsync(async (req, res) => {
   });
 });
 
+const getAllTags = catchAsync(async (req, res) => {
+  const result = await CouponServices.getAllTagsFromDB();
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "All tags retrieved successfully!",
+    data: result,
+  });
+});
+
 export const CouponController = {
   createCoupon,
   getAllCoupons,
   getSingleCoupon,
   updateCouponCode,
   calculateCouponDiscount,
+  getAllTags,
 };

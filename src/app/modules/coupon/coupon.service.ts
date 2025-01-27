@@ -230,10 +230,35 @@ const calculateCouponDiscount = async (
   return { couponDiscount, shippingChange, cost };
 };
 
+const getAllTagsFromDB = async () => {
+  const tags = (
+    await Coupon.aggregate([
+      {
+        $unwind: "$tags",
+      },
+      {
+        $group: {
+          _id: null,
+          tags: { $addToSet: "$tags" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          tags: 1,
+        },
+      },
+    ])
+  )[0];
+
+  return tags;
+};
+
 export const CouponServices = {
   createCouponIntoDB,
   getAllCouponsFromBD,
   getSingleCouponFromBD,
   updateCouponCodeIntoDB,
   calculateCouponDiscount,
+  getAllTagsFromDB,
 };
