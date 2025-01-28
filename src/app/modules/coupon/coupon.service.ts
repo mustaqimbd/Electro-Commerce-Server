@@ -85,26 +85,193 @@ const createCouponIntoDB = async (payload: TCouponData, user: TJwtPayload) => {
   }
 };
 
-const getAllCouponsFromBD = async (query: Record<string, string>) => {
+const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
+  if (!query.sort) query.sort = "-createdAt";
+
+  const matchQuery: Record<string, unknown> = {};
+
+  if (query.tags) {
+    query.tags = Array.isArray(query.tags) ? query.tags : [query.tags];
+    matchQuery.tags = query.tags;
+  }
+
+  if (query.search) {
+    const searchRegex = new RegExp(
+      Array.isArray(query.search) ? query.search[0] : query.search,
+      "i"
+    );
+
+    matchQuery.$or = [{ name: { $regex: searchRegex } }];
+  }
+
   const pipeline: PipelineStage[] = [
     {
       $match: {
         isDeleted: false,
+        ...matchQuery,
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "fixedCategories",
+        foreignField: "_id",
+        as: "fixedCategories",
+      },
+    },
+    {
+      $unwind: {
+        path: "$fixedCategories",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "restrictedCategories",
+        foreignField: "_id",
+        as: "restrictedCategories",
+      },
+    },
+    {
+      $unwind: {
+        path: "$restrictedCategories",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "fixedProducts",
+        foreignField: "_id",
+        as: "fixedProducts",
+      },
+    },
+    {
+      $unwind: {
+        path: "$fixedProducts",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $group: {
+        _id: "$_id",
+        name: { $first: "$name" },
+        slug: { $first: "$slug" },
+        shortDescription: { $first: "$shortDescription" },
+        code: { $first: "$code" },
+        discountType: { $first: "$discountType" },
+        discountValue: { $first: "$discountValue" },
+        maxDiscount: { $first: "$maxDiscount" },
+        minimumOrderValue: { $first: "$minimumOrderValue" },
+        startDate: { $first: "$startDate" },
+        usageLimit: { $first: "$usageLimit" },
+        usageCount: { $first: "$usageCount" },
+        onlyForRegisteredUsers: { $first: "$onlyForRegisteredUsers" },
+        allowedUsers: { $first: "$allowedUsers" },
+        fixedCategories: {
+          $push: {
+            _id: "$fixedCategories._id",
+            name: "$fixedCategories.name",
+          },
+        },
+        restrictedCategories: {
+          $push: {
+            _id: "$restrictedCategories._id",
+            name: "$restrictedCategories.name",
+          },
+        },
+        fixedProducts: {
+          $push: {
+            _id: "$fixedProducts._id",
+            title: "$fixedProducts.title",
+            // image: {
+            //   src: "$productThumb.src",
+            //   alt: "$productThumb.alt",
+            // },
+          },
+        },
+        endDate: { $first: "$endDate" },
+        tags: { $first: "$tags" },
+        isActive: { $first: "$isActive" },
+        isDeleted: { $first: "$isDeleted" },
+        createdAt: { $first: "$createdAt" },
       },
     },
     {
       $project: {
+        _id: 0,
         name: 1,
         slug: 1,
         shortDescription: 1,
         code: 1,
-        percentage: 1,
+        discountType: 1,
+        discountValue: 1,
+        maxDiscount: 1,
+        minimumOrderValue: 1,
+        startDate: 1,
+        usageLimit: 1,
+        usageCount: 1,
+        onlyForRegisteredUsers: 1,
+        allowedUsers: {
+          $cond: {
+            if: { $eq: ["$allowedUsers", []] }, // Check if empty array
+            then: undefined, // Set as undefined
+            else: "$allowedUsers", // Otherwise, keep the value
+          },
+        },
+        fixedCategories: {
+          $filter: {
+            input: "$fixedCategories",
+            as: "fCat",
+            cond: { $ne: ["$$fCat", {}] },
+          },
+        },
+        restrictedCategories: {
+          $filter: {
+            input: "$restrictedCategories",
+            as: "rCat",
+            cond: { $ne: ["$$rCat", {}] },
+          },
+        },
+        fixedProducts: {
+          $filter: {
+            input: "$fixedProducts",
+            as: "product",
+            cond: { $ne: ["$$product", {}] },
+          },
+        },
         endDate: 1,
-        maxDiscountAmount: 1,
-        limitDiscountAmount: 1,
+        tags: 1,
         isActive: 1,
         isDeleted: 1,
         createdAt: 1,
+      },
+    },
+    {
+      $addFields: {
+        fixedProducts: {
+          $cond: {
+            if: { $eq: ["$fixedProducts", []] },
+            then: undefined,
+            else: "$fixedProducts",
+          },
+        },
+        fixedCategories: {
+          $cond: {
+            if: { $eq: ["$fixedCategories", []] },
+            then: undefined,
+            else: "$fixedCategories",
+          },
+        },
+        restrictedCategories: {
+          $cond: {
+            if: { $eq: ["$restrictedCategories", []] },
+            then: undefined,
+            else: "$restrictedCategories",
+          },
+        },
       },
     },
   ];
