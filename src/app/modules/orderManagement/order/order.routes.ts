@@ -25,7 +25,7 @@ router.get(
 router.get(
   "/admin/order-id/:id",
   // authGuard({
-  //   requiredRoles: ["admin", "staff"],
+  //   requiredRoles: ["superAdmin", "admin", "staff"],
   //   //   requiredPermission: "manage orders",
   // }),
   OrderController.getOrderInfoByOrderIdAdmin
@@ -41,7 +41,7 @@ router.get(
   "/admin/all-orders",
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage orders",
   }),
   OrderController.getAllOrdersAdmin
@@ -51,7 +51,7 @@ router.get(
   "/admin/processing-orders",
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage warehouse",
   }),
   OrderController.getProcessingOrdersAdmin
@@ -61,7 +61,7 @@ router.get(
   "/admin/processing-done-on-courier-orders",
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage courier",
   }),
   OrderController.getProcessingDoneCourierOrdersAdmin
@@ -71,7 +71,7 @@ router.get(
   "/admin/order-deliver-status",
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     // requiredPermission: "manage courier",
   }),
   OrderController.getOrdersByDeliveryStatus
@@ -80,7 +80,7 @@ router.get(
 router.patch(
   "/update-status",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage orders",
   }),
   validateRequest(OrderValidation.updateOrderStatus),
@@ -90,7 +90,7 @@ router.patch(
 router.patch(
   "/update-processing-status",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage warehouse",
   }),
   validateRequest(OrderValidation.updateProcessingStatus),
@@ -100,7 +100,7 @@ router.patch(
 router.patch(
   "/book-courier-and-update-status",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage courier",
   }),
   validateRequest(OrderValidation.bookCourierAndUpdateStatus),
@@ -109,14 +109,14 @@ router.patch(
 
 router.patch(
   "/update-order/:id",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   validateRequest(OrderValidation.updateOrderDetailsByAdmin),
   OrderController.updateOrderDetailsByAdmin
 );
 
 router.delete(
   "/delete-many",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   validateRequest(OrderValidation.deleteOrders),
   OrderController.deleteOrdersById
 );
@@ -124,7 +124,7 @@ router.delete(
 router.get(
   "/orders-count-by-status",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "super admin",
   }),
   OrderController.orderCountsByStatus
@@ -133,7 +133,7 @@ router.get(
 router.post(
   "/update-order-delivery-status",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage courier",
   }),
   OrderController.updateOrdersDeliveryStatus
@@ -142,7 +142,7 @@ router.post(
 router.get(
   "/get-customer-order-count/:phoneNumber",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     // requiredPermission: "manage orders",
   }),
   OrderController.getCustomersOrdersCountByPhone
@@ -153,10 +153,18 @@ router.get("/track/:orderId", OrderController.getOrderTrackingInfo);
 router.patch(
   "/manage-return-partial",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage warehouse",
   }),
   OrderController.returnAndPartialManagement
+);
+
+router.get(
+  "/fraud-check/:mobile",
+  // authGuard({
+  //   requiredRoles: ["superAdmin", "admin", "staff"],
+  // }),
+  OrderController.fraudCheck
 );
 
 export const OrderRoutes = router;

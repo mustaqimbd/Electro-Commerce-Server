@@ -19,7 +19,7 @@ router.post(
 router.get(
   "/",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage image to order",
   }),
   ImageToOrderController.getAllReqAdmin
@@ -28,7 +28,7 @@ router.get(
 router.get(
   "/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage image to order",
   }),
   ImageToOrderController.getReqByIdAdmin
@@ -37,7 +37,7 @@ router.get(
 router.patch(
   "/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage image to order",
   }),
   validateRequest(ImageToOrderValidate.updateRequest),
@@ -47,7 +47,7 @@ router.patch(
 router.post(
   "/create-order/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage image to order",
   }),
   validateRequest(ImageToOrderValidate.createOrder),

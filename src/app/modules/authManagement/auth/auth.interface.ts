@@ -17,6 +17,7 @@ export type TJwtPayload = {
   role: string;
   sessionId: string;
   data: TUser;
+  permissions: string[];
 };
 
 export type TRefreshTokenResponse = {

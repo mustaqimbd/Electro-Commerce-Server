@@ -11,7 +11,7 @@ router.get("/", ShippingChargeController.getShippingCharges);
 router.get(
   "/admin",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage shipping charges",
   }),
   ShippingChargeController.getShippingChargesAdmin
@@ -20,7 +20,7 @@ router.get(
 router.post(
   "/",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage shipping charges",
   }),
   validateRequest(ShippingCHargeValidation.createShippingCharge),
@@ -30,7 +30,7 @@ router.post(
 router.patch(
   "/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage shipping charges",
   }),
   validateRequest(ShippingCHargeValidation.updateShippingCharge),

@@ -2,7 +2,7 @@ import { consoleLogger, errorLogger, logger } from "./app/utilities/logger";
 
 process.on("uncaughtException", (error) => {
   consoleLogger.error(
-    "😴 `Uncaught exception` happened, exiting the process and  closing the server.",
+    "❌ `Uncaught exception` happened, exiting the process and  closing the server.",
     error
   );
   consoleLogger.error(error);
@@ -24,11 +24,11 @@ let server: Server;
 const bootstrap = async () => {
   try {
     await mongoose.connect(config.DBUrl as string);
-    consoleLogger.info(`👉 The server is running on ${config.env} mode`);
-    logger.info(`👌 Database is connected successfully.`);
+    consoleLogger.info(`✅ The server is running on ${config.env} mode`);
+    logger.info(`✅ Database is connected successfully.`);
     server = app.listen(config.port, () => {
       logger.info(
-        `😍 The server is running on http://localhost:${config.port}`
+        `✅ The server is running on http://localhost:${config.port}`
       );
     });
     await seedSuperAdmin();
@@ -39,7 +39,7 @@ const bootstrap = async () => {
 
   process.on("unhandledRejection", (error) => {
     errorLogger.error(
-      `😴 Unhandled rejection happened. Exiting the process.`,
+      `❌ Unhandled rejection happened. Exiting the process.`,
       error
     );
     if (server) {

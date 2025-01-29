@@ -8,14 +8,14 @@ const router = Router();
 
 router.post(
   "/",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   validateRequest(ValidateWarranty.createWarranty),
   WarrantyController.createWarranty
 );
 
 router.patch(
   "/",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   validateRequest(ValidateWarranty.createWarranty),
   WarrantyController.updateWarranty
 );

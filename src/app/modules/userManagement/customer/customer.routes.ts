@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get(
   "/",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   CustomerControllers.getAllCustomer
 );
 

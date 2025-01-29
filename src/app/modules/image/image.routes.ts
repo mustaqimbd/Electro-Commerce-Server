@@ -8,20 +8,20 @@ const router = Router();
 
 router.post(
   "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   imgUploader.array("images", Number(config.upload_image_maxCount)),
   ImageControllers.createImage
 );
 
 router.get(
   "/:id",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   ImageControllers.getAnImage
 );
 
 router.get(
   "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   ImageControllers.getAllImages
 );
 

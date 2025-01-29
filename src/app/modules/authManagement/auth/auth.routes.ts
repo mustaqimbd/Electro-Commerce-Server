@@ -22,7 +22,7 @@ route.post(
   "/change-password",
   validateRequest(AuthValidation.changePassword),
   authGuard({
-    requiredRoles: ["admin", "customer", "staff"],
+    requiredRoles: ["superAdmin", "admin", "customer", "staff"],
   }),
   AuthControllers.changePassword
 );
@@ -30,13 +30,13 @@ route.post(
 route.post(
   "/logout",
   // validateRequest(refreshTokenZodSchema),
-  // authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  // authGuard({ requiredRoles: ["superAdmin", "admin","customer", "staff", ] }),
   AuthControllers.logoutUser
 );
 
 route.get(
   "/logged-in-devices",
-  authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "customer", "staff"] }),
   AuthControllers.getLoggedInDevices
 );
 

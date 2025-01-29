@@ -29,6 +29,7 @@ import {
   TProductDetails,
 } from "./order.interface";
 import { Order } from "./order.model";
+// import steedFastApi from "../../../utilities/steedfastApi";
 import {
   createNewOrder,
   createOrderOnSteedFast,
@@ -985,6 +986,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     status,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
+
   const findOrder = await OrderHelper.findOrderForUpdatingOrder(id);
 
   if (!findOrder) {
@@ -1190,12 +1192,18 @@ const updateOrderDetailsByAdminIntoDB = async (
 
           const { salePrice, regularPrice } = productInfo?.price as TPrice;
           const unitPrice = salePrice || regularPrice;
+          const variationUnitPrice =
+            selectedVariation?.price.salePrice ||
+            selectedVariation?.price.regularPrice;
+
           const newProductDetails = {
             product: productInfo?._id,
             attributes: selectedVariation?.attributes,
-            unitPrice,
+            unitPrice: selectedVariation ? variationUnitPrice : unitPrice,
             quantity: updatedProduct.quantity,
-            total: unitPrice * updatedProduct.quantity,
+            total: selectedVariation
+              ? variationUnitPrice
+              : unitPrice * updatedProduct.quantity,
             warranty: updatedProduct.warranty,
             isWarrantyClaim: updatedProduct.isWarrantyClaim,
             claimedCodes: updatedProduct.claimedCodes,
@@ -1643,6 +1651,157 @@ const returnAndPartialManagementIntoDB = async (
   }
 };
 
+// const fraudCheckDB = async (mobile: string) => {
+//   const steedFastURL = `https://steadfast.com.bd/user/frauds/check/${mobile}`;
+//   const redxUrl = `https://redx.com.bd/api/redx_se/admin/parcel/customer-success-return-rate?phoneNumber=${mobile}`;
+//   const pathaoURL = "https://merchant.pathao.com/api/v1/user/success";
+
+//   const steadfastData = await fetch(steedFastURL, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+
+//   const redxData = await fetch(redxUrl, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+
+//   const redxData = await fetch(redxUrl, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+
+//   const redxData = await fetch(pathaoURL, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//       authorization:
+//     },
+//     body: JSON.stringify({ phone: mobile }),
+
+//   });
+
+//   const fetchPathaoData = async () => {
+//     try {
+//       const response = await fetch(pathaoURL, {
+//         method: "POST", // Use POST as you're sending a body
+//         headers: {
+//           "Content-Type": "application/json",
+//           "Authorization": `Bearer ${token}` // Add Bearer token
+//         },
+//         body: JSON.stringify({ phone: mobile }) // Properly format the body
+//       });
+
+//       if (!response.ok) {
+//         throw new Error(`Error! Status: ${response.status}`);
+//       }
+
+//       const data = await response.json();
+//       console.log("Pathao Data:", data);
+//       return data;
+//     } catch (error) {
+//       console.error("Error fetching Pathao data:", error.message);
+//     }
+//   };
+
+//   // Call the function
+//   fetchPathaoData();
+
+// };
+
+// const fraudCheckDB = async (mobile: string) => {
+//   console.log(mobile);
+//   const steedFastURL = `https://steadfast.com.bd/user/frauds/check/${mobile}`;
+//   const redxURL = `https://redx.com.bd/api/redx_se/admin/parcel/customer-success-return-rate?phoneNumber=${mobile}`;
+//   const pathaoURL = "https://merchant.pathao.com/api/v1/user/success";
+//   const pathaoToken = "<your_pathao_token>"; // Replace with your Pathao API token
+
+//   const response = await fetch(steedFastURL, {
+//     method: "GET",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+
+//   // Log the response for debugging
+//   console.log("Response Status:", response.status);
+//   console.log("Response Headers:", response.headers);
+
+//   // Check Content-Type before parsing
+//   const contentType = response.headers.get("Content-Type");
+//   if (contentType && contentType.includes("application/json")) {
+//     const data = await response.json();
+//     console.log("Steadfast Data:", data);
+//     return data;
+//   } else {
+//     // Read text if not JSON
+//     const text = await response.text();
+//     console.error("Unexpected Response Format:", text);
+//     throw new Error("Received non-JSON response from Steadfast API");
+//   }
+
+//   // Fetch data from Steadfast
+//   // const steadfastResponse = await fetch(steedFastURL, {
+//   //   method: "GET",
+//   //   headers: {
+//   //     "Content-Type": "application/json",
+//   //   },
+//   // });
+//   // console.log(steadfastResponse)
+
+//   // if (!steadfastResponse.ok) {
+//   //   throw new Error(`Steadfast API Error: ${steadfastResponse.status}`);
+//   // }
+
+//   // const steadfastData = await steadfastResponse.json();
+//   // console.log("Steadfast Data:", steadfastData);
+
+//   // // Fetch data from RedX
+//   // const redxResponse = await fetch(redxURL, {
+//   //   method: "GET",
+//   //   headers: {
+//   //     "Content-Type": "application/json",
+//   //   },
+//   // });
+
+//   // if (!redxResponse.ok) {
+//   //   throw new Error(`RedX API Error: ${redxResponse.status}`);
+//   // }
+
+//   // const redxData = await redxResponse.json();
+//   // console.log("RedX Data:", redxData);
+
+//   // Fetch data from Pathao
+//   // const pathaoResponse = await fetch(pathaoURL, {
+//   //   method: "POST", // Pathao API uses POST
+//   //   headers: {
+//   //     "Content-Type": "application/json",
+//   //     Authorization: `Bearer ${pathaoToken}`, // Include the Bearer token
+//   //   },
+//   //   body: JSON.stringify({ phone: mobile }), // Pass the phone number in the body
+//   // });
+
+//   // if (!pathaoResponse.ok) {
+//   //   throw new Error(`Pathao API Error: ${pathaoResponse.status}`);
+//   // }
+
+//   // const pathaoData = await pathaoResponse.json();
+//   // console.log("Pathao Data:", pathaoData);
+
+//   // Combine results
+//   return {
+//     steadfastData,
+//     // redxData,
+//     // pathaoData,
+//   };
+// };
+
 export const OrderServices = {
   createOrderIntoDB,
   updateOrderStatusIntoDB,
@@ -1662,4 +1821,5 @@ export const OrderServices = {
   getOrderTrackingInfo,
   getOrdersByDeliveryStatusFromDB,
   returnAndPartialManagementIntoDB,
+  // fraudCheckDB,
 };

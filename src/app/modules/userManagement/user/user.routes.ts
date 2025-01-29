@@ -10,7 +10,7 @@ const router = express.Router();
 router.get(
   "/all-admin-staff",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage admin or staff",
   }),
   UserControllers.getAllAdminAndStaff
@@ -25,7 +25,7 @@ router.post(
 router.post(
   "/create-staff-or-admin",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage admin or staff",
   }),
   employPhotoUploader.array("image", 1),
@@ -36,7 +36,7 @@ router.post(
 router.patch(
   "/update-admin-or-staff/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage admin or staff",
   }),
   employPhotoUploader.array("image", 1),
@@ -46,7 +46,7 @@ router.patch(
 
 router.get(
   "/profile",
-  authGuard({ requiredRoles: ["customer", "staff", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "customer", "staff"] }),
   UserControllers.getUserProfile
 );
 

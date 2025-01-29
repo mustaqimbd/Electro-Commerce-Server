@@ -9,7 +9,7 @@ const router = Router();
 router.get(
   "/",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
   }),
   PermissionController.getPermissions
 );
@@ -17,7 +17,7 @@ router.get(
 router.post(
   "/",
   authGuard({
-    requiredRoles: ["admin"],
+    requiredRoles: ["superAdmin"],
   }),
   validateRequest(PermissionValidation.createPermission),
   PermissionController.createPermission
@@ -26,7 +26,7 @@ router.post(
 router.post(
   "/add-permission-to-user/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage permission",
   }),
   validateRequest(PermissionValidation.addPermissionToUser),

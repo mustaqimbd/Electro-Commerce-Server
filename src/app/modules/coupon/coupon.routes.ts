@@ -9,7 +9,7 @@ const route = Router();
 route.post(
   "/",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage coupon",
   }),
   validateRequest(CouponValidation.createCoupon),
@@ -19,7 +19,7 @@ route.post(
 route.get(
   "/",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage coupon",
   }),
   CouponController.getAllCoupons
@@ -28,7 +28,7 @@ route.get(
 route.patch(
   "/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage coupon",
   }),
   validateRequest(CouponValidation.updateCoupon),

@@ -35,6 +35,8 @@ const globalErrorhandler: ErrorRequestHandler = (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next
 ) => {
+  // eslint-disable-next-line no-console
+  console.error(err);
   let statusCode = 500;
   let message =
     "Something went wrong. Please try again later or contact to the support";

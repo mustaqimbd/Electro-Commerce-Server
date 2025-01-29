@@ -27,7 +27,10 @@ export const createAdminOrStaffId = async (isStaff: boolean) => {
       .lean();
     lastId = lastStaff?._id ? lastStaff.uid.substring(3) : undefined;
   } else {
-    const lastAdmin = await User.findOne({ role: "admin" }, { uid: 1 })
+    const lastAdmin = await User.findOne(
+      { role: ["superAdmin", "admin"] },
+      { uid: 1 }
+    )
       .sort({ createdAt: -1 })
       .lean();
     lastId = lastAdmin?._id ? lastAdmin.uid.substring(3) : undefined;
@@ -45,6 +48,10 @@ export const createSwitchField = (fieldName: string) => ({
   [fieldName]: {
     $switch: {
       branches: [
+        {
+          case: { $eq: ["$role", "superAdmin"] },
+          then: { $arrayElemAt: [`$admin.${fieldName}`, 0] },
+        },
         {
           case: { $eq: ["$role", "admin"] },
           then: { $arrayElemAt: [`$admin.${fieldName}`, 0] },
