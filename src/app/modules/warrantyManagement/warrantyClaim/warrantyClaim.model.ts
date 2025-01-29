@@ -60,6 +60,9 @@ const WarrantyCLaimSchema = new Schema<TWarrantyClaim>(
             type: Map,
             of: String,
           },
+          warrantyClaimHistory: {
+            type: Schema.ObjectId,
+          },
           prevWarrantyInformation: {
             duration: {
               type: String,

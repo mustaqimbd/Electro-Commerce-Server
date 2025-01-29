@@ -823,7 +823,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
   courierProvider: Types.ObjectId,
   user: TJwtPayload
 ) => {
-  if (!["On courier", "canceled"].includes(status)) {
+  if (!["On courier", "canceled", "completed"].includes(status)) {
     throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
   }
   if (orderIds.length > maxOrderStatusChangeAtATime) {
@@ -873,12 +873,13 @@ const bookCourierAndUpdateStatusIntoDB = async (
         failedCourierOrders = failedRequests.map((item) => item.orderId);
       }
     }
-    let successOrders = orders;
+
+    let ordersForUpdateIntoDB = orders;
     if (failedCourierOrders.length) {
       const courierOrdersOrderId = successCourierOrders.map(
         (item) => item.orderId
       );
-      successOrders = orders.filter((item) =>
+      ordersForUpdateIntoDB = orders.filter((item) =>
         courierOrdersOrderId.includes(item?.orderId)
       );
     }
@@ -887,7 +888,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
     const orderUpdateQuery: any[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const historyUpdateQuery: any[] = [];
-    successOrders.forEach((order) => {
+    ordersForUpdateIntoDB.forEach((order) => {
       if (status === "On courier") {
         const trackingId = successCourierOrders.find(
           (item) => item.orderId === order?.orderId
@@ -918,6 +919,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
       });
     });
 
+    // Update status on our DB
     if (status === "canceled") {
       await Order.updateMany(
         { _id: orders.map((item) => new Types.ObjectId(item?._id)) },
@@ -944,6 +946,12 @@ const bookCourierAndUpdateStatusIntoDB = async (
       }
     } else if (status === "On courier") {
       await Order.bulkWrite(orderUpdateQuery, { session });
+    } else if (status === "completed") {
+      await Order.updateMany(
+        { _id: orders.map((item) => new Types.ObjectId(item?._id)) },
+        { $set: { status: "completed" } },
+        { session }
+      );
     }
     await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
 
@@ -981,7 +989,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     officialNotes,
     courierNotes,
     followUpDate,
-    riderNotes,
+    monitoringNotes,
     productDetails: updatedProductDetails,
     status,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1324,7 +1332,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
-    updatedDoc.riderNotes = riderNotes;
+    updatedDoc.monitoringNotes = monitoringNotes;
 
     await Order.findByIdAndUpdate(
       id,

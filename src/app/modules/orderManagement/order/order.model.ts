@@ -32,6 +32,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     ref: "Warranty",
   },
   isWarrantyClaim: Boolean,
+  warrantyClaimHistory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "warranty_claim_histories",
+  },
   claimedCodes: {
     type: [
       {
@@ -167,7 +171,7 @@ const OrderSchema = new Schema<TOrder>(
     reasonNotes: {
       type: String,
     },
-    riderNotes: {
+    monitoringNotes: {
       type: String,
     },
     courierDetails: CourierDetailsSchema,

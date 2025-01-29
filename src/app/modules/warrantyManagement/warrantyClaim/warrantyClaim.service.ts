@@ -5,20 +5,26 @@ import path from "path";
 import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
+import { Order } from "../../orderManagement/order/order.model";
 import { createNewOrder } from "../../orderManagement/order/order.utils";
 import { TShipping } from "../../orderManagement/shipping/shipping.interface";
-import { TVariation } from "../../productManagement/product/product.interface";
+import { Warranty } from "../warranty/warranty.model";
+import { WarrantyClaimHistory } from "../warrantyClaimHistory/warrantyClaimHistory.model";
 import {
   TWarrantyClaim,
   TWarrantyClaimedContactStatus,
   TWarrantyClaimedProductCondition,
   TWarrantyClaimedProductDetails,
-  TWarrantyClaimPrevWarrantyInformation,
   TWarrantyClaimReqData,
 } from "./warrantyClaim.interface";
 import { WarrantyClaim } from "./warrantyClaim.model";
 import { WarrantyClaimUtils } from "./warrantyClaim.utils";
+
 const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
+  if (!query.sort) {
+    query.sort = "-createdAt";
+  }
+
   const pipeline: PipelineStage[] = [
     {
       $match: {
@@ -27,22 +33,80 @@ const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
       },
     },
     {
+      $unwind: {
+        path: "$warrantyClaimReqData", // Separate each warrantyClaimReqData entry
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "products", // Collection name for products
+        localField: "warrantyClaimReqData.productId",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $lookup: {
+        from: "warranty_claim_histories", // Collection name for warranty claim histories
+        localField: "warrantyClaimReqData.warrantyClaimHistory",
+        foreignField: "_id",
+        as: "warrantyClaimHistory",
+      },
+    },
+    {
+      $unwind: {
+        path: "$warrantyClaimHistory",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
-        _id: 1,
-        reqId: 1,
+        videosAndImages: 1,
+        warrantyClaimReqData: {
+          _id: "$warrantyClaimReqData._id",
+          product: {
+            _id: {
+              $arrayElemAt: ["$productInfo._id", 0],
+            },
+            title: {
+              $arrayElemAt: ["$productInfo.title", 0],
+            },
+          },
+          warrantyClaimHistory: "$warrantyClaimHistory",
+          claimedCodes: "$warrantyClaimReqData.claimedCodes",
+          prevWarrantyInformation:
+            "$warrantyClaimReqData.prevWarrantyInformation",
+          variation: "$warrantyClaimReqData.variation",
+          attributes: "$warrantyClaimReqData.attributes",
+        },
         shipping: {
           fullName: "$shipping.fullName",
           phoneNumber: "$shipping.phoneNumber",
           fullAddress: "$shipping.fullAddress",
         },
+        reqId: 1,
         problemInDetails: 1,
-        videosAndImages: 1,
-        warrantyClaimReqData: 1,
         contactStatus: 1,
         result: 1,
         approvalStatus: 1,
         officialNotes: 1,
         createdAt: 1,
+      },
+    },
+    {
+      $group: {
+        _id: "$_id", // Group by warranty claim ID
+        reqId: { $first: "$reqId" },
+        videosAndImages: { $first: "$videosAndImages" },
+        problemInDetails: { $first: "$problemInDetails" },
+        contactStatus: { $first: "$contactStatus" },
+        result: { $first: "$result" },
+        approvalStatus: { $first: "$approvalStatus" },
+        officialNotes: { $first: "$officialNotes" },
+        shipping: { $first: "$shipping" },
+        createdAt: { $first: "$createdAt" },
+        warrantyClaimReqData: { $push: "$warrantyClaimReqData" },
       },
     },
   ];
@@ -56,6 +120,7 @@ const getAllWarrantyClaimReqFromDB = async (query: Record<string, string>) => {
   const data = await resultQuery.model;
   const total = (await WarrantyClaim.aggregate(pipeline)).length;
   const meta = resultQuery.metaData(total);
+
   return { data, meta };
 };
 
@@ -215,46 +280,114 @@ const createNewWarrantyClaimOrderIntoDB = async (
   let order;
   try {
     session.startTransaction();
-    const productsDetails = claimReq?.warrantyClaimReqData?.map(
-      ({
-        productId,
-        claimedCodes,
-        variation,
-        attributes,
-        prevWarrantyInformation,
-      }: {
-        productId: Types.ObjectId;
-        claimedCodes: string[];
-        variation?: Types.ObjectId | TVariation;
-        prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
-        attributes?: {
-          [key: string]: string;
-        };
-      }) => ({
-        product: productId,
-        quantity: claimedCodes?.length,
-        variation: variation
-          ? new Types.ObjectId(variation.toString())
+    // const productsDetails = claimReq?.warrantyClaimReqData?.map(
+    //   ({
+    //     productId,
+    //     claimedCodes,
+    //     variation,
+    //     attributes,
+    //     prevWarrantyInformation,
+    //   }: {
+    //     productId: Types.ObjectId;
+    //     claimedCodes: string[];
+    //     variation?: Types.ObjectId | TVariation;
+    //     prevWarrantyInformation: TWarrantyClaimPrevWarrantyInformation;
+    //     attributes?: {
+    //       [key: string]: string;
+    //     };
+    //   }) => ({
+    //     product: productId,
+    //     quantity: claimedCodes?.length,
+    //     variation: variation
+    //       ? new Types.ObjectId(variation.toString())
+    //       : undefined,
+    //     claimedCodes: claimedCodes.map((item) => ({ code: item })),
+    //     prevWarrantyInformation,
+    //     attributes,
+    //   })
+    // ) as Partial<TWarrantyClaimedProductDetails[]>;
+
+    const productsDetails: TWarrantyClaimedProductDetails[] = [];
+
+    for (const item of claimReq?.warrantyClaimReqData || []) {
+      const productDetails = (
+        await Order.findOne(
+          { _id: item.order_id },
+          { "productDetails.warranty": 1, "productDetails._id": 1 }
+        )
+      )?.productDetails;
+
+      const updatingWarrantyId = productDetails
+        ?.find((pdt) => pdt?._id?.toString() === item.orderItemId.toString())
+        ?.warranty?.toString();
+
+      const currentClaim = {
+        order_id: item.order_id,
+        itemId: item.orderItemId as Types.ObjectId,
+        claimedCodes: item.claimedCodes,
+      };
+      let history = undefined;
+      if (item.warrantyClaimHistory) {
+        await WarrantyClaimHistory.findByIdAndUpdate(
+          item.warrantyClaimHistory,
+          { $push: { claims: currentClaim } },
+          { session }
+        );
+
+        history = item.warrantyClaimHistory;
+      } else {
+        const data = new WarrantyClaimHistory({
+          parentOrder: item.order_id,
+          parentItemId: item.orderItemId as Types.ObjectId,
+          claims: [currentClaim],
+        });
+
+        history = (await data.save({ session }))._id;
+      }
+
+      await Warranty.updateOne(
+        {
+          _id: updatingWarrantyId,
+        },
+        { $pull: { warrantyCodes: { code: { $in: item.claimedCodes } } } },
+        { session }
+      );
+
+      // Create product details for order data
+      const newProductDetailsItem = {
+        product: item.productId,
+        quantity: item.claimedCodes?.length,
+        variation: item.variation
+          ? new Types.ObjectId(item.variation.toString())
           : undefined,
-        claimedCodes: claimedCodes.map((item) => ({ code: item })),
-        prevWarrantyInformation,
-        attributes,
-      })
-    ) as Partial<TWarrantyClaimedProductDetails[]>;
+        claimedCodes: item.claimedCodes.map((item) => ({ code: item })),
+        prevWarrantyInformation: item.prevWarrantyInformation,
+        attributes: item.attributes,
+        warrantyClaimHistory: history,
+      };
+
+      productsDetails.push(
+        newProductDetailsItem as unknown as TWarrantyClaimedProductDetails
+      );
+    }
 
     order = await createNewOrder({ body, user }, session, {
       warrantyClaim: true,
       productsDetails,
     });
+
+    // Update the warranty claim request
     await WarrantyClaim.findOneAndUpdate(
       { _id: id },
       {
         orderId: order._id,
         approvalStatus: "approved",
         finalCheckedBy: user.id,
+        videosAndImages: undefined,
       },
       { session }
     );
+
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -262,8 +395,6 @@ const createNewWarrantyClaimOrderIntoDB = async (
   } finally {
     await session.endSession();
   }
-  claimReq.videosAndImages = undefined;
-  await claimReq.save();
 
   return order;
 };

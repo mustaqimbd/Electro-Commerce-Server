@@ -217,6 +217,7 @@ export const createNewOrder = async (
     warrantyClaimOrderData?.warrantyClaim &&
     warrantyClaimOrderData?.productsDetails
   ) {
+    // console.log(warrantyClaimOrderData?.productsDetails);
     orderedProductInfo = await OrderHelper.sanitizeOrderedProducts(
       warrantyClaimOrderData?.productsDetails as TProductDetails[],
       true
@@ -438,7 +439,6 @@ export const createNewOrder = async (
     orderedProductInfo = cart;
   }
 
-  // throw new ApiError(400, "Break");
   if (config.env === "production") {
     if (salesPage || fromWebsite) {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -511,6 +511,7 @@ export const createNewOrder = async (
       prevWarrantyInformation: item?.prevWarrantyInformation,
       variation: item?.variation,
       attributes,
+      warrantyClaimHistory: item?.warrantyClaimHistory,
     };
 
     onlyProductsCosts += result.total;
@@ -563,11 +564,6 @@ export const createNewOrder = async (
 
   orderData.productDetails = finalOrderedProductData as TProductDetails[];
 
-  // singleOrder = {
-  //   product: String(orderedProductInfo[0]?.product?._id),
-  //   quantity: orderedProductInfo[0].quantity,
-  // };
-  // create payment document
   const paymentMethod = await PaymentMethod.findById(payment.paymentMethod);
   if (!paymentMethod) {
     {

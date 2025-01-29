@@ -141,6 +141,7 @@ const sanitizeOrderedProducts = async (
       prevWarrantyInformation: isWarrantyClaim
         ? item.prevWarrantyInformation
         : undefined,
+      warrantyClaimHistory: item.warrantyClaimHistory as Types.ObjectId,
     };
     data.push(sanitizedData);
   }
@@ -445,7 +446,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       },
       officialNotes: 1,
       invoiceNotes: 1,
-      riderNotes: 1,
+      monitoringNotes: 1,
       courierNotes: 1,
       orderNotes: 1,
       followUpDate: 1,
@@ -596,7 +597,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
       shippingCharge: { $first: "$shippingCharge" },
       officialNotes: { $first: "$officialNotes" },
       invoiceNotes: { $first: "$invoiceNotes" },
-      riderNotes: { $first: "$riderNotes" },
+      monitoringNotes: { $first: "$monitoringNotes" },
       courierNotes: { $first: "$courierNotes" },
       reasonNotes: { $first: "$reasonNotes" },
       orderNotes: { $first: "$orderNotes" },
