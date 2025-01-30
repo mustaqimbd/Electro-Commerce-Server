@@ -1032,7 +1032,27 @@ const updateOrderDetailsByAdminIntoDB = async (
 
         if (existingProductIndex > -1) {
           if (updatedProduct.isDelete) {
-            findOrder.productDetails.splice(existingProductIndex, 1);
+            const removedProduct = findOrder.productDetails.splice(
+              existingProductIndex,
+              1
+            );
+
+            if (findOrder.deliveryStatus == "partial_delivered") {
+              updatedDoc.deliveryStatus = "partial completed";
+            }
+            if (removedProduct.length > 0) {
+              // Extract all warranty IDs that exist (filter out undefined/null)
+              const warrantyIds = removedProduct
+                .map((product) => product.warranty)
+                .filter((warranty) => warranty); // Remove undefined/null values
+
+              if (warrantyIds.length > 0) {
+                // Delete all warranties that match the extracted IDs
+                await Warranty.deleteMany({
+                  _id: { $in: warrantyIds },
+                }).session(session);
+              }
+            }
           } else {
             // Update existing product details
             const currentProduct = findOrder.productDetails[

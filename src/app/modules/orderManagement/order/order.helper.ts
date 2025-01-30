@@ -304,6 +304,7 @@ const findOrderForUpdatingOrder = async (
           warrantyAmount: { $first: "$warrantyAmount" },
           total: { $first: "$total" },
           status: { $first: "$status" },
+          deliveryStatus: { $first: "$deliveryStatus" },
         },
       },
     ])
