@@ -201,7 +201,7 @@ export const createNewOrder = async (
     if (!user.id) {
       throw new ApiError(httpStatus.UNAUTHORIZED, "Unauthorized request");
     }
-    if (!["admin", "staff"]?.includes(String(user?.role))) {
+    if (!["superAdmin", "admin", "staff"]?.includes(String(user?.role))) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Permission denied");
     }
   }
