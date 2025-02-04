@@ -35,7 +35,7 @@ const createCouponIntoDB = async (payload: TCouponData, user: TJwtPayload) => {
         throw new ApiError(httpStatus.BAD_REQUEST, "Invalid start date input");
       }
 
-      if (today < startDate)
+      if (today > startDate)
         throw new ApiError(
           httpStatus.BAD_REQUEST,
           "The selected start date must be a future date."
