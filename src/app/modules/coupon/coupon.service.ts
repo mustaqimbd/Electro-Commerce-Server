@@ -327,6 +327,8 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
           isDeleted: false,
           ...matchQuery,
         },
+      },
+      {
         $count: "total",
       },
     ]))![0]?.total || 0;
