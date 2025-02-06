@@ -320,7 +320,16 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
     .sort()
     .paginate();
 
-  const total = (await Coupon.aggregate([{ $count: "total" }]))![0]?.total || 0;
+  const total =
+    (await Coupon.aggregate([
+      {
+        $match: {
+          isDeleted: false,
+          ...matchQuery,
+        },
+        $count: "total",
+      },
+    ]))![0]?.total || 0;
   const meta = couponQuery.metaData(total);
 
   const data = await couponQuery.model;
