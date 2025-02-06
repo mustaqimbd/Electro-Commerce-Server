@@ -38,9 +38,11 @@ const CouponSchema = new Schema<TCoupon>(
     },
     maxDiscount: {
       type: Number,
+      default: 0,
     },
     minimumOrderValue: {
       type: Number,
+      default: 0,
     },
     startDate: {
       type: Date,
@@ -58,13 +60,19 @@ const CouponSchema = new Schema<TCoupon>(
     },
     usageLimit: {
       type: Number,
+      default: 0,
     },
     usageCount: { type: Number, default: 0 },
     onlyForRegisteredUsers: {
       type: Boolean,
       default: false,
     },
-    allowedUsers: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    allowedUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     fixedCategories: {
       type: [
         {

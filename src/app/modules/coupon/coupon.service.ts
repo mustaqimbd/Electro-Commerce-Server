@@ -113,6 +113,34 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
     },
     {
       $lookup: {
+        from: "users",
+        localField: "allowedUsers",
+        foreignField: "_id",
+        as: "allowedUsers",
+      },
+    },
+    {
+      $unwind: {
+        path: "$allowedUsers",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "customers",
+        localField: "allowedUsers.customer",
+        foreignField: "_id",
+        as: "customers",
+      },
+    },
+    {
+      $unwind: {
+        path: "$customers",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
         from: "categories",
         localField: "fixedCategories",
         foreignField: "_id",
@@ -169,7 +197,13 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
         usageLimit: { $first: "$usageLimit" },
         usageCount: { $first: "$usageCount" },
         onlyForRegisteredUsers: { $first: "$onlyForRegisteredUsers" },
-        allowedUsers: { $first: "$allowedUsers" },
+        allowedUsers: {
+          $push: {
+            _id: "$allowedUsers._id",
+            name: "$customers.fullName",
+            phoneNumber: "$allowedUsers.phoneNumber",
+          },
+        },
         fixedCategories: {
           $push: {
             _id: "$fixedCategories._id",
@@ -186,10 +220,6 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
           $push: {
             _id: "$fixedProducts._id",
             title: "$fixedProducts.title",
-            // image: {
-            //   src: "$productThumb.src",
-            //   alt: "$productThumb.alt",
-            // },
           },
         },
         endDate: { $first: "$endDate" },
@@ -201,7 +231,7 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
     },
     {
       $project: {
-        _id: 0,
+        _id: 1,
         name: 1,
         slug: 1,
         shortDescription: 1,
@@ -215,10 +245,10 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
         usageCount: 1,
         onlyForRegisteredUsers: 1,
         allowedUsers: {
-          $cond: {
-            if: { $eq: ["$allowedUsers", []] }, // Check if empty array
-            then: undefined, // Set as undefined
-            else: "$allowedUsers", // Otherwise, keep the value
+          $filter: {
+            input: "$allowedUsers",
+            as: "au",
+            cond: { $ne: ["$$au", {}] },
           },
         },
         fixedCategories: {
@@ -251,6 +281,13 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
     },
     {
       $addFields: {
+        allowedUsers: {
+          $cond: {
+            if: { $eq: ["$allowedUsers", []] },
+            then: undefined,
+            else: "$allowedUsers",
+          },
+        },
         fixedProducts: {
           $cond: {
             if: { $eq: ["$fixedProducts", []] },
@@ -326,19 +363,28 @@ const updateCouponCodeIntoDB = async (id: string, payload: TCouponData) => {
   if (!isExist)
     throw new ApiError(httpStatus.BAD_REQUEST, "No coupon data found");
 
-  if (payload.endDate) {
-    const today = new Date(Date.now());
-    const endDate = new Date(payload.endDate);
+  payload.usageCount = undefined;
 
+  if (payload.endDate) {
+    const endDate = new Date(payload.endDate);
     if (isNaN(endDate.getTime())) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid date input");
-    }
-    if (today > endDate)
       throw new ApiError(
         httpStatus.BAD_REQUEST,
-        "The selected end date must be a future date."
+        "Invalid coupon end date input"
       );
+    }
     payload.endDate = endDate;
+  }
+
+  if (payload.startDate) {
+    const startDate = new Date(payload.startDate);
+    if (isNaN(startDate.getTime())) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Invalid coupon end date input"
+      );
+    }
+    payload.startDate = startDate;
   }
 
   await Coupon.updateOne(
@@ -347,11 +393,7 @@ const updateCouponCodeIntoDB = async (id: string, payload: TCouponData) => {
       isDeleted: false,
     },
     {
-      $set: {
-        isActive: payload.isActive,
-        isDeleted: payload.isDeleted,
-        endDate: payload.endDate,
-      },
+      $set: payload,
     }
   );
 };
