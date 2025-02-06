@@ -1384,7 +1384,7 @@ const orderCostAfterCoupon = async (
       if ((usageCount || 0) >= usageLimit) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `The applied coupon reached its usage limit!`
+          `The applied coupon reached it's usage limit!`
         );
       }
     }
@@ -1399,7 +1399,7 @@ const orderCostAfterCoupon = async (
       }
     }
 
-    // If the coupon fo specific users
+    // If the coupon for specific users
     if (allowedUsers?.length) {
       const isUserAllowed = allowedUsers.find(
         (allowedUser) => allowedUser.toString() === user.id?.toString()
@@ -1408,7 +1408,7 @@ const orderCostAfterCoupon = async (
       if (!isUserAllowed) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
-          `You are not listed to use this code!`
+          `You are not listed to use this coupon!`
         );
       }
     }
