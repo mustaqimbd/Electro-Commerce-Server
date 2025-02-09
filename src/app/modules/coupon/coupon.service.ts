@@ -92,7 +92,7 @@ const getAllCouponsFromBD = async (query: Record<string, unknown>) => {
 
   if (query.tags) {
     query.tags = Array.isArray(query.tags) ? query.tags : [query.tags];
-    matchQuery.tags = query.tags;
+    matchQuery.tags = { $in: query.tags };
   }
 
   if (query.search) {
