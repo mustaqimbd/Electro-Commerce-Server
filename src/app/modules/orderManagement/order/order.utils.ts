@@ -211,7 +211,6 @@ export const createNewOrder = async (
     warrantyClaimOrderData?.warrantyClaim &&
     warrantyClaimOrderData?.productsDetails
   ) {
-    // console.log(warrantyClaimOrderData?.productsDetails);
     orderedProductInfo = await OrderHelper.sanitizeOrderedProducts(
       warrantyClaimOrderData?.productsDetails as TProductDetails[],
       true
@@ -320,14 +319,16 @@ export const createNewOrder = async (
       onlyProductsCosts,
       shippingCharge.toString(),
       orderedProductInfo,
-      { couponCode: coupon, user } // TODO: remove the static coupon code
+      { couponCode: coupon, user }
     );
 
-  await Coupon.findByIdAndUpdate(
-    couponId,
-    { $inc: { usageCount: 1 } },
-    { session }
-  );
+  if (couponId) {
+    await Coupon.findByIdAndUpdate(
+      couponId,
+      { $inc: { usageCount: 1 } },
+      { session }
+    );
+  }
 
   let warrantyAmount = 0;
   warrantyAmount = totalCostAfterCoupon;
@@ -340,8 +341,6 @@ export const createNewOrder = async (
     warrantyAmount -
     Number(advance || 0) -
     Number(discount || 0);
-
-  // throw new ApiError(400, "Break");
 
   orderData.orderId = orderId;
   orderData.userId =

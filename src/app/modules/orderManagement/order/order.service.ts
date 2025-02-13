@@ -719,7 +719,6 @@ const updateOrderStatusIntoDB = async (
         }
       }
     }
-    // throw new ApiError(400, "Break");
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -953,8 +952,6 @@ const bookCourierAndUpdateStatusIntoDB = async (
       );
     }
     await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
-
-    // throw new ApiError(400, "break");
 
     await session.commitTransaction();
   } catch (error) {
@@ -1256,8 +1253,6 @@ const updateOrderDetailsByAdminIntoDB = async (
         }
       }
 
-      // throw new ApiError(400, "Bad request---custom");
-
       findOrder.productDetails.forEach((product) => {
         if (product.isWarrantyClaim) {
           newWarrantyAmount += product.total;
@@ -1273,8 +1268,6 @@ const updateOrderDetailsByAdminIntoDB = async (
     }
     updatedDoc.subtotal = newSubtotal;
     updatedDoc.warrantyAmount = newWarrantyAmount;
-
-    // throw new ApiError(400, "Break");
 
     // Update shipping chare
     if (payload?.shippingCharge) {
