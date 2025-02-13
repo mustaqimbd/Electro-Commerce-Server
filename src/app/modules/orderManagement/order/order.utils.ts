@@ -7,6 +7,7 @@ import optionalAuthUserQuery from "../../../types/optionalAuthUserQuery";
 import lowStockWarningEmail from "../../../utilities/lowStockWarningEmail";
 import steedFastApi from "../../../utilities/steedfastApi";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
+import { Coupon } from "../../coupon/coupon.model";
 import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
@@ -321,6 +322,12 @@ export const createNewOrder = async (
       orderedProductInfo,
       { couponCode: coupon, user } // TODO: remove the static coupon code
     );
+
+  await Coupon.findByIdAndUpdate(
+    couponId,
+    { $inc: { usageCount: 1 } },
+    { session }
+  );
 
   let warrantyAmount = 0;
   warrantyAmount = totalCostAfterCoupon;

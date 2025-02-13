@@ -1427,15 +1427,14 @@ const orderCostAfterCoupon = async (
         }
       });
 
-      conditionedCost = filteredProducts.reduce(
-        (prev, current) =>
-          prev +
+      conditionedCost = filteredProducts.reduce((prev, current) => {
+        const totalPrice =
           Number(
             current?.product?.price?.salePrice ||
               current?.product?.price?.regularPrice
-          ),
-        0
-      );
+          ) * current?.quantity || 0;
+        return prev + totalPrice;
+      }, 0);
     }
 
     // If the coupon except for listed categories
@@ -1450,15 +1449,14 @@ const orderCostAfterCoupon = async (
         }
       });
 
-      conditionedCost = filteredProducts.reduce(
-        (prev, current) =>
-          prev +
+      conditionedCost = filteredProducts.reduce((prev, current) => {
+        const totalPrice =
           Number(
             current?.product?.price?.salePrice ||
               current?.product?.price?.regularPrice
-          ),
-        0
-      );
+          ) * current?.quantity || 0;
+        return prev + totalPrice;
+      }, 0);
     }
     // If the coupon only for listed products
     if (fixedProducts?.length) {
@@ -1483,13 +1481,19 @@ const orderCostAfterCoupon = async (
     }
 
     if (
-      coupon?.minimumOrderValue &&
-      coupon?.minimumOrderValue >= conditionedCost
+      fixedCategories?.length ||
+      restrictedCategories?.length ||
+      fixedProducts?.length
     ) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `You must spend ${coupon?.minimumOrderValue} or higher from the listed coupon conditions category and products!`
-      );
+      if (
+        coupon?.minimumOrderValue &&
+        coupon?.minimumOrderValue >= conditionedCost
+      ) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `You must spend ${coupon?.minimumOrderValue} or higher from the listed coupon conditions category and products!`
+        );
+      }
     }
 
     // calculate coupon discount
