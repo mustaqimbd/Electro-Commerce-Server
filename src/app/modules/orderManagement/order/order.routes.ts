@@ -68,6 +68,15 @@ router.get(
 );
 
 router.get(
+  "/admin/completed-returned",
+  validateRequest(OrderValidation.getOrdersAdmin),
+  authGuard({
+    requiredRoles: ["admin", "staff"],
+  }),
+  OrderController.getCompletedOrdersAdmin
+);
+
+router.get(
   "/admin/order-deliver-status",
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({

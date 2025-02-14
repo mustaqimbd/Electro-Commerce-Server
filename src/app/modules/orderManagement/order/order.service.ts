@@ -304,6 +304,7 @@ const getProcessingOrdersAdminFromDB = async (
     name,
     total,
   }));
+
   return { countsByStatus: formattedCount, meta, data };
 };
 
@@ -514,6 +515,110 @@ const getOrdersByDeliveryStatusFromDB = async (
     total,
   }));
 
+  return { countsByStatus: formattedCount, meta, data };
+};
+
+/* -----------------------------------------
+          Get completed orders
+----------------------------------------- */
+const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
+  const matchQuery: Record<string, unknown> = {};
+  const acceptableStatus: TOrderStatus[] = [
+    "completed",
+    "partial completed",
+    "returned",
+  ];
+
+  if (query.search) {
+    acceptableStatus.push(
+      "pending",
+      "confirmed",
+      "follow up",
+      "On courier",
+      "canceled",
+      "deleted",
+      "processing",
+      "processing done",
+      "warranty added",
+      "warranty processing"
+    );
+  }
+
+  if (query.status) {
+    matchQuery.status = query?.status as string;
+  }
+
+  if ((!query.status || query.status === "all") && !query.search) {
+    matchQuery.status = {
+      $in: acceptableStatus,
+    };
+  }
+
+  if (![...acceptableStatus, undefined].includes(query.status as never)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't get ${query.status} orders`
+    );
+  }
+
+  const pipeline = OrderHelper.orderDetailsPipeline();
+
+  pipeline.unshift({
+    $match: matchQuery,
+  });
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
+    pipeline.push({
+      $match: {
+        $or: [
+          { "shipping.phoneNumber": { $regex: searchRegex } },
+          { "shipping.fullName": { $regex: searchRegex } },
+          { orderId: { $regex: searchRegex } },
+        ],
+      },
+    });
+  }
+
+  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
+    .sort()
+    .paginate();
+
+  const data = await orderQuery.model;
+
+  const total =
+    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
+      ?.total || 0;
+  const meta = orderQuery.metaData(total);
+
+  // Orders counts
+  const statusMap = {
+    completed: 0,
+    "partial completed": 0,
+    returned: 0,
+  };
+  const countRes = await Order.aggregate([
+    {
+      $match: {
+        status: {
+          $in: Object.keys(statusMap),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  countRes.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+  });
+  const formattedCount = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
   return { countsByStatus: formattedCount, meta, data };
 };
 
@@ -1839,6 +1944,7 @@ export const OrderServices = {
   getOrderInfoByOrderIdCustomerFromDB,
   getOrderInfoByOrderIdAdminFromDB,
   getAllOrdersAdminFromDB,
+  getCompletedOrdersAdminFromDB,
   updateOrderDetailsByAdminIntoDB,
   deleteOrdersByIdFromBD,
   orderCountsByStatusFromBD,
