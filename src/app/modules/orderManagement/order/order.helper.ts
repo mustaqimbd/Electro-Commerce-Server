@@ -183,7 +183,10 @@ const findOrderForUpdatingOrder = async (
         },
       },
       {
-        $unwind: "$productDetails",
+        $unwind: {
+          path: "$productDetails",
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
@@ -194,7 +197,10 @@ const findOrderForUpdatingOrder = async (
         },
       },
       {
-        $unwind: "$productDetails.productInfo",
+        $unwind: {
+          path: "$productDetails.productInfo",
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
@@ -205,7 +211,10 @@ const findOrderForUpdatingOrder = async (
         },
       },
       {
-        $unwind: "$productDetails.productInfo.inventoryInfo",
+        $unwind: {
+          path: "$productDetails.productInfo.inventoryInfo",
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $lookup: {
@@ -230,7 +239,10 @@ const findOrderForUpdatingOrder = async (
         },
       },
       {
-        $unwind: "$shippingChargeInfo",
+        $unwind: {
+          path: "$shippingChargeInfo",
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $addFields: {
@@ -253,65 +265,64 @@ const findOrderForUpdatingOrder = async (
       {
         $group: {
           _id: "$_id",
+          // Push product details only if a valid product exists (i.e. productDetails.product is not null)
           productDetails: {
             $push: {
-              _id: "$productDetails._id",
-              product: "$productDetails.product",
-              productTitle: "$productDetails.productInfo.title",
-              attributes: "$productDetails.attributes",
-              unitPrice: "$productDetails.unitPrice",
-              quantity: "$productDetails.quantity",
-              total: "$productDetails.total",
-              warranty: "$productDetails.warranty",
-              productWarrantyDetails: {
-                warrantyCodes: "$productWarrantyDetails.warrantyCodes",
-              },
-              isWarrantyClaim: "$productDetails.isWarrantyClaim",
-              claimedCodes: "$productDetails.claimedCodes",
-              variation: "$productDetails.variation",
-              variations: "$productDetails.productInfo.variations",
-              isVariationDeleted: {
-                $cond: {
-                  if: {
-                    $and: [
-                      { $ne: ["$productDetails.variation", null] }, // Check if the productDetails.variation exists
-                      { $eq: ["$variation", null] }, // Check if the variation lookup failed
-                    ],
+              $cond: [
+                { $ifNull: ["$productDetails.product", false] },
+                {
+                  _id: "$productDetails._id",
+                  product: "$productDetails.product",
+                  productTitle: "$productDetails.productInfo.title",
+                  attributes: "$productDetails.attributes",
+                  unitPrice: "$productDetails.unitPrice",
+                  quantity: "$productDetails.quantity",
+                  total: "$productDetails.total",
+                  warranty: "$productDetails.warranty",
+                  productWarrantyDetails: {
+                    warrantyCodes: "$productWarrantyDetails.warrantyCodes",
                   },
-                  then: true,
-                  else: false,
+                  isWarrantyClaim: "$productDetails.isWarrantyClaim",
+                  claimedCodes: "$productDetails.claimedCodes",
+                  variation: "$productDetails.variation",
+                  variations: "$productDetails.productInfo.variations",
+                  isVariationDeleted: {
+                    $cond: {
+                      if: {
+                        $and: [
+                          { $ne: ["$productDetails.variation", null] },
+                          { $eq: ["$variation", null] },
+                        ],
+                      },
+                      then: true,
+                      else: false,
+                    },
+                  },
+                  inventoryInfo: {
+                    $cond: {
+                      if: { $ne: ["$variation", null] },
+                      then: {
+                        stockStatus: "$variation.inventory.stockStatus",
+                        stockAvailable: "$variation.inventory.stockAvailable",
+                        manageStock: "$variation.inventory.manageStock",
+                        lowStockWarning: "$variation.inventory.lowStockWarning",
+                      },
+                      else: {
+                        _id: "$productDetails.productInfo.inventoryInfo._id",
+                        stockAvailable:
+                          "$productDetails.productInfo.inventoryInfo.stockAvailable",
+                        manageStock:
+                          "$productDetails.productInfo.inventoryInfo.manageStock",
+                        lowStockWarning:
+                          "$productDetails.productInfo.inventoryInfo.lowStockWarning",
+                      },
+                    },
+                  },
                 },
-              },
-              inventoryInfo: {
-                $cond: {
-                  if: { $ne: ["$variation", null] },
-                  then: {
-                    stockStatus: "$variation.inventory.stockStatus",
-                    stockAvailable: "$variation.inventory.stockAvailable",
-                    manageStock: "$variation.inventory.manageStock",
-                    lowStockWarning: "$variation.inventory.lowStockWarning",
-                  },
-                  else: {
-                    _id: "$productDetails.productInfo.inventoryInfo._id",
-                    stockAvailable:
-                      "$productDetails.productInfo.inventoryInfo.stockAvailable",
-                    manageStock:
-                      "$productDetails.productInfo.inventoryInfo.manageStock",
-                    lowStockWarning:
-                      "$productDetails.productInfo.inventoryInfo.lowStockWarning",
-                  },
-                },
-                // _id: "$productDetails.productInfo.inventoryInfo._id",
-                // stockAvailable:
-                //   "$productDetails.productInfo.inventoryInfo.stockAvailable",
-                // manageStock:
-                //   "$productDetails.productInfo.inventoryInfo.manageStock",
-                // lowStockWarning:
-                //   "$productDetails.productInfo.inventoryInfo.lowStockWarning",
-              },
+                "$$REMOVE",
+              ],
             },
           },
-
           couponDetails: { $first: "$couponDetails" },
           subtotal: { $first: "$subtotal" },
           tax: { $first: "$tax" },

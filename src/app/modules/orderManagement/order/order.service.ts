@@ -1020,12 +1020,12 @@ const updateOrderDetailsByAdminIntoDB = async (
       (updatedProductDetails as unknown as TProductDetails[])?.length > 0
     ) {
       for (const updatedProduct of updatedProductDetails || []) {
-        const existingProductIndex = findOrder.productDetails.findIndex(
-          (product) =>
-            product?._id?.toString() === updatedProduct?.id?.toString()
-        );
+        if (updatedProduct.id) {
+          const existingProductIndex = findOrder.productDetails.findIndex(
+            (product) =>
+              product?._id?.toString() === updatedProduct?.id?.toString()
+          );
 
-        if (existingProductIndex > -1) {
           if (updatedProduct.isDelete) {
             findOrder.productDetails.splice(existingProductIndex, 1);
           } else {
@@ -1143,7 +1143,7 @@ const updateOrderDetailsByAdminIntoDB = async (
               }
             }
           }
-        } else {
+        } else if (updatedProduct.newProductId) {
           const productInfo = (
             await ProductModel.aggregate([
               {
@@ -1180,9 +1180,11 @@ const updateOrderDetailsByAdminIntoDB = async (
           if (!productInfo) {
             throw new ApiError(httpStatus.BAD_REQUEST, "No product found");
           }
+
           if (productInfo?.variations?.length)
             if (!updatedProduct?.variation)
               throw new ApiError(httpStatus.BAD_REQUEST, "Select a variation");
+
           const selectedVariation = productInfo?.variations?.find(
             (item) =>
               (item as unknown as Types.ObjectId)?._id.toString() ===
@@ -1192,7 +1194,6 @@ const updateOrderDetailsByAdminIntoDB = async (
           if (productInfo?.variations?.length)
             if (!selectedVariation)
               throw new ApiError(httpStatus.BAD_REQUEST, "Invalid variation");
-
           const { salePrice, regularPrice } = productInfo?.price as TPrice;
           const unitPrice = salePrice || regularPrice;
           const newProductDetails = {
@@ -1221,9 +1222,12 @@ const updateOrderDetailsByAdminIntoDB = async (
             }
           }
 
-          findOrder.productDetails.push(
-            newProductDetails as unknown as TProductDetails
-          );
+          if (newProductDetails) {
+            findOrder.productDetails.push(
+              newProductDetails as unknown as TProductDetails
+            );
+          }
+
           if (selectedVariation) {
             if (selectedVariation?.inventory?.manageStock) {
               await ProductModel.updateOne(
@@ -1302,6 +1306,11 @@ const updateOrderDetailsByAdminIntoDB = async (
       decrements += discount;
     } else {
       decrements += findOrder.discount || 0;
+    }
+
+    // if the order have any coupon discount
+    if (findOrder.couponDiscount) {
+      decrements += findOrder.couponDiscount;
     }
 
     if (status) {
