@@ -99,6 +99,24 @@ const getProcessingOrdersAdmin = catchAsync(
   }
 );
 
+const getCompletedOrdersAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { countsByStatus, meta, data } =
+      await OrderServices.getCompletedOrdersAdminFromDB(
+        req.query as unknown as Record<string, string>
+      );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Completed and returned orders retrieved successfully",
+      meta,
+      data: {
+        countsByStatus,
+        data,
+      },
+    });
+  }
+);
+
 const getProcessingDoneCourierOrdersAdmin = catchAsync(
   async (req: Request, res: Response) => {
     const { countsByStatus, meta, data } =
@@ -268,6 +286,7 @@ export const OrderController = {
   getAllOrdersCustomer,
   updateStatus,
   getAllOrdersAdmin,
+  getCompletedOrdersAdmin,
   getProcessingOrdersAdmin,
   updateOrderDetailsByAdmin,
   deleteOrdersById,
