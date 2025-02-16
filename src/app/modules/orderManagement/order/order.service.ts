@@ -527,6 +527,7 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
     "completed",
     "partial completed",
     "returned",
+    "canceled",
   ];
 
   if (query.search) {
@@ -596,6 +597,7 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
     completed: 0,
     "partial completed": 0,
     returned: 0,
+    canceled: 0,
   };
   const countRes = await Order.aggregate([
     {

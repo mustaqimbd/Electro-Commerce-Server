@@ -71,7 +71,7 @@ router.get(
   "/admin/completed-returned",
   validateRequest(OrderValidation.getOrdersAdmin),
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
   }),
   OrderController.getCompletedOrdersAdmin
 );
