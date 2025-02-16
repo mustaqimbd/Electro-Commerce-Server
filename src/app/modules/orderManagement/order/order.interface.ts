@@ -89,6 +89,8 @@ export type TOrderData = {
   payment: Types.ObjectId;
   status: TOrderStatus;
   deliveryStatus: string;
+  monitoringStatus: string;
+  trackingStatus: string;
   followUpDate?: string;
   statusHistory: Types.ObjectId | TOrderStatusHistory;
   shipping: Types.ObjectId | TShipping;

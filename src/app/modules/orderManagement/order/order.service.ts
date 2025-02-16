@@ -992,6 +992,8 @@ const updateOrderDetailsByAdminIntoDB = async (
     monitoringNotes,
     productDetails: updatedProductDetails,
     status,
+    monitoringStatus,
+    trackingStatus,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
 
@@ -1344,6 +1346,8 @@ const updateOrderDetailsByAdminIntoDB = async (
         throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
       updatedDoc.status = status;
     }
+    updatedDoc.monitoringStatus = monitoringStatus;
+    updatedDoc.trackingStatus = trackingStatus;
 
     const totalIncDec = increments - decrements;
 
@@ -1502,6 +1506,7 @@ const getCustomersOrdersCountByPhoneFromDB = async (phoneNumber: string) => {
     returned: 0,
     "partly returned": 0,
     completed: 0,
+    "partial completed": 0,
     deleted: 0,
   };
   orders.forEach(({ _id, total }) => {

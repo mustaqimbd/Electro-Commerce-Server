@@ -140,6 +140,16 @@ const OrderSchema = new Schema<TOrder>(
     deliveryStatus: {
       type: String,
     },
+    monitoringStatus: {
+      type: String,
+      enum: ["monitoring", "not monitoring", "low warning", "high warning"],
+      default: "not monitoring",
+    },
+    trackingStatus: {
+      type: String,
+      enum: ["not contacted", "contact again", "completed today"],
+      default: "not contacted",
+    },
     followUpDate: {
       type: String,
     },
