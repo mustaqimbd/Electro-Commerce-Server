@@ -168,12 +168,4 @@ router.patch(
   OrderController.returnAndPartialManagement
 );
 
-router.get(
-  "/fraud-check/:mobile",
-  // authGuard({
-  //   requiredRoles: ["superAdmin", "admin", "staff"],
-  // }),
-  OrderController.fraudCheck
-);
-
 export const OrderRoutes = router;

@@ -42,6 +42,20 @@ export default {
   stead_fast: {
     api_key: env.STEAD_FAST_API_KEY,
     secret_key: env.STEAD_FAST_SECRET_KEY,
+    email: env.STEADFAST_EMAIL,
+    password: env.STEADFAST_PASSWORD,
+  },
+  pathao: {
+    username: env.PATHAO_USERNAME,
+    password: env.PATHAO_PASSWORD,
+  },
+  redx: {
+    phoneNumber: env.REDX_PHONE_NUMBER,
+    password: env.REDX_PASSWORD,
+  },
+  paperfly: {
+    username: env.PAPERFLY_USERNAME,
+    password: env.PAPERFLY_PASSWORD,
   },
   courier_provider_id: env.COURIER_PROVIDER_ID,
   google: {

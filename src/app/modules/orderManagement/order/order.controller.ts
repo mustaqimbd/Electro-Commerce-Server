@@ -9,7 +9,6 @@ import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
-import login from "./steadfastlogin";
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderServices.createOrderIntoDB(req as Request);
@@ -280,17 +279,6 @@ const returnAndPartialManagement = catchAsync(
   }
 );
 
-const fraudCheck = catchAsync(async (req: Request, res: Response) => {
-  // const { mobile } = req.params;
-  // const result = await OrderServices.fraudCheckDB(mobile);
-  await login();
-  successResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Fraud check data retrieved successfully",
-    data: "result",
-  });
-});
-
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -311,5 +299,4 @@ export const OrderController = {
   getOrderTrackingInfo,
   getOrdersByDeliveryStatus,
   returnAndPartialManagement,
-  fraudCheck,
 };
