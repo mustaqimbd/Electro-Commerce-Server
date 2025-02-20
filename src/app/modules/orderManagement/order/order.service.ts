@@ -986,6 +986,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     courierNotes,
     followUpDate,
     monitoringNotes,
+    reasonNotes,
     productDetails: updatedProductDetails,
     status,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1008,7 +1009,7 @@ const updateOrderDetailsByAdminIntoDB = async (
       ).session(session);
     }
 
-    const updatedDoc: Partial<TOrder> = {};
+    const updatedDoc: Record<string, unknown> = {};
     let increments = 0;
     let decrements = 0;
 
@@ -1030,10 +1031,8 @@ const updateOrderDetailsByAdminIntoDB = async (
             findOrder.productDetails.splice(existingProductIndex, 1);
           } else {
             // Update existing product details
-            const currentProduct = findOrder.productDetails[
-              existingProductIndex
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ] as any;
+            const currentProduct =
+              findOrder.productDetails[existingProductIndex];
 
             const previousQuantity = currentProduct.quantity;
             if (updatedProduct.quantity) {
@@ -1110,37 +1109,42 @@ const updateOrderDetailsByAdminIntoDB = async (
                 );
               }
             }
-            const quantityCalculation =
-              currentProduct?.inventoryInfo?.stockAvailable +
-              previousQuantity -
-              updatedProduct.quantity;
 
-            if (
-              updatedProduct.quantity &&
-              previousQuantity !== updatedProduct.quantity
-            ) {
-              if (currentProduct.inventoryInfo.manageStock) {
-                if (currentProduct.variation) {
-                  if (currentProduct.isVariationDeleted !== true) {
-                    await ProductModel.updateOne(
-                      {
-                        _id: currentProduct.product,
-                        "variations._id": currentProduct.variation,
-                      },
-                      {
-                        "variations.$.inventory.stockAvailable":
-                          quantityCalculation,
-                      }
-                    ).session(session);
+            if (currentProduct.variation) {
+              if (
+                currentProduct?.inventoryInfo?.variationInventory?.variation
+              ) {
+                const quantityCalculation =
+                  Number(
+                    currentProduct?.inventoryInfo?.variationInventory
+                      ?.stockAvailable || 0
+                  ) +
+                  previousQuantity -
+                  updatedProduct.quantity;
+                await ProductModel.updateOne(
+                  {
+                    _id: currentProduct.product,
+                    "variations._id": currentProduct.variation,
+                  },
+                  {
+                    "variations.$.inventory.stockAvailable":
+                      quantityCalculation,
                   }
-                } else {
-                  await InventoryModel.updateOne(
-                    { _id: currentProduct.inventoryInfo._id },
-                    { stockAvailable: quantityCalculation },
-                    { session }
-                  );
-                }
+                ).session(session);
               }
+            } else {
+              const quantityCalculation =
+                Number(
+                  currentProduct?.inventoryInfo?.defaultInventory
+                    ?.stockAvailable || 0
+                ) +
+                previousQuantity -
+                updatedProduct.quantity;
+              await InventoryModel.updateOne(
+                { _id: currentProduct?.inventoryInfo?.defaultInventory?._id },
+                { stockAvailable: quantityCalculation },
+                { session }
+              );
             }
           }
         } else if (updatedProduct.newProductId) {
@@ -1224,7 +1228,8 @@ const updateOrderDetailsByAdminIntoDB = async (
 
           if (newProductDetails) {
             findOrder.productDetails.push(
-              newProductDetails as unknown as TProductDetails
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              newProductDetails as any
             );
           }
 
@@ -1272,7 +1277,6 @@ const updateOrderDetailsByAdminIntoDB = async (
     }
     updatedDoc.subtotal = newSubtotal;
     updatedDoc.warrantyAmount = newWarrantyAmount;
-
     // Update shipping chare
     if (payload?.shippingCharge) {
       const shippingMethod = await ShippingCharge.findById(
@@ -1327,6 +1331,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
     updatedDoc.monitoringNotes = monitoringNotes;
+    updatedDoc.reasonNotes = reasonNotes;
 
     await Order.findByIdAndUpdate(
       id,

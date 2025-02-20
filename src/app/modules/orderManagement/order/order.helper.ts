@@ -9,7 +9,7 @@ import ProductModel from "../../productManagement/product/product.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import {
-  TOrder,
+  TFindOrderForUpdatingOrder,
   TOrderStatus,
   TProductDetails,
   TSanitizedOrProduct,
@@ -174,7 +174,7 @@ const sanitizeOrderedProducts = async (
 
 const findOrderForUpdatingOrder = async (
   id: Types.ObjectId
-): Promise<TOrder> => {
+): Promise<TFindOrderForUpdatingOrder> => {
   const order = (
     await Order.aggregate([
       {
@@ -286,38 +286,55 @@ const findOrderForUpdatingOrder = async (
                   claimedCodes: "$productDetails.claimedCodes",
                   variation: "$productDetails.variation",
                   variations: "$productDetails.productInfo.variations",
-                  isVariationDeleted: {
-                    $cond: {
-                      if: {
-                        $and: [
-                          { $ne: ["$productDetails.variation", null] },
-                          { $eq: ["$variation", null] },
-                        ],
-                      },
-                      then: true,
-                      else: false,
-                    },
-                  },
                   inventoryInfo: {
-                    $cond: {
-                      if: { $ne: ["$variation", null] },
-                      then: {
-                        stockStatus: "$variation.inventory.stockStatus",
-                        stockAvailable: "$variation.inventory.stockAvailable",
-                        manageStock: "$variation.inventory.manageStock",
-                        lowStockWarning: "$variation.inventory.lowStockWarning",
-                      },
-                      else: {
-                        _id: "$productDetails.productInfo.inventoryInfo._id",
-                        stockAvailable:
-                          "$productDetails.productInfo.inventoryInfo.stockAvailable",
-                        manageStock:
-                          "$productDetails.productInfo.inventoryInfo.manageStock",
-                        lowStockWarning:
-                          "$productDetails.productInfo.inventoryInfo.lowStockWarning",
-                      },
+                    variationInventory: {
+                      variation: "$variation._id",
+                      stockStatus: "$variation.inventory.stockStatus",
+                      stockAvailable: "$variation.inventory.stockAvailable",
+                      manageStock: "$variation.inventory.manageStock",
+                      lowStockWarning: "$variation.inventory.lowStockWarning",
+                    },
+                    defaultInventory: {
+                      _id: "$productDetails.productInfo.inventoryInfo._id",
+                      stockAvailable:
+                        "$productDetails.productInfo.inventoryInfo.stockAvailable",
+                      manageStock:
+                        "$productDetails.productInfo.inventoryInfo.manageStock",
+                      lowStockWarning:
+                        "$productDetails.productInfo.inventoryInfo.lowStockWarning",
                     },
                   },
+                  // inventoryInfo: {
+                  //   $cond: {
+                  //     if: {
+                  //       $and: [
+                  //         { $ne: ["$variation", null] },
+                  //         { $ne: ["$variation", undefined] },
+                  //         {
+                  //           $or: [
+                  //             { $not: [{ $isArray: "$variation" }] }, // Check if it's not an array
+                  //             { $gt: [{ $size: "$variation" }, 0] }, // If it's an array, ensure it's not empty
+                  //           ],
+                  //         },
+                  //       ],
+                  //     },
+                  //     then: {
+                  //       stockStatus: "$variation.inventory.stockStatus",
+                  //       stockAvailable: "$variation.inventory.stockAvailable",
+                  //       manageStock: "$variation.inventory.manageStock",
+                  //       lowStockWarning: "$variation.inventory.lowStockWarning",
+                  //     },
+                  //     else: {
+                  //       _id: "$productDetails.productInfo.inventoryInfo._id",
+                  //       stockAvailable:
+                  //         "$productDetails.productInfo.inventoryInfo.stockAvailable",
+                  //       manageStock:
+                  //         "$productDetails.productInfo.inventoryInfo.manageStock",
+                  //       lowStockWarning:
+                  //         "$productDetails.productInfo.inventoryInfo.lowStockWarning",
+                  //     },
+                  //   },
+                  // },
                 },
                 "$$REMOVE",
               ],
@@ -333,6 +350,7 @@ const findOrderForUpdatingOrder = async (
             },
           },
           discount: { $first: "$discount" },
+          couponDiscount: { $first: "$couponDiscount" },
           shipping: { $first: "$shipping" },
           advance: { $first: "$advance" },
           warrantyAmount: { $first: "$warrantyAmount" },
@@ -341,7 +359,7 @@ const findOrderForUpdatingOrder = async (
         },
       },
     ])
-  )[0] as TOrder;
+  )[0] as TFindOrderForUpdatingOrder;
 
   return order;
 };

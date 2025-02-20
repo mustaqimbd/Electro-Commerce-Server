@@ -7,7 +7,10 @@ import {
   TVariation,
 } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
-import { TWarranty } from "../../warrantyManagement/warranty/warranty.interface";
+import {
+  TWarranty,
+  TWarrantyCodes,
+} from "../../warrantyManagement/warranty/warranty.interface";
 import {
   TClaimedCodes,
   TWarrantyClaimPrevWarrantyInformation,
@@ -155,3 +158,38 @@ export type TOrderDeliveryStatus =
   | "hold"
   | "in_review"
   | "unknown";
+
+export type TFindOrderForUpdatingOrder = {
+  _id: Types.ObjectId;
+  productDetails: {
+    _id: Types.ObjectId;
+    product: Types.ObjectId;
+    productTitle: string;
+    attributes: Record<string, string>;
+    unitPrice: number;
+    quantity: number;
+    total: number;
+    productWarrantyDetails: TWarranty;
+    isWarrantyClaim: boolean;
+    variation: Types.ObjectId;
+    variations: TVariation[];
+    // inventoryInfo: TInventory & { variation?: Types.ObjectId };
+    inventoryInfo: {
+      variationInventory: TInventory & { variation?: Types.ObjectId };
+      defaultInventory: TInventory;
+    };
+    warranty: Types.ObjectId;
+    claimedCodes?: TWarrantyCodes[];
+  }[];
+  couponDetails: Types.ObjectId;
+  subtotal: number;
+  tax: number;
+  shippingCharge: { _id: Types.ObjectId; amount: number };
+  discount: number;
+  shipping: Types.ObjectId;
+  advance: number;
+  couponDiscount: number;
+  warrantyAmount: number;
+  total: number;
+  status: TOrderStatus;
+};

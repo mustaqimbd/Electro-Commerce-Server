@@ -36,7 +36,7 @@ route.patch(
   CouponController.updateCouponCode
 );
 
-route.get(
+route.post(
   "/calculate-coupon-discount",
   optionalAuthGuard,
   CouponController.calculateCouponDiscount
