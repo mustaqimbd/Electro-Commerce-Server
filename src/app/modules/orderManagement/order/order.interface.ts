@@ -194,4 +194,5 @@ export type TFindOrderForUpdatingOrder = {
   warrantyAmount: number;
   total: number;
   status: TOrderStatus;
+  deliveryStatus: string;
 };
