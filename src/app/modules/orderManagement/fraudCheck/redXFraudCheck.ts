@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import ApiError from "../../../errorHandlers/ApiError";
@@ -93,10 +93,33 @@ async function redXFraudCheck(customerPhoneNumber: string) {
 
     return response.data;
   } catch (error: any) {
-    console.error("Error checking redX fraud status:", error);
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      const statusCode = axiosError.response?.status || 500; // Default to 500 if no response
+      const errorMessage =
+        axiosError.response?.data ||
+        axiosError.message ||
+        "Unknown error occurred";
+
+      // Handle rate limit errors (429 Too Many Requests)
+      if (statusCode === 429 && typeof errorMessage === "string") {
+        throw new ApiError(
+          429,
+          "Too many requests, please try again after sometime"
+        );
+      }
+
+      // Handle other Axios errors with status
+      throw new ApiError(
+        statusCode,
+        `Failed to check redX fraud status. ${errorMessage}`
+      );
+    }
+
+    // Handle non-Axios errors
     throw new ApiError(
-      400,
-      `Failed to check redX fraud status. ${error.response?.data || error.message}`
+      500,
+      "Failed to check redX fraud status due to an unexpected error."
     );
   }
 }
