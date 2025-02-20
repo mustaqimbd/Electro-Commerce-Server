@@ -827,7 +827,6 @@ const updateOrderStatusIntoDB = async (
         }
       }
     }
-    // throw new ApiError(400, "Break");
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -1062,8 +1061,6 @@ const bookCourierAndUpdateStatusIntoDB = async (
     }
     await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
 
-    // throw new ApiError(400, "break");
-
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -1097,6 +1094,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     courierNotes,
     followUpDate,
     monitoringNotes,
+    reasonNotes,
     productDetails: updatedProductDetails,
     status,
     monitoringStatus,
@@ -1122,7 +1120,7 @@ const updateOrderDetailsByAdminIntoDB = async (
       ).session(session);
     }
 
-    const updatedDoc: Partial<TOrder> = {};
+    const updatedDoc: Record<string, unknown> = {};
     let increments = 0;
     let decrements = 0;
 
@@ -1134,12 +1132,12 @@ const updateOrderDetailsByAdminIntoDB = async (
       (updatedProductDetails as unknown as TProductDetails[])?.length > 0
     ) {
       for (const updatedProduct of updatedProductDetails || []) {
-        const existingProductIndex = findOrder.productDetails.findIndex(
-          (product) =>
-            product?._id?.toString() === updatedProduct?.id?.toString()
-        );
+        if (updatedProduct.id) {
+          const existingProductIndex = findOrder.productDetails.findIndex(
+            (product) =>
+              product?._id?.toString() === updatedProduct?.id?.toString()
+          );
 
-        if (existingProductIndex > -1) {
           if (updatedProduct.isDelete) {
             const removedProduct = findOrder.productDetails.splice(
               existingProductIndex,
@@ -1164,10 +1162,8 @@ const updateOrderDetailsByAdminIntoDB = async (
             }
           } else {
             // Update existing product details
-            const currentProduct = findOrder.productDetails[
-              existingProductIndex
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ] as any;
+            const currentProduct =
+              findOrder.productDetails[existingProductIndex];
 
             const previousQuantity = currentProduct.quantity;
             if (updatedProduct.quantity) {
@@ -1244,40 +1240,45 @@ const updateOrderDetailsByAdminIntoDB = async (
                 );
               }
             }
-            const quantityCalculation =
-              currentProduct?.inventoryInfo?.stockAvailable +
-              previousQuantity -
-              updatedProduct.quantity;
 
-            if (
-              updatedProduct.quantity &&
-              previousQuantity !== updatedProduct.quantity
-            ) {
-              if (currentProduct.inventoryInfo.manageStock) {
-                if (currentProduct.variation) {
-                  if (currentProduct.isVariationDeleted !== true) {
-                    await ProductModel.updateOne(
-                      {
-                        _id: currentProduct.product,
-                        "variations._id": currentProduct.variation,
-                      },
-                      {
-                        "variations.$.inventory.stockAvailable":
-                          quantityCalculation,
-                      }
-                    ).session(session);
+            if (currentProduct.variation) {
+              if (
+                currentProduct?.inventoryInfo?.variationInventory?.variation
+              ) {
+                const quantityCalculation =
+                  Number(
+                    currentProduct?.inventoryInfo?.variationInventory
+                      ?.stockAvailable || 0
+                  ) +
+                  previousQuantity -
+                  updatedProduct.quantity;
+                await ProductModel.updateOne(
+                  {
+                    _id: currentProduct.product,
+                    "variations._id": currentProduct.variation,
+                  },
+                  {
+                    "variations.$.inventory.stockAvailable":
+                      quantityCalculation,
                   }
-                } else {
-                  await InventoryModel.updateOne(
-                    { _id: currentProduct.inventoryInfo._id },
-                    { stockAvailable: quantityCalculation },
-                    { session }
-                  );
-                }
+                ).session(session);
               }
+            } else {
+              const quantityCalculation =
+                Number(
+                  currentProduct?.inventoryInfo?.defaultInventory
+                    ?.stockAvailable || 0
+                ) +
+                previousQuantity -
+                updatedProduct.quantity;
+              await InventoryModel.updateOne(
+                { _id: currentProduct?.inventoryInfo?.defaultInventory?._id },
+                { stockAvailable: quantityCalculation },
+                { session }
+              );
             }
           }
-        } else {
+        } else if (updatedProduct.newProductId) {
           const productInfo = (
             await ProductModel.aggregate([
               {
@@ -1314,9 +1315,11 @@ const updateOrderDetailsByAdminIntoDB = async (
           if (!productInfo) {
             throw new ApiError(httpStatus.BAD_REQUEST, "No product found");
           }
+
           if (productInfo?.variations?.length)
             if (!updatedProduct?.variation)
               throw new ApiError(httpStatus.BAD_REQUEST, "Select a variation");
+
           const selectedVariation = productInfo?.variations?.find(
             (item) =>
               (item as unknown as Types.ObjectId)?._id.toString() ===
@@ -1326,7 +1329,6 @@ const updateOrderDetailsByAdminIntoDB = async (
           if (productInfo?.variations?.length)
             if (!selectedVariation)
               throw new ApiError(httpStatus.BAD_REQUEST, "Invalid variation");
-
           const { salePrice, regularPrice } = productInfo?.price as TPrice;
           const unitPrice = salePrice || regularPrice;
           const variationUnitPrice =
@@ -1361,9 +1363,13 @@ const updateOrderDetailsByAdminIntoDB = async (
             }
           }
 
-          findOrder.productDetails.push(
-            newProductDetails as unknown as TProductDetails
-          );
+          if (newProductDetails) {
+            findOrder.productDetails.push(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              newProductDetails as any
+            );
+          }
+
           if (selectedVariation) {
             if (selectedVariation?.inventory?.manageStock) {
               await ProductModel.updateOne(
@@ -1393,8 +1399,6 @@ const updateOrderDetailsByAdminIntoDB = async (
         }
       }
 
-      // throw new ApiError(400, "Bad request---custom");
-
       findOrder.productDetails.forEach((product) => {
         if (product.isWarrantyClaim) {
           newWarrantyAmount += product.total;
@@ -1410,9 +1414,6 @@ const updateOrderDetailsByAdminIntoDB = async (
     }
     updatedDoc.subtotal = newSubtotal;
     updatedDoc.warrantyAmount = newWarrantyAmount;
-
-    // throw new ApiError(400, "Break");
-
     // Update shipping chare
     if (payload?.shippingCharge) {
       const shippingMethod = await ShippingCharge.findById(
@@ -1448,6 +1449,11 @@ const updateOrderDetailsByAdminIntoDB = async (
       decrements += findOrder.discount || 0;
     }
 
+    // if the order have any coupon discount
+    if (findOrder.couponDiscount) {
+      decrements += findOrder.couponDiscount;
+    }
+
     if (status) {
       if (status !== "partial completed")
         throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
@@ -1464,6 +1470,7 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
     updatedDoc.monitoringNotes = monitoringNotes;
+    updatedDoc.reasonNotes = reasonNotes;
 
     await Order.findByIdAndUpdate(
       id,

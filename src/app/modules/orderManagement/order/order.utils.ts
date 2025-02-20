@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import mongoose, { ClientSession, PipelineStage, Types } from "mongoose";
+import mongoose, { ClientSession, Types } from "mongoose";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
@@ -12,7 +12,6 @@ import { TCourier } from "../../courier/courier.interface";
 import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import { InventoryModel } from "../../productManagement/inventory/inventory.model";
 import ProductModel from "../../productManagement/product/product.model";
-import { Address } from "../../userManagement/address/address.model";
 import { Warranty } from "../../warrantyManagement/warranty/warranty.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
 import { TPaymentData } from "../orderPayment/orderPayment.interface";
@@ -20,7 +19,6 @@ import { OrderPayment } from "../orderPayment/orderPayment.model";
 import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
 import { TShipping, TShippingData } from "../shipping/shipping.interface";
 import { Shipping } from "../shipping/shipping.model";
-import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import { OrderHelper } from "./order.helper";
 import {
   TCourierResponse,
@@ -164,7 +162,7 @@ export const createNewOrder = async (
     custom: boolean;
     salesPage: boolean;
     orderedProducts: TProductDetails[];
-    coupon?: number;
+    coupon?: string;
   };
 
   let { courierNotes, officialNotes, invoiceNotes, advance, discount } =
@@ -186,10 +184,6 @@ export const createNewOrder = async (
     ? new Types.ObjectId(userQuery.userId)
     : undefined;
 
-  // let singleOrder: { product: string; quantity: number } = {
-  //   product: "",
-  //   quantity: 0,
-  // };
   let totalCost = 0;
 
   const orderData: Partial<TOrder> = {};
@@ -217,225 +211,13 @@ export const createNewOrder = async (
     warrantyClaimOrderData?.warrantyClaim &&
     warrantyClaimOrderData?.productsDetails
   ) {
-    // console.log(warrantyClaimOrderData?.productsDetails);
     orderedProductInfo = await OrderHelper.sanitizeOrderedProducts(
       warrantyClaimOrderData?.productsDetails as TProductDetails[],
       true
     );
   } else {
     fromWebsite = true;
-    const pipeline: PipelineStage[] = [
-      {
-        $match: userQuery,
-      },
-      {
-        $lookup: {
-          from: "products",
-          localField: "product",
-          foreignField: "_id",
-          as: "productDetails",
-        },
-      },
-      {
-        $unwind: "$productDetails",
-      },
-      {
-        $lookup: {
-          from: "inventories",
-          localField: "productDetails.inventory",
-          foreignField: "_id",
-          as: "defaultInventory",
-        },
-      },
-      {
-        $unwind: "$defaultInventory",
-      },
-      {
-        $lookup: {
-          from: "prices",
-          localField: "productDetails.price",
-          foreignField: "_id",
-          as: "productPrice",
-        },
-      },
-      {
-        $unwind: "$productPrice",
-      },
-      {
-        $lookup: {
-          from: "products",
-          let: {
-            productId: "$productDetails._id",
-            variationId: "$variation", // Checking CartItem.variation, not the product
-          },
-          pipeline: [
-            {
-              $match: {
-                $expr: {
-                  $and: [
-                    { $eq: ["$_id", "$$productId"] },
-                    { $ne: ["$$variationId", null] }, // Ensure variation is present in CartItem
-                  ],
-                },
-              },
-            },
-            {
-              $project: {
-                variations: {
-                  $filter: {
-                    input: "$variations",
-                    as: "variation",
-                    cond: { $eq: ["$$variation._id", "$$variationId"] }, // Match variationId
-                  },
-                },
-              },
-            },
-          ],
-          as: "variationDetails",
-        },
-      },
-      {
-        $unwind: {
-          path: "$variationDetails",
-          preserveNullAndEmptyArrays: true, // Handle cases without variation
-        },
-      },
-      {
-        $project: {
-          product: {
-            variationDetails: "$variationDetails",
-            _id: "$productDetails._id",
-            title: "$productDetails.title",
-            isDeleted: "$productDetails.isDeleted",
-            defaultInventory: "$defaultInventory._id",
-            isVariationAvailable: {
-              $cond: {
-                if: {
-                  $and: [
-                    { $ne: ["$variation", null] }, // Ensure variation is present
-                    {
-                      $gt: [
-                        {
-                          $size: {
-                            $ifNull: ["$variationDetails.variations", []],
-                          },
-                        },
-                        0,
-                      ],
-                    }, // Ensure variationDetails.variations is non-empty
-                  ],
-                },
-                then: true,
-                else: false,
-              },
-            },
-            stock: {
-              $cond: {
-                if: {
-                  $and: [
-                    { $ne: ["$variation", null] }, // Ensure variation is present
-                    {
-                      $gt: [
-                        {
-                          $size: {
-                            $ifNull: ["$variationDetails.variations", []],
-                          },
-                        },
-                        0,
-                      ],
-                    }, // Ensure variationDetails.variations is non-empty
-                  ],
-                },
-                then: {
-                  sku: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.inventory.sku",
-                      0,
-                    ],
-                  },
-                  lowStockWarning: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.inventory.lowStockWarning",
-                      0,
-                    ],
-                  },
-                  stockAvailable: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.inventory.stockAvailable",
-                      0,
-                    ],
-                  },
-                  manageStock: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.inventory.manageStock",
-                      0,
-                    ],
-                  },
-                  stockStatus: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.inventory.stockStatus",
-                      0,
-                    ],
-                  },
-                },
-                else: {
-                  lowStockWarning: "$defaultInventory.lowStockWarning",
-                  sku: "$defaultInventory.sku",
-                  stockAvailable: "$defaultInventory.stockAvailable",
-                  manageStock: "$defaultInventory.manageStock",
-                  stockStatus: "$defaultInventory.stockStatus",
-                },
-              },
-            },
-            price: {
-              $cond: {
-                if: {
-                  $and: [
-                    { $ne: ["$variation", null] }, // Ensure variation is present
-                    {
-                      $gt: [
-                        {
-                          $size: {
-                            $ifNull: ["$variationDetails.variations", []],
-                          },
-                        },
-                        0,
-                      ],
-                    }, // Ensure variationDetails.variations is non-empty
-                  ],
-                },
-                then: {
-                  regularPrice: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.price.regularPrice",
-                      0,
-                    ],
-                  },
-                  salePrice: {
-                    $arrayElemAt: [
-                      "$variationDetails.variations.price.salePrice",
-                      0,
-                    ],
-                  },
-                },
-                else: {
-                  regularPrice: "$productPrice.regularPrice",
-                  salePrice: "$productPrice.salePrice",
-                },
-              },
-            },
-          },
-
-          variation: 1,
-          quantity: 1,
-        },
-      },
-    ];
-
-    const cart = await CartItem.aggregate(pipeline);
-    if (!cart.length) {
-      throw new ApiError(httpStatus.BAD_REQUEST, "No item found on cart");
-    }
+    const cart = await OrderHelper.sanitizeCartItemsForOrder(userQuery);
     orderedProductInfo = cart;
   }
 
@@ -452,7 +234,7 @@ export const createNewOrder = async (
     }
   }
 
-  if (!custom) {
+  if (!custom || warrantyClaimOrderData?.warrantyClaim === false) {
     courierNotes = undefined;
     officialNotes = undefined;
     invoiceNotes = undefined;
@@ -460,67 +242,10 @@ export const createNewOrder = async (
     discount = 0;
   }
 
-  const orderedProductData = orderedProductInfo?.map((item) => {
-    let attributes;
-    if (item.isWarrantyClaim) {
-      attributes = item?.attributes;
-    } else {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      attributes = (item.product as any)?.variationDetails?.variations
-        ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (item.product as any)?.variationDetails?.variations![0]?.attributes
-        : undefined;
-    }
+  const { orderedProductData, cost } =
+    OrderHelper.validateAndSanitizeOrderedProducts(orderedProductInfo);
 
-    if (item.variation && item.product.isVariationAvailable === false) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `On product ${item?.product?.title}, selected variation is no longer available.`
-      );
-    }
-
-    if (item.product.isDeleted) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `The product '${item.product.title}' is no longer available`
-      );
-    }
-
-    if (
-      (item?.product?.stock?.manageStock &&
-        Number(item?.product?.stock?.stockAvailable || 0) < item?.quantity) ||
-      item?.product?.stock?.stockStatus === "Out of stock"
-    ) {
-      throw new ApiError(
-        httpStatus.BAD_REQUEST,
-        `The product '${item.product.title}' is 'Out of stock', please contact the support team`
-      );
-    }
-
-    const price = Number(
-      item?.product?.price?.salePrice || item?.product?.price?.regularPrice
-    );
-
-    const result = {
-      product: item?.product?._id,
-      unitPrice: price,
-      quantity: item?.quantity,
-      total: Math.round(item?.quantity * price),
-      isWarrantyClaim: item?.isWarrantyClaim,
-      claimedCodes: item?.claimedCodes,
-      prevWarrantyInformation: item?.prevWarrantyInformation,
-      variation: item?.variation,
-      attributes,
-      warrantyClaimHistory: item?.warrantyClaimHistory,
-    };
-
-    onlyProductsCosts += result.total;
-
-    return {
-      item,
-      result,
-    };
-  });
+  onlyProductsCosts = cost;
 
   // Execute DB operations after mapping
   await Promise.all(
@@ -588,65 +313,48 @@ export const createNewOrder = async (
       session,
     })
   )[0]._id;
-  // get shipping charge
-  const shippingCharges = await ShippingCharge.findOne({
-    _id: shippingCharge,
-    isActive: true,
-  });
-  if (!shippingCharges) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "No shipping charges found");
+
+  const { couponDiscount, totalCostAfterCoupon, shippingId, couponId } =
+    await OrderHelper.orderCostAfterCoupon(
+      onlyProductsCosts,
+      shippingCharge.toString(),
+      orderedProductInfo,
+      { couponCode: coupon, user }
+    );
+
+  if (couponId) {
+    await Coupon.findByIdAndUpdate(
+      couponId,
+      { $inc: { usageCount: 1 } },
+      { session }
+    );
   }
 
   let warrantyAmount = 0;
-  warrantyAmount = onlyProductsCosts;
+  warrantyAmount = totalCostAfterCoupon;
   if (!warrantyClaimOrderData?.warrantyClaim) {
     warrantyAmount = 0;
   }
 
   totalCost =
-    onlyProductsCosts +
-    Number(shippingCharges?.amount) -
-    Number(advance || 0) -
+    totalCostAfterCoupon -
     warrantyAmount -
+    Number(advance || 0) -
     Number(discount || 0);
 
-  let couponDiscount = 0;
-  let selectedCoupon: Types.ObjectId | undefined = undefined;
-  if (coupon) {
-    const couponDetails = await Coupon.findOne(
-      {
-        code: coupon,
-        isActive: true,
-        isDeleted: false,
-        endDate: { $gt: new Date(Date.now()) },
-      },
-      { percentage: 1, limitDiscountAmount: 1, maxDiscountAmount: 1 }
-    );
-    if (!couponDetails)
-      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid coupon code");
-
-    selectedCoupon = couponDetails?._id;
-    couponDiscount = totalCost * (couponDetails.percentage / 100);
-    if (couponDetails.limitDiscountAmount)
-      if (couponDiscount > couponDetails.maxDiscountAmount)
-        couponDiscount = couponDetails.maxDiscountAmount;
-    couponDiscount = Math.round(couponDiscount);
-    if (couponDetails) totalCost = totalCost - couponDiscount;
-  }
-
   orderData.orderId = orderId;
-  orderData.userId = !warrantyClaimOrderData?.warrantyClaim
-    ? (userQuery.userId as mongoose.Types.ObjectId)
-    : undefined;
-  orderData.sessionId = !warrantyClaimOrderData?.warrantyClaim
-    ? (userQuery.sessionId as string)
-    : undefined;
+  orderData.userId =
+    fromWebsite === true || salesPage === true
+      ? (userQuery.userId as mongoose.Types.ObjectId)
+      : undefined;
+  orderData.sessionId =
+    fromWebsite || salesPage ? (userQuery.sessionId as string) : undefined;
   orderData.subtotal = onlyProductsCosts;
-  orderData.shippingCharge = shippingCharges?._id;
+  orderData.shippingCharge = shippingId;
   orderData.total = totalCost;
   orderData.warrantyAmount = warrantyAmount;
   orderData.status = status;
-  orderData.couponDetails = selectedCoupon;
+  orderData.couponDetails = couponId;
   orderData.couponDiscount = couponDiscount;
 
   orderData.orderNotes = orderNotes;
@@ -665,11 +373,9 @@ export const createNewOrder = async (
   if (!orderRes) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Failed to create order");
   }
-  if (user.id && user.role === "customer") {
-    await Address.updateOne({ uid: user.uid }, shipping).session(session);
-  }
+
   // clear cart and cart items
-  if (!salesPage || !custom || !warrantyClaimOrderData?.warrantyClaim) {
+  if (fromWebsite) {
     await CartItem.deleteMany(userQuery).session(session);
   }
 
