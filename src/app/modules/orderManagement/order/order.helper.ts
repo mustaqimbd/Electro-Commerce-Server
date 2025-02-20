@@ -304,37 +304,6 @@ const findOrderForUpdatingOrder = async (
                         "$productDetails.productInfo.inventoryInfo.lowStockWarning",
                     },
                   },
-                  // inventoryInfo: {
-                  //   $cond: {
-                  //     if: {
-                  //       $and: [
-                  //         { $ne: ["$variation", null] },
-                  //         { $ne: ["$variation", undefined] },
-                  //         {
-                  //           $or: [
-                  //             { $not: [{ $isArray: "$variation" }] }, // Check if it's not an array
-                  //             { $gt: [{ $size: "$variation" }, 0] }, // If it's an array, ensure it's not empty
-                  //           ],
-                  //         },
-                  //       ],
-                  //     },
-                  //     then: {
-                  //       stockStatus: "$variation.inventory.stockStatus",
-                  //       stockAvailable: "$variation.inventory.stockAvailable",
-                  //       manageStock: "$variation.inventory.manageStock",
-                  //       lowStockWarning: "$variation.inventory.lowStockWarning",
-                  //     },
-                  //     else: {
-                  //       _id: "$productDetails.productInfo.inventoryInfo._id",
-                  //       stockAvailable:
-                  //         "$productDetails.productInfo.inventoryInfo.stockAvailable",
-                  //       manageStock:
-                  //         "$productDetails.productInfo.inventoryInfo.manageStock",
-                  //       lowStockWarning:
-                  //         "$productDetails.productInfo.inventoryInfo.lowStockWarning",
-                  //     },
-                  //   },
-                  // },
                 },
                 "$$REMOVE",
               ],
