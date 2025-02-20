@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authGuard from "../../middlewares/authGuard";
+import optionalAuthGuard from "../../middlewares/optionalAuthGuard";
 import validateRequest from "../../middlewares/validateRequest";
 import { CouponController } from "./coupon.controller";
 import { CouponValidation } from "./coupon.validation";
@@ -34,6 +35,14 @@ route.patch(
   validateRequest(CouponValidation.updateCoupon),
   CouponController.updateCouponCode
 );
+
+route.post(
+  "/calculate-coupon-discount",
+  optionalAuthGuard,
+  CouponController.calculateCouponDiscount
+);
+
+route.get("/tags", CouponController.getAllTags);
 
 route.get("/:code", CouponController.getSingleCoupon);
 

@@ -159,7 +159,7 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
   await OrderServices.updateOrderStatusIntoDB(user as TJwtPayload, req.body);
 
   successResponse<TOrderStatusHistory>(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "Status updated successfully",
   });
 });
@@ -174,7 +174,7 @@ const updateProcessingStatus = catchAsync(
     );
 
     successResponse<TOrderStatusHistory>(res, {
-      statusCode: httpStatus.CREATED,
+      statusCode: httpStatus.OK,
       message: "Status updated successfully",
     });
   }
@@ -192,7 +192,7 @@ const bookCourierAndUpdateStatus = catchAsync(
         req.user as TJwtPayload
       );
     successResponse(res, {
-      statusCode: httpStatus.CREATED,
+      statusCode: httpStatus.OK,
       message: message || "Courier booked successfully",
       data: result,
     });

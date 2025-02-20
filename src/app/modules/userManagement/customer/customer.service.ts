@@ -32,13 +32,24 @@ const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
     },
   ];
 
-  const matchQuery = {
-    $match: {
-      role: "customer",
-    },
+  const matchQuery: Record<string, unknown> = {
+    role: "customer",
   };
 
-  pipeline.unshift(matchQuery);
+  if (query.phoneNumber) {
+    matchQuery.phoneNumber = query.phoneNumber;
+  }
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search as string, "i"); // 'i' for case-insensitive matching
+    matchQuery.$or = [
+      { phoneNumber: { $regex: searchRegex } },
+      { address: { $regex: searchRegex } },
+      { orderId: { $regex: searchRegex } },
+    ];
+  }
+
+  pipeline.unshift({ $match: matchQuery });
 
   const customerQuery = new AggregateQueryHelper(
     User.aggregate(pipeline),
@@ -49,7 +60,8 @@ const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
 
   const data = await customerQuery.model;
   const total =
-    (await User.aggregate([matchQuery, { $count: "total" }]))![0]?.total || 0;
+    (await User.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
+      ?.total || 0;
   const meta = customerQuery.metaData(total);
 
   return {

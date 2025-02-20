@@ -127,6 +127,8 @@ const updateOrderDetailsByAdmin = z.object({
     officialNotes: z.string().optional(),
     invoiceNotes: z.string().optional(),
     courierNotes: z.string().optional(),
+    reasonNotes: z.string().optional(),
+    monitoringNotes: z.string().optional(),
     shipping: shippingValidationZodSchema(true).optional(),
     followUpDate: validateDateInput().optional(),
     productDetails: z.array(productDetailsSchema()).optional(),

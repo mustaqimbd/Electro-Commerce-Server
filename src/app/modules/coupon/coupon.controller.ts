@@ -1,4 +1,5 @@
 import httpStatus from "http-status";
+import { TOptionalAuthGuardPayload } from "../../types/common";
 import catchAsync from "../../utilities/catchAsync";
 import successResponse from "../../utilities/successResponse";
 import { TJwtPayload } from "../authManagement/auth/auth.interface";
@@ -30,7 +31,7 @@ const getAllCoupons = catchAsync(async (req, res) => {
 const getSingleCoupon = catchAsync(async (req, res) => {
   const result = await CouponServices.getSingleCouponFromBD(req.params.code);
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "Coupon data retrieved successfully!",
     data: result,
   });
@@ -39,8 +40,29 @@ const getSingleCoupon = catchAsync(async (req, res) => {
 const updateCouponCode = catchAsync(async (req, res) => {
   await CouponServices.updateCouponCodeIntoDB(req.params.id, req.body);
   successResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "Coupon updated successfully!",
+  });
+});
+
+const calculateCouponDiscount = catchAsync(async (req, res) => {
+  const result = await CouponServices.calculateCouponDiscount(
+    req.body,
+    req.user as TOptionalAuthGuardPayload
+  );
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "Coupon discount calculation!",
+    data: result,
+  });
+});
+
+const getAllTags = catchAsync(async (req, res) => {
+  const result = await CouponServices.getAllTagsFromDB();
+  successResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "All tags retrieved successfully!",
+    data: result,
   });
 });
 
@@ -49,4 +71,6 @@ export const CouponController = {
   getAllCoupons,
   getSingleCoupon,
   updateCouponCode,
+  calculateCouponDiscount,
+  getAllTags,
 };
