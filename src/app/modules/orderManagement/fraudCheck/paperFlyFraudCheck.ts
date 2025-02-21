@@ -70,6 +70,7 @@ const paperFlyFraudCheck = async (phone: string) => {
     );
     return response.data;
   } catch (error) {
+    console.error("Failed to check paperFly fraud status", error);
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
       const statusCode = axiosError.response?.status || 500; // Default to 500 if no response
