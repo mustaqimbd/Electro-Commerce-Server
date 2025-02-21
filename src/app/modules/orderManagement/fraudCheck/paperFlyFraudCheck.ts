@@ -53,7 +53,7 @@ async function login() {
   }
 }
 
-const paperFlyFraudCheck = async (phone: string) => {
+const paperFlyFraudCheck = async (phone: string): Promise<any> => {
   try {
     if (!(await isLoggedIn())) {
       await login();
