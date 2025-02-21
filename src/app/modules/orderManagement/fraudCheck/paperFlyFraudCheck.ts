@@ -3,7 +3,6 @@
 import axios from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
-import ApiError from "../../../errorHandlers/ApiError";
 import config from "../../../config/config";
 import { AxiosError } from "axios";
 
@@ -46,8 +45,7 @@ async function login() {
     console.log("4. Paperfly login successful.");
   } catch (error: any) {
     console.error("Paperfly login failed:", error);
-    throw new ApiError(
-      400,
+    throw new Error(
       `Failed to paperfly log in. ${error.response?.data || error.message}`
     );
   }
