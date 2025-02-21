@@ -91,19 +91,14 @@ const paperFlyFraudCheck = async (phone: string): Promise<any> => {
       }
 
       if (statusCode === 429 && typeof errorMessage === "string") {
-        throw new ApiError(
-          429,
+        throw new Error(
           "Too many requests in the paperFly, please try again after sometime"
         );
       }
 
-      throw new ApiError(
-        statusCode,
-        `Failed to check paperFly fraud status. ${errorMessage}`
-      );
+      throw new Error(`Failed to check paperFly fraud status. ${errorMessage}`);
     }
-    throw new ApiError(
-      500,
+    throw new Error(
       "Failed to check paperFly fraud status due to an unexpected error."
     );
   }
