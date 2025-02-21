@@ -1,44 +1,21 @@
-import { paperFlyFraudCheck } from "./paperFlyFraudCheck";
+import {
+  Courier,
+  Errors,
+  FraudCheckData,
+  Report,
+} from "./fraudCheck.interface";
+import { formatPaperFlyFraudData, formatValue } from "./fraudCheck.utils";
 import { pathaoFraudCheck } from "./pathaoFraudCheck";
 import { redXFraudCheck } from "./redXFraudCheck";
 import { steadfastFraudCheck } from "./steadfastFraudCheck";
-
-type Report = {
-  reportFrom: string;
-  comment: string;
-  date: string;
-};
-
-type Courier = {
-  name: string;
-  logo: string;
-  orders: number;
-  deliveries: number;
-  cancellations: number;
-  deliveryRate: number;
-};
-
-function formatValue(value: number) {
-  return value % 1 === 0 ? value : Math.round(value); // 84.33=84 84.55=85
-  // return value % 1 === 0 ? value : parseFloat(value.toFixed(2)); // 84.3333=84.33 84.5456=84.55
-}
 
 const fraudCheckDB = async (mobile: string) => {
   const steadFast = await steadfastFraudCheck(mobile);
   const pathao = await pathaoFraudCheck(mobile);
   const redX = await redXFraudCheck(mobile);
-  const res = await paperFlyFraudCheck(mobile);
-  const paperFly = res.records?.length
-    ? {
-        records: res.records.map(
-          ({ delivered, returned }: Record<string, string>) => ({
-            delivered: parseInt(delivered) || 0,
-            returned: parseInt(returned) || 0,
-          })
-        ),
-      }
-    : { records: [{ delivered: 0, returned: 0 }] };
+  const paperFly = await formatPaperFlyFraudData(mobile);
 
+  const errors: Errors[] = [];
   const reports: Report[] = [];
 
   if (steadFast[2] && steadFast[2].length > 0) {
@@ -61,19 +38,25 @@ const fraudCheckDB = async (mobile: string) => {
     });
   }
 
+  if (paperFly.error) {
+    errors.push({
+      errorFrom: paperFly.errorFrom,
+      message: paperFly.message,
+    });
+  }
+
   const totalOrders =
     steadFast[0] +
     steadFast[1] +
     (pathao.data?.customer?.total_delivery || 0) +
     (parseInt(redX.data?.totalParcels, 10) || 0) +
-    (paperFly.records?.[0]?.delivered || 0) +
-    (paperFly.records?.[0]?.returned || 0);
+    paperFly.totalOrders;
 
   const totalDeliveries =
     steadFast[0] +
     (pathao?.data?.customer?.successful_delivery || 0) +
     (parseInt(redX?.data?.deliveredParcels, 10) || 0) +
-    (paperFly?.records?.[0]?.delivered || 0);
+    paperFly.totalDeliveries;
 
   const totalCancellations = totalOrders - totalDeliveries;
 
@@ -118,19 +101,7 @@ const fraudCheckDB = async (mobile: string) => {
           100 || 0
       ),
     },
-    {
-      name: "PaperFly",
-      logo: "https://go.paperfly.com.bd/static/assets/paperfly-logo.d67bc8c5.png",
-      orders: paperFly.records?.[0].delivered + paperFly.records?.[0].returned,
-      deliveries: paperFly?.records?.[0]?.delivered || 0,
-      cancellations: paperFly?.records?.[0]?.returned || 0,
-      deliveryRate: formatValue(
-        (paperFly?.records?.[0]?.delivered /
-          (paperFly?.records?.[0]?.delivered +
-            paperFly?.records?.[0]?.returned)) *
-          100 || 0
-      ),
-    },
+    ...paperFly.couriers,
   ];
 
   const message =
@@ -140,7 +111,7 @@ const fraudCheckDB = async (mobile: string) => {
         ? "ব্যবহার ও আচরণের উপর নির্ভর করে পার্সেল পাঠানো যাবে, অগ্রিম ডেলিভারি চার্জ নিলে ভালো হয়।"
         : "সাবধান! পার্সেল পাঠানোর আগে ডেলিভারি চার্জ নিয়ে নিবেন।";
 
-  const data = {
+  const data: FraudCheckData = {
     phoneNumber: mobile,
     totalOrders,
     totalDeliveries,
@@ -149,6 +120,7 @@ const fraudCheckDB = async (mobile: string) => {
     message,
     couriers,
     reports,
+    errors,
   };
 
   return data;

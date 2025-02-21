@@ -22,7 +22,6 @@ const session = wrapper(
   })
 );
 
-// ✅ Check if logged in (based on cookies)
 async function isLoggedIn(): Promise<boolean> {
   try {
     const auth = session.defaults.headers.common["Authorization"];
@@ -33,7 +32,6 @@ async function isLoggedIn(): Promise<boolean> {
   }
 }
 
-// ✅ Login with password and store token
 async function login() {
   try {
     const response = await session.post(
@@ -70,28 +68,40 @@ const paperFlyFraudCheck = async (phone: string) => {
     );
     return response.data;
   } catch (error) {
-    console.error("Failed to check paperFly fraud status", error);
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
-      const statusCode = axiosError.response?.status || 500; // Default to 500 if no response
+      const statusCode = axiosError.response?.status || 500;
       const errorMessage =
         axiosError.response?.data ||
         axiosError.message ||
-        "Unknown error occurred";
-      // Handle rate limit errors (429 Too Many Requests)
+        "Unknown error occurred in paperFly fraud check";
+
+      // Check for 500 with specific headers indicating potential auth/session issue
+      if (
+        statusCode === 500 &&
+        axiosError.response?.headers["x-cache"] === "Error from cloudfront" &&
+        axiosError.response?.headers["content-type"] ===
+          "text/html; charset=UTF-8" &&
+        axiosError.response?.headers["content-length"] === "0"
+      ) {
+        // Potential session/auth issue, attempt relogin
+        console.log("Potential session/auth issue (500), attempting relogin.");
+        await login();
+        return paperFlyFraudCheck(phone); // Retry the request
+      }
+
       if (statusCode === 429 && typeof errorMessage === "string") {
         throw new ApiError(
           429,
-          "Too many requests, please try again after sometime"
+          "Too many requests in the paperFly, please try again after sometime"
         );
       }
-      // Handle other Axios errors with status
+
       throw new ApiError(
         statusCode,
         `Failed to check paperFly fraud status. ${errorMessage}`
       );
     }
-    // Handle non-Axios errors
     throw new ApiError(
       500,
       "Failed to check paperFly fraud status due to an unexpected error."
