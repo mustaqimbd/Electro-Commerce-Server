@@ -1483,22 +1483,32 @@ const orderCostAfterCoupon = async (
       }, 0);
     }
 
+    // if (
+    //   fixedCategories?.length ||
+    //   restrictedCategories?.length ||
+    //   fixedProducts?.length
+    //   // eslint-disable-next-line no-empty
+    // ) {
+    // } else {
+    //   conditionedCost = productCosts;
+    // }
+
     if (
-      fixedCategories?.length ||
-      restrictedCategories?.length ||
-      fixedProducts?.length
+      ![fixedCategories, restrictedCategories, fixedProducts].some(
+        (arr) => arr?.length
+      )
     ) {
-      if (
-        coupon?.minimumOrderValue &&
-        coupon?.minimumOrderValue >= conditionedCost
-      ) {
-        throw new ApiError(
-          httpStatus.BAD_REQUEST,
-          `You must spend ${coupon?.minimumOrderValue} or higher from the listed coupon conditions category and products!`
-        );
-      }
-    } else {
       conditionedCost = productCosts;
+    }
+
+    if (
+      coupon?.minimumOrderValue &&
+      coupon?.minimumOrderValue >= conditionedCost
+    ) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `You must spend ${coupon?.minimumOrderValue} or higher from the listed coupon conditions category and products!`
+      );
     }
 
     // calculate coupon discount
