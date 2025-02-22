@@ -1497,12 +1497,15 @@ const orderCostAfterCoupon = async (
           `You must spend ${coupon?.minimumOrderValue} or higher from the listed coupon conditions category and products!`
         );
       }
+    } else {
+      conditionedCost = productCosts;
     }
 
     // calculate coupon discount
     if (discountType === "percentage") {
       const calc = discountValue / 100;
       couponDiscount = conditionedCost * calc;
+
       if (maxDiscount) {
         if (couponDiscount > maxDiscount) {
           couponDiscount = maxDiscount;
