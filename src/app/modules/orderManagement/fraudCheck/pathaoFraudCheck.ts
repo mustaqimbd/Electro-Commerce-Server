@@ -3,7 +3,6 @@
 import axios, { AxiosError } from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
-import ApiError from "../../../errorHandlers/ApiError";
 import config from "../../../config/config";
 
 const API_BASE_URL = "https://merchant.pathao.com";
@@ -27,7 +26,6 @@ async function isLoggedIn(): Promise<boolean> {
     const auth = session.defaults.headers.common["Authorization"];
     return !!auth;
   } catch (error) {
-    console.error("Error when checking pathao login status:", error);
     return false;
   }
 }
@@ -43,10 +41,8 @@ async function login() {
     session.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
     console.log("2. Pathao login successful.");
   } catch (error: any) {
-    console.error("Pathao login failed:", error);
-    throw new ApiError(
-      400,
-      `Pathao login failed. ${error.response?.data || error.message}`
+    throw new Error(
+      `Pathao login failed! ${error.response?.data?.message || error.message}`
     );
   }
 }
@@ -66,25 +62,19 @@ const pathaoFraudCheck = async (phone: string) => {
       const errorMessage =
         axiosError.response?.data ||
         axiosError.message ||
-        "Unknown error occurred";
+        "Unknown error occurred while checking Pathao fraud status.";
       // Handle rate limit errors (429 Too Many Requests)
       if (statusCode === 429 && typeof errorMessage === "string") {
-        throw new ApiError(
-          429,
-          "Too many requests, please try again after sometime"
+        throw new Error(
+          "Too many requests in the Pathao! Please try again after sometime for Pathao data."
         );
       }
       // Handle other Axios errors with status
-      throw new ApiError(
-        statusCode,
-        `Failed to check pathao fraud status. ${errorMessage}`
-      );
+      throw new Error(`Failed to check Pathao fraud status. ${errorMessage}`);
     }
+
     // Handle non-Axios errors
-    throw new ApiError(
-      500,
-      "Failed to check pathao fraud status due to an unexpected error."
-    );
+    throw new Error(`${error.message} Failed to check Pathao fraud status.`);
   }
 };
 

@@ -26,7 +26,7 @@ async function isLoggedIn(): Promise<boolean> {
     const auth = session.defaults.headers.common["Authorization"];
     return !!auth;
   } catch (error) {
-    console.error("Error when checking paperfly login status:", error);
+    console.error("Error when checking Paperfly login status:", error);
     return false;
   }
 }
@@ -44,10 +44,9 @@ async function login() {
     session.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
     console.log("4. Paperfly login successful.");
   } catch (error: any) {
-    console.error("Paperfly login failed:", error);
-    throw new Error(
-      `Failed to paperfly log in. ${error.response?.data || error.message}`
-    );
+    const errorMessage =
+      error?.response.data?.non_field_errors?.[0] || error.response.statusText;
+    throw new Error(`Paperfly login failed! ${errorMessage}.`);
   }
 }
 
@@ -65,14 +64,14 @@ const paperFlyFraudCheck = async (phone: string): Promise<any> => {
       }
     );
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
       const statusCode = axiosError.response?.status || 500;
       const errorMessage =
         axiosError.response?.data ||
         axiosError.message ||
-        "Unknown error occurred in paperFly fraud check";
+        "Unknown error occurred while checking Paperfly fraud status.";
 
       // Check for 500 with specific headers indicating potential auth/session issue
       if (
@@ -83,22 +82,22 @@ const paperFlyFraudCheck = async (phone: string): Promise<any> => {
         axiosError.response?.headers["content-length"] === "0"
       ) {
         // Potential session/auth issue, attempt relogin
-        console.log("Potential session/auth issue (500), attempting relogin.");
+        console.log(
+          "Potential session/auth issue (500), attempting login again."
+        );
         await login();
         return paperFlyFraudCheck(phone); // Retry the request
       }
 
       if (statusCode === 429 && typeof errorMessage === "string") {
         throw new Error(
-          "Too many requests in the paperFly, please try again after sometime"
+          "Too many requests in the paperFly! Please try again after sometime for PaperFly data."
         );
       }
 
       throw new Error(`Failed to check paperFly fraud status. ${errorMessage}`);
     }
-    throw new Error(
-      "Failed to check paperFly fraud status due to an unexpected error."
-    );
+    throw new Error(`${error.message} Failed to check paperFly fraud status.`);
   }
 };
 

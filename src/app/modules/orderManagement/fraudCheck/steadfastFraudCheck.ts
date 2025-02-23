@@ -4,7 +4,6 @@ import axios, { AxiosError } from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
 import * as cheerio from "cheerio";
-import ApiError from "../../../errorHandlers/ApiError";
 import config from "../../../config/config";
 
 const API_BASE_URL = "https://steadfast.com.bd";
@@ -29,7 +28,7 @@ async function isLoggedIn() {
     const cookies = await cookieJar.getCookies("https://steadfast.com.bd");
     return cookies.some((cookie) => cookie.key === "XSRF-TOKEN"); // Adjust as per site's session handling
   } catch (error) {
-    console.error("Error checking steadfast login status:", error);
+    console.error("Error when checking Steadfast login status.", error);
     return false;
   }
 }
@@ -61,8 +60,9 @@ async function login() {
 
     console.log("1. Steadfast login successful");
   } catch (error: any) {
-    console.error("Error when steadfast login:", error.message);
-    throw new ApiError(400, `${error.message}. Failed to login to steadfast`);
+    throw new Error(
+      `Steadfast login failed! ${error.response?.data?.message || error.message}`
+    );
   }
 }
 
@@ -84,28 +84,22 @@ async function steadfastFraudCheck(phoneNumber: string) {
       const errorMessage =
         axiosError.response?.data ||
         axiosError.message ||
-        "Unknown error occurred";
+        "Unknown error occurred when checking steadfast fraud status";
 
       // Handle rate limit errors (429 Too Many Requests)
       if (statusCode === 429 && typeof errorMessage === "string") {
-        throw new ApiError(
-          429,
-          "Too many requests, please try again after sometime"
+        throw new Error(
+          "Too many requests in the steadfast! Please try again after sometime for Steadfast data."
         );
       }
 
       // Handle other Axios errors with status
-      throw new ApiError(
-        statusCode,
+      throw new Error(
         `Failed to check steadfast fraud status. ${errorMessage}`
       );
     }
-
     // Handle non-Axios errors
-    throw new ApiError(
-      500,
-      "Failed to check steadfast fraud status due to an unexpected error."
-    );
+    throw new Error(`${error.message} Failed to check steadfast fraud status.`);
   }
 }
 

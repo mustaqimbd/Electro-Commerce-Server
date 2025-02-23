@@ -3,7 +3,6 @@
 import axios, { AxiosError } from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
-import ApiError from "../../../errorHandlers/ApiError";
 import config from "../../../config/config";
 
 const API_BASE_URL = "https://api.redx.com.bd";
@@ -30,9 +29,8 @@ async function checkUserExists(): Promise<boolean> {
     return response.data.exist;
   } catch (error: any) {
     console.error("User does not exist in redX", error);
-    throw new ApiError(
-      400,
-      `User does not exist in redX"). ${error.response?.data || error.message}`
+    throw new Error(
+      `User does not exist in redX! ${error.response?.data?.message || error.message}`
     );
   }
 }
@@ -47,13 +45,12 @@ async function loginWithPassword() {
     const { data } = response.data;
     const accessToken = data.accessToken;
     session.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
-    console.log("3. redX login successful");
+    console.log("3. RedX login successful");
   } catch (error: any) {
-    console.error("RedX login failed:", error);
-    throw new ApiError(
-      400,
-      `RedX login failed. ${error.response?.data || error.message}`
-    );
+    const errorMessage =
+      error.response?.data?.error?.errors?.[0]?.message ||
+      error.response?.data?.error?.message;
+    throw new Error(`RedX login failed! ${errorMessage}`);
   }
 }
 
@@ -73,7 +70,7 @@ async function redXFraudCheck(customerPhoneNumber: string) {
   try {
     if (!(await isLoggedIn())) {
       if (!(await checkUserExists())) {
-        throw new ApiError(400, "User does not exits in the redX");
+        throw new Error("User does not exits in the redX!");
       }
 
       // const { error, body } = await requestLoginCode();
@@ -99,28 +96,21 @@ async function redXFraudCheck(customerPhoneNumber: string) {
       const errorMessage =
         axiosError.response?.data ||
         axiosError.message ||
-        "Unknown error occurred";
+        "Unknown error occurred when checking RedX fraud status";
 
       // Handle rate limit errors (429 Too Many Requests)
       if (statusCode === 429 && typeof errorMessage === "string") {
-        throw new ApiError(
-          429,
-          "Too many requests, please try again after sometime"
+        throw new Error(
+          "Too many requests in the RedX! Please try again after sometime for RedX data."
         );
       }
 
       // Handle other Axios errors with status
-      throw new ApiError(
-        statusCode,
-        `Failed to check redX fraud status. ${errorMessage}`
-      );
+      throw new Error(`Failed to check RedX fraud status. ${errorMessage}`);
     }
 
     // Handle non-Axios errors
-    throw new ApiError(
-      500,
-      "Failed to check redX fraud status due to an unexpected error."
-    );
+    throw new Error(`${error.message} Failed to check redX fraud status.`);
   }
 }
 

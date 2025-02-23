@@ -18,6 +18,17 @@ type Courier = {
   deliveryRate: number;
 };
 
+type FormatFraudCheckData = {
+  totalOrders: number;
+  totalDeliveries: number;
+  totalCancellations: number;
+  couriers: Courier[];
+  reports?: Report[];
+  error?: boolean;
+  errorFrom?: string;
+  message?: string;
+};
+
 type FraudCheckData = {
   phoneNumber: string;
   totalOrders: number;
@@ -30,4 +41,4 @@ type FraudCheckData = {
   errors: Errors[];
 };
 
-export { FraudCheckData, Report, Errors, Courier };
+export { FraudCheckData, FormatFraudCheckData, Report, Errors, Courier };
