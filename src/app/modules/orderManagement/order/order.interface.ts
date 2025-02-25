@@ -43,7 +43,8 @@ export type TOrderSourceName =
   | "Social Media"
   | "From Office"
   | "Warranty Claimed"
-  | "Image to order";
+  | "Image to order"
+  | "Old Server";
 
 export type TCourierProviders = "steadfast";
 
