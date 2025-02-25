@@ -7,7 +7,6 @@ import catchAsync from "../../../utilities/catchAsync";
 import successResponse from "../../../utilities/successResponse";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
-import { OrderHelper } from "./order.helper";
 import { TOrder } from "./order.interface";
 import { OrderServices } from "./order.service";
 
@@ -280,14 +279,6 @@ const returnAndPartialManagement = catchAsync(
   }
 );
 
-const addPrevOrder = catchAsync(async (req: Request, res: Response) => {
-  await OrderHelper.addPrevOrder(req.query.id as string);
-  successResponse(res, {
-    statusCode: httpStatus.OK,
-    message: "Add previous order",
-  });
-});
-
 export const OrderController = {
   createOrder,
   getOrderInfoByOrderIdCustomer,
@@ -308,5 +299,4 @@ export const OrderController = {
   getOrderTrackingInfo,
   getOrdersByDeliveryStatus,
   returnAndPartialManagement,
-  addPrevOrder,
 };
