@@ -168,6 +168,4 @@ router.patch(
   OrderController.returnAndPartialManagement
 );
 
-router.get("/add-prev-orders", OrderController.addPrevOrder);
-
 export const OrderRoutes = router;
