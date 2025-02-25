@@ -1,12 +1,18 @@
+import fs from "fs";
 import httpStatus from "http-status";
 import mongoose, { PipelineStage, Types } from "mongoose";
+import path from "path";
 import config from "../../../config/config";
 import ApiError from "../../../errorHandlers/ApiError";
 import { TOptionalAuthGuardPayload } from "../../../types/common";
 import { CartItem } from "../../cartManagement/cartItem/cartItem.model";
 import { Coupon } from "../../coupon/coupon.model";
+import { PaymentMethod } from "../../paymentMethod/paymentMethod.model";
 import ProductModel from "../../productManagement/product/product.model";
 import { TWarrantyClaimedProductDetails } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
+import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
+import { OrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.model";
+import { Shipping } from "../shipping/shipping.model";
 import { ShippingCharge } from "../shippingCharge/shippingCharge.model";
 import {
   TFindOrderForUpdatingOrder,
@@ -1542,6 +1548,88 @@ const orderCostAfterCoupon = async (
   };
 };
 
+let statusHistory: undefined | TOrderStatusHistory = undefined;
+
+const addPrevOrder = async (fileId: string) => {
+  if (!fileId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "File id is required");
+  }
+
+  const absolutePath = path.resolve(
+    __dirname,
+    "../../../../../",
+    "prev_orders",
+    "chunks",
+    `chunk_${fileId}.json`
+  );
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+    const fileContent = fs.readFileSync(absolutePath, "utf-8");
+    const data = JSON.parse(fileContent) as {
+      id: number;
+      orderId: string;
+      fullName: string;
+      phoneNumber: string;
+      fullAddress: string;
+      createdAt: string;
+    }[];
+
+    const shippingCharge = await ShippingCharge.findOne({
+      _id: config.tmp_shipping_id,
+    }).session(session);
+
+    if (!shippingCharge) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Shipping charge not found");
+    }
+
+    const paymentMethod = await PaymentMethod.findOne({
+      _id: "65eb14a0039420d15f99cbde",
+    }).session(session);
+
+    if (!paymentMethod) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Payment method not found");
+    }
+
+    if (!statusHistory) {
+      const createdStatusHistory = await OrderStatusHistory.create(
+        [{ history: [{ status: "completed" }] }],
+        { session }
+      );
+      statusHistory = createdStatusHistory[0] as TOrderStatusHistory;
+    }
+
+    const shippings = await Shipping.create([...data], { session });
+
+    const orderData = data.map((order) => ({
+      orderId: order.orderId,
+      subtotal: 0,
+      total: 0,
+      productDetails: [],
+      status: "completed",
+      shipping: shippings.find((shipping) => shipping.orderId === order.orderId)
+        ?._id,
+      payment: paymentMethod._id,
+      shippingCharge: shippingCharge._id,
+      statusHistory: statusHistory?._id,
+      orderSource: { name: "Old Server" },
+      deliveryStatus: "delivered",
+      createdAt: order.createdAt,
+    }));
+
+    await Order.create(orderData, { session });
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export const OrderHelper = {
   sanitizeOrderedProducts,
   findOrderForUpdatingOrder,
@@ -1551,4 +1639,5 @@ export const OrderHelper = {
   sanitizeCartItemsForOrder,
   validateAndSanitizeOrderedProducts,
   orderCostAfterCoupon,
+  addPrevOrder,
 };

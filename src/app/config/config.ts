@@ -67,4 +67,5 @@ export default {
   email: env.EMAIL,
   password: env.PASSWORD,
   fullAddress: env.FULL_ADDRESS,
+  tmp_shipping_id: env.SHIPPING_ID,
 };
