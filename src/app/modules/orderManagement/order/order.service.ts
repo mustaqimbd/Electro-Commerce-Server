@@ -474,8 +474,10 @@ const getOrdersByDeliveryStatusFromDB = async (
 
   const data = await orderQuery.model;
   const total =
-    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
-      ?.total || 0;
+    (await Order.aggregate([
+      { $match: { ...matchQuery, status: "On courier" } },
+      { $count: "total" },
+    ]))![0]?.total || 0;
   const meta = orderQuery.metaData(total);
 
   // Orders counts
