@@ -474,8 +474,10 @@ const getOrdersByDeliveryStatusFromDB = async (
 
   const data = await orderQuery.model;
   const total =
-    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
-      ?.total || 0;
+    (await Order.aggregate([
+      { $match: { ...matchQuery, status: "On courier" } },
+      { $count: "total" },
+    ]))![0]?.total || 0;
   const meta = orderQuery.metaData(total);
 
   // Orders counts
@@ -1166,7 +1168,7 @@ const updateOrderDetailsByAdminIntoDB = async (
               findOrder.productDetails[existingProductIndex];
 
             const previousQuantity = currentProduct.quantity;
-            if (updatedProduct.quantity) {
+            if (updatedProduct.quantity || updatedProduct.quantity === 0) {
               currentProduct.total =
                 currentProduct.unitPrice * updatedProduct.quantity;
               currentProduct.quantity = updatedProduct.quantity;
@@ -1191,6 +1193,10 @@ const updateOrderDetailsByAdminIntoDB = async (
                     );
                   }
                   seen.add(item.code);
+                }
+
+                if (currentProduct?.quantity === 0) {
+                  updatedProduct.warrantyCodes = [];
                 }
 
                 await Warranty.updateOne(
