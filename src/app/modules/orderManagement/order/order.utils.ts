@@ -314,13 +314,18 @@ export const createNewOrder = async (
     })
   )[0]._id;
 
-  const { couponDiscount, totalCostAfterCoupon, shippingId, couponId } =
-    await OrderHelper.orderCostAfterCoupon(
-      onlyProductsCosts,
-      shippingCharge.toString(),
-      orderedProductInfo,
-      { couponCode: coupon, user }
-    );
+  const {
+    couponDiscount,
+    totalCostAfterCoupon,
+    shippingId,
+    couponId,
+    shippingChange,
+  } = await OrderHelper.orderCostAfterCoupon(
+    onlyProductsCosts,
+    shippingCharge.toString(),
+    orderedProductInfo,
+    { couponCode: coupon, user }
+  );
 
   if (couponId) {
     await Coupon.findByIdAndUpdate(
@@ -332,12 +337,16 @@ export const createNewOrder = async (
 
   let warrantyAmount = 0;
   warrantyAmount = totalCostAfterCoupon;
+  let totalCostAfterWarranty = totalCostAfterCoupon;
+
   if (!warrantyClaimOrderData?.warrantyClaim) {
     warrantyAmount = 0;
+  } else {
+    totalCostAfterWarranty += shippingChange;
   }
 
   totalCost =
-    totalCostAfterCoupon -
+    totalCostAfterWarranty -
     warrantyAmount -
     Number(advance || 0) -
     Number(discount || 0);
