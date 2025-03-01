@@ -208,8 +208,6 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing",
     "warranty added",
     "processing done",
-    "returned",
-    "partial completed",
   ];
 
   if (query.search) {
@@ -279,8 +277,6 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing": 0,
     "warranty added": 0,
     "processing done": 0,
-    returned: 0,
-    "partial completed": 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -315,11 +311,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   query: Record<string, string>
 ) => {
   const matchQuery: Record<string, unknown> = {};
-  const acceptableStatus: TOrderStatus[] = [
-    "processing done",
-    "On courier",
-    "completed",
-  ];
+  const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
 
   if (query.search) {
     acceptableStatus.push(
@@ -387,7 +379,6 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   const statusMap = {
     "processing done": 0,
     "On courier": 0,
-    completed: 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -554,6 +545,22 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
   if ((!query.status || query.status === "all") && !query.search) {
     matchQuery.status = {
       $in: acceptableStatus,
+    };
+  }
+
+  if (query.startFrom) {
+    const startTime = convertIso(query.startFrom);
+    matchQuery.createdAt = {
+      ...(matchQuery.createdAt || {}),
+      $gte: startTime,
+    };
+  }
+
+  if (query.endAt) {
+    const endTime = convertIso(query.endAt, false);
+    matchQuery.createdAt = {
+      ...(matchQuery.createdAt || {}),
+      $lte: endTime,
     };
   }
 

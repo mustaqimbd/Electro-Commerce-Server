@@ -91,6 +91,20 @@ const getWarrantyData = async (
       },
     },
     {
+      $lookup: {
+        from: "warranty_claim_histories", // Collection name for warranty claim histories
+        localField: "productDetails.warrantyClaimHistory",
+        foreignField: "_id",
+        as: "warrantyClaimHistory",
+      },
+    },
+    {
+      $unwind: {
+        path: "$warrantyClaimHistory",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
         _id: 1,
         orderId: 1,
@@ -108,7 +122,7 @@ const getWarrantyData = async (
           },
           variation: "$productDetails.variation",
           attributes: "$productDetails.attributes",
-          warrantyClaimHistory: "$productDetails.warrantyClaimHistory",
+          warrantyClaimHistory: "$warrantyClaimHistory",
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
         },
