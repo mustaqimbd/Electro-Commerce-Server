@@ -109,6 +109,8 @@ export type TOrderData = {
   courierDetails?: TCourierDetails;
   orderSource: TOrderSource;
   userIp?: string;
+  division?: string;
+  district?: string;
 };
 
 export type TOrder = TOrderData & Document;

@@ -1169,6 +1169,8 @@ const updateOrderDetailsByAdminIntoDB = async (
     status,
     monitoringStatus,
     trackingStatus,
+    division,
+    district,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
 
@@ -1545,6 +1547,8 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.followUpDate = followUpDate;
     updatedDoc.monitoringNotes = monitoringNotes;
     updatedDoc.reasonNotes = reasonNotes;
+    updatedDoc.division = division;
+    updatedDoc.district = district;
 
     await Order.findByIdAndUpdate(
       id,
