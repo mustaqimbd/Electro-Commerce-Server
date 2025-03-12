@@ -515,6 +515,15 @@ const getOrdersByDeliveryStatusFromDB = async (
           Get completed orders
 ----------------------------------------- */
 const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
+  let queryProducts: string[] = [];
+  const orderedTimes: string | undefined = query.orderedTimes;
+
+  if (query.products) {
+    queryProducts = Array.isArray(query.products)
+      ? query.products
+      : [query.products];
+  }
+
   const matchQuery: Record<string, unknown> = {};
   const acceptableStatus: TOrderStatus[] = [
     "completed",
@@ -577,17 +586,70 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
     $match: matchQuery,
   });
 
+  let matchSuffix: Record<string, unknown> = {};
+
   if (query.search) {
     const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
-    pipeline.push({
-      $match: {
-        $or: [
-          { "shipping.phoneNumber": { $regex: searchRegex } },
-          { "shipping.fullName": { $regex: searchRegex } },
-          { orderId: { $regex: searchRegex } },
-        ],
+    matchSuffix.$or = [
+      { "shipping.phoneNumber": { $regex: searchRegex } },
+      { "shipping.fullName": { $regex: searchRegex } },
+      { orderId: { $regex: searchRegex } },
+    ];
+  }
+
+  if (queryProducts.length > 0) {
+    matchSuffix = {
+      ...matchSuffix,
+      "products.productId": {
+        $in: queryProducts.map((item) => new Types.ObjectId(item)),
       },
-    });
+    };
+  }
+
+  if (orderedTimes) {
+    const groupedOrders = await Order.aggregate([
+      { $match: matchQuery },
+      {
+        $lookup: {
+          from: "shippings",
+          localField: "shipping",
+          foreignField: "_id",
+          as: "shippingData",
+        },
+      },
+      {
+        $group: {
+          _id: "$shippingData.phoneNumber",
+          orders: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          orders: 1,
+          orderedTimes: { $size: "$orders" },
+        },
+      },
+      {
+        $match: {
+          orderedTimes: { $eq: Number(orderedTimes) },
+        },
+      },
+    ]);
+
+    const matchedOrderIds = groupedOrders.flatMap((group) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      group.orders.map((order: { _id: any }) => order._id)
+    );
+
+    matchSuffix = {
+      ...matchSuffix,
+      _id: { $in: matchedOrderIds },
+    };
+  }
+
+  if (Object.keys(matchSuffix).length > 0) {
+    pipeline.push({ $match: { ...matchSuffix } });
   }
 
   const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
@@ -597,8 +659,7 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
   const data = await orderQuery.model;
 
   const total =
-    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
-      ?.total || 0;
+    (await Order.aggregate([...pipeline, { $count: "total" }]))![0]?.total || 0;
   const meta = orderQuery.metaData(total);
 
   // Orders counts
