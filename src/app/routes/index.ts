@@ -3,8 +3,11 @@ import { AuthRouters } from "../modules/authManagement/auth/auth.routes";
 import { CartRoutes } from "../modules/cartManagement/cart/cart.routes";
 import { CouponRoutes } from "../modules/coupon/coupon.routes";
 import { CourierRoutes } from "../modules/courier/courier.routes";
+import { DistrictRoutes } from "../modules/district/district.routes";
+import { DivisionRoutes } from "../modules/division/division.routes";
 import { ImageRoutes } from "../modules/image/image.routes";
 import { ImageToOrderRoutes } from "../modules/imageToOrder/imageToOrder.routes";
+import { FraudCheckRoutes } from "../modules/orderManagement/fraudCheck/fraudCheck.routes";
 import { OrderRoutes } from "../modules/orderManagement/order/order.routes";
 import { ShippingChargeRoutes } from "../modules/orderManagement/shippingCharge/shippingCharge.routes";
 import { paymentMethodRoutes } from "../modules/paymentMethod/paymentMethod.routes";
@@ -23,7 +26,6 @@ import { PermissionRoutes } from "../modules/userManagement/permission/permissio
 import { UserRoutes } from "../modules/userManagement/user/user.routes";
 import { WarrantyRoutes } from "../modules/warrantyManagement/warranty/warranty.routes";
 import { WarrantyClaimRoutes } from "../modules/warrantyManagement/warrantyClaim/warrantyClaim.routes";
-import { FraudCheckRoutes } from "../modules/orderManagement/fraudCheck/fraudCheck.routes";
 
 type TModuleTypes = {
   path: string;
@@ -132,6 +134,14 @@ const moduleRoutes: TModuleTypes[] = [
   {
     path: "/slider-banner",
     route: SliderBannerRoutes,
+  },
+  {
+    path: "/divisions",
+    route: DivisionRoutes,
+  },
+  {
+    path: "/districts",
+    route: DistrictRoutes,
   },
 ];
 
