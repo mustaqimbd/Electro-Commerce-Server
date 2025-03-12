@@ -11,6 +11,12 @@ router.get(
   CustomerControllers.getAllCustomer
 );
 
+router.get(
+  "/:id",
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
+  CustomerControllers.getSingleCustomerByAdmin
+);
+
 router.patch(
   "/",
   authGuard({ requiredRoles: ["customer"] }),

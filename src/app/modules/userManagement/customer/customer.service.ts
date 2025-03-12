@@ -1,4 +1,6 @@
-import mongoose, { PipelineStage } from "mongoose";
+import httpStatus from "http-status";
+import mongoose, { PipelineStage, Types } from "mongoose";
+import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { Address } from "../address/address.model";
@@ -20,14 +22,44 @@ const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
       $unwind: "$customerData",
     },
     {
+      $lookup: {
+        from: "addresses",
+        localField: "address",
+        foreignField: "_id",
+        as: "addressInfo",
+      },
+    },
+    {
+      $unwind: { path: "$addressInfo", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "orders",
+        localField: "_id",
+        foreignField: "userId",
+        as: "orders",
+      },
+    },
+
+    {
+      $addFields: {
+        totalOrders: { $size: "$orders" },
+      },
+    },
+    {
       $project: {
         uid: 1,
         phoneNumber: 1,
         email: 1,
         name: "$customerData.fullName",
-        address: "$customerData.address",
+        shipping: {
+          fullName: "$customerData.fullName",
+          fullAddress: "$addressInfo.fullAddress",
+          phoneNumber: "$phoneNumber",
+        },
         status: 1,
         createdAt: 1,
+        totalOrders: 1,
       },
     },
   ];
@@ -51,6 +83,12 @@ const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
 
   pipeline.unshift({ $match: matchQuery });
 
+  if (query.orderedTimes) {
+    pipeline.push({
+      $match: { totalOrders: { $eq: Number(query.orderedTimes) } },
+    });
+  }
+
   const customerQuery = new AggregateQueryHelper(
     User.aggregate(pipeline),
     query
@@ -68,6 +106,72 @@ const getAllCustomerFromDB = async (query: Record<string, unknown>) => {
     meta,
     data,
   };
+};
+
+const getSingleCustomerByAdminFromDB = async (id: string) => {
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        _id: new Types.ObjectId(id),
+      },
+    },
+    {
+      $lookup: {
+        from: "customers",
+        localField: "customer",
+        foreignField: "_id",
+        as: "customerData",
+      },
+    },
+    {
+      $unwind: "$customerData",
+    },
+    {
+      $lookup: {
+        from: "addresses",
+        localField: "address",
+        foreignField: "_id",
+        as: "addressInfo",
+      },
+    },
+    {
+      $unwind: { path: "$addressInfo", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $lookup: {
+        from: "orders",
+        localField: "_id",
+        foreignField: "userId",
+        as: "orders",
+      },
+    },
+
+    {
+      $addFields: {
+        totalOrders: { $size: "$orders" },
+      },
+    },
+    {
+      $project: {
+        uid: 1,
+        phoneNumber: 1,
+        email: 1,
+        name: "$customerData.fullName",
+        shipping: {
+          fullName: "$customerData.fullName",
+          fullAddress: "$addressInfo.fullAddress",
+          phoneNumber: "$phoneNumber",
+        },
+        status: 1,
+        createdAt: 1,
+        totalOrders: 1,
+      },
+    },
+  ];
+
+  const user = (await User.aggregate(pipeline))[0];
+  if (!user) throw new ApiError(httpStatus.BAD_REQUEST, "No user found");
+  return user;
 };
 
 const updateCustomerIntoDB = async (
@@ -137,4 +241,5 @@ const updateCustomerIntoDB = async (
 export const CustomerServices = {
   getAllCustomerFromDB,
   updateCustomerIntoDB,
+  getSingleCustomerByAdminFromDB,
 };
