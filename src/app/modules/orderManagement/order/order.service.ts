@@ -557,6 +557,13 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
     };
   }
 
+  if (query.division) {
+    matchQuery.division = query.division;
+  }
+  if (query.district) {
+    matchQuery.district = query.district;
+  }
+
   if (query.startFrom) {
     const startTime = convertIso(query.startFrom);
     matchQuery.createdAt = {
@@ -593,6 +600,8 @@ const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
     matchSuffix.$or = [
       { "shipping.phoneNumber": { $regex: searchRegex } },
       { "shipping.fullName": { $regex: searchRegex } },
+      { division: { $regex: searchRegex } },
+      { district: { $regex: searchRegex } },
       { orderId: { $regex: searchRegex } },
     ];
   }
