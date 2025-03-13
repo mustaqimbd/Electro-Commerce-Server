@@ -75,7 +75,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     "processing",
     "follow up",
   ];
-  if (query.search) {
+  if (query.search || query.userId) {
     acceptableStatus.push(
       "warranty processing",
       "processing done",
@@ -97,6 +97,10 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
       httpStatus.BAD_REQUEST,
       `Can't get ${query.status} orders`
     );
+  }
+
+  if (query.userId) {
+    matchQuery.userId = new Types.ObjectId(query.userId);
   }
 
   if (query.status) {
