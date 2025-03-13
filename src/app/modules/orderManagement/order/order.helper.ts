@@ -603,6 +603,7 @@ const orderDetailsPipeline = (): PipelineStage[] => [
             claimedCodes: "$productDetails.claimedCodes",
             quantity: "$productDetails.quantity",
             total: "$productDetails.total",
+            attributes: "$productDetails.attributes",
             warranty: {
               _id: "$warranty._id",
               warrantyCodes: "$warranty.warrantyCodes",
