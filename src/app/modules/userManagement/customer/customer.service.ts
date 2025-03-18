@@ -4,6 +4,7 @@ import ApiError from "../../../errorHandlers/ApiError";
 import { AggregateQueryHelper } from "../../../helper/query.helper";
 import { TJwtPayload } from "../../authManagement/auth/auth.interface";
 import { Address } from "../address/address.model";
+import { TStatus } from "../user/user.interface";
 import { User } from "../user/user.model";
 import { isEmailOrNumberTaken } from "../user/user.util";
 import { Customer } from "./customer.model";
@@ -238,8 +239,82 @@ const updateCustomerIntoDB = async (
   }
 };
 
+const updateCustomerNyAdminIntoDB = async (
+  id: string,
+  payload: Record<string, unknown>
+) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    const userData = await User.findById(id).session(session);
+    const { address, fullName, phoneNumber, email, status } = payload as {
+      fullName: string;
+      phoneNumber: string;
+      email: string;
+      address: {
+        fullAddress: string;
+      };
+      status: TStatus;
+    };
+
+    if (phoneNumber || email || status) {
+      const updatedDoc: Record<string, unknown> = {};
+      if (phoneNumber || email) {
+        await isEmailOrNumberTaken({
+          phoneNumber: phoneNumber,
+          email: email,
+        });
+        updatedDoc.phoneNumber = phoneNumber;
+        updatedDoc.email = email;
+      }
+
+      if (status) {
+        updatedDoc.status = status;
+      }
+
+      await User.findOneAndUpdate(
+        { _id: userData?._id },
+        { ...updatedDoc },
+        {
+          new: true,
+          runValidators: true,
+          session,
+        }
+      );
+    }
+
+    if (fullName) {
+      await Customer.findOneAndUpdate(
+        { _id: userData?.customer },
+        { fullName },
+        {
+          new: true,
+          runValidators: true,
+          session,
+        }
+      );
+    }
+
+    if (address) {
+      await Address.findOneAndUpdate({ _id: userData?.address }, address, {
+        new: true,
+        session,
+      });
+    }
+
+    await session.commitTransaction();
+  } catch (error) {
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    await session.endSession();
+  }
+};
+
 export const CustomerServices = {
   getAllCustomerFromDB,
   updateCustomerIntoDB,
   getSingleCustomerByAdminFromDB,
+  updateCustomerNyAdminIntoDB,
 };
