@@ -24,4 +24,10 @@ router.patch(
   CustomerControllers.updateCustomer
 );
 
+router.patch(
+  "/admin/:id",
+  authGuard({ requiredRoles: ["admin", "staff", "superAdmin"] }),
+  CustomerControllers.updateCustomerByAdmin
+);
+
 export const CustomerRoutes = router;

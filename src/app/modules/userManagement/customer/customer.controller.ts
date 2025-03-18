@@ -40,8 +40,23 @@ const updateCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateCustomerByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await CustomerServices.updateCustomerNyAdminIntoDB(
+      req.params.id,
+      req.body
+    );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "User updated successfully",
+      data: result,
+    });
+  }
+);
+
 export const CustomerControllers = {
   getAllCustomer,
   updateCustomer,
   getSingleCustomerByAdmin,
+  updateCustomerByAdmin,
 };
