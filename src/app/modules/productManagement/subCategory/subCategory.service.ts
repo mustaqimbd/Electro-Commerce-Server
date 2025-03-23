@@ -95,7 +95,7 @@ const deleteSubCategoryFromDB = async (
   return result;
 };
 
-const getSubCategoriesByCatgeoryFromDB = async (categoryId: string) => {
+const getSubCategoriesByCategoryFromDB = async (categoryId: string) => {
   const result = await SubCategoryModel.find({
     category: categoryId,
     isDeleted: false,
@@ -112,5 +112,5 @@ export const SubCategoryServices = {
   getAllSubCategoriesFromDB,
   updateSubCategoryIntoDB,
   deleteSubCategoryFromDB,
-  getSubCategoriesByCatgeoryFromDB,
+  getSubCategoriesByCategoryFromDB,
 };

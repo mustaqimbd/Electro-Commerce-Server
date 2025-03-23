@@ -99,6 +99,24 @@ const getProcessingOrdersAdmin = catchAsync(
   }
 );
 
+const getCompletedOrdersAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const { countsByStatus, meta, data } =
+      await OrderServices.getCompletedOrdersAdminFromDB(
+        req.query as unknown as Record<string, string>
+      );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Completed and returned orders retrieved successfully",
+      meta,
+      data: {
+        countsByStatus,
+        data,
+      },
+    });
+  }
+);
+
 const getProcessingDoneCourierOrdersAdmin = catchAsync(
   async (req: Request, res: Response) => {
     const { countsByStatus, meta, data } =
@@ -141,7 +159,7 @@ const updateStatus = catchAsync(async (req: Request, res: Response) => {
   await OrderServices.updateOrderStatusIntoDB(user as TJwtPayload, req.body);
 
   successResponse<TOrderStatusHistory>(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: "Status updated successfully",
   });
 });
@@ -156,7 +174,7 @@ const updateProcessingStatus = catchAsync(
     );
 
     successResponse<TOrderStatusHistory>(res, {
-      statusCode: httpStatus.CREATED,
+      statusCode: httpStatus.OK,
       message: "Status updated successfully",
     });
   }
@@ -174,7 +192,7 @@ const bookCourierAndUpdateStatus = catchAsync(
         req.user as TJwtPayload
       );
     successResponse(res, {
-      statusCode: httpStatus.CREATED,
+      statusCode: httpStatus.OK,
       message: message || "Courier booked successfully",
       data: result,
     });
@@ -268,6 +286,7 @@ export const OrderController = {
   getAllOrdersCustomer,
   updateStatus,
   getAllOrdersAdmin,
+  getCompletedOrdersAdmin,
   getProcessingOrdersAdmin,
   updateOrderDetailsByAdmin,
   deleteOrdersById,

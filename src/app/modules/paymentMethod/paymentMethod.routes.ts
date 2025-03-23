@@ -7,7 +7,7 @@ route.get("/", PaymentMethodController.getPaymentMethods);
 route.post(
   "/",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage orders",
   }),
   PaymentMethodController.createPaymentMethod

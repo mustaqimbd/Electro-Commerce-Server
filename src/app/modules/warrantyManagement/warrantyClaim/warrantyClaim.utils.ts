@@ -91,6 +91,20 @@ const getWarrantyData = async (
       },
     },
     {
+      $lookup: {
+        from: "warranty_claim_histories", // Collection name for warranty claim histories
+        localField: "productDetails.warrantyClaimHistory",
+        foreignField: "_id",
+        as: "warrantyClaimHistory",
+      },
+    },
+    {
+      $unwind: {
+        path: "$warrantyClaimHistory",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
         _id: 1,
         orderId: 1,
@@ -107,6 +121,8 @@ const getWarrantyData = async (
             warrantyCodes: "$warranty.warrantyCodes",
           },
           variation: "$productDetails.variation",
+          attributes: "$productDetails.attributes",
+          warrantyClaimHistory: "$warrantyClaimHistory",
           unitPrice: "$productDetails.unitPrice",
           quantity: "$productDetails.quantity",
         },
@@ -140,6 +156,7 @@ const getWarrantyData = async (
     },
   ];
   const order = await Order.aggregate(pipeline);
+
   if (!order)
     throw new ApiError(httpStatus.BAD_REQUEST, "No warranty data found");
   return order;
@@ -184,8 +201,20 @@ const validateWarranty = async ({
       warranty.products as {
         _id: Types.ObjectId;
         productId: Types.ObjectId;
-        warranty: { warrantyCodes: { code: string }[]; endsDate: string };
+        warranty: {
+          warrantyCodes: { code: string }[];
+          endsDate: string;
+          duration?: string;
+          startDate?: string;
+        };
         variation: Types.ObjectId;
+        attributes?: {
+          [key: string]: string;
+        };
+        warrantyClaimHistory: Types.ObjectId;
+        duration?: string;
+        startDate?: string;
+        endsDate?: string;
       }[]
     ).map((product) => {
       if (product?.warranty?.warrantyCodes)
@@ -193,6 +222,7 @@ const validateWarranty = async ({
           ...product.warranty.warrantyCodes.map(({ code }) => code)
         );
       const endsDate = new Date(product?.warranty?.endsDate);
+
       const today = new Date();
       if (today > endsDate) {
         const expiredCodes = product.warranty.warrantyCodes
@@ -211,9 +241,20 @@ const validateWarranty = async ({
       const data: Record<string, unknown> = {
         order_id: warranty._id,
       };
+
       data.orderItemId = product._id;
       data.productId = product.productId;
       data.variation = product.variation;
+      data.warrantyClaimHistory = product.warrantyClaimHistory;
+      data.attributes = Object.keys(product?.attributes || {})?.length
+        ? product.attributes
+        : undefined;
+      data.prevWarrantyInformation = {
+        duration: product?.warranty?.duration,
+        startDate: product?.warranty?.startDate,
+        endsDate: product?.warranty?.endsDate,
+      };
+
       data.claimedCodes = product?.warranty?.warrantyCodes
         .map((item) =>
           warrantyCodes.includes(item.code) ? item.code : undefined

@@ -211,7 +211,6 @@ const addToCartIntoDB = async (
     sessionId: user.sessionId,
     ...payload,
   };
-
   await CartItem.create(cartItemData);
 };
 

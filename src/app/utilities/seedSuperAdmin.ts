@@ -33,13 +33,13 @@ const createSuperAdmin = async () => {
   try {
     const userId = await createAdminOrStaffId(false);
     if (!userId) {
-      consoleLogger.error("Failed to create user ID!");
+      consoleLogger.error("❌ Failed to create super admin user ID!");
       return;
     }
 
     const superAdminPermission = await checkPermission(session);
     if (!superAdminPermission) {
-      consoleLogger.error("Failed to create permissions!");
+      consoleLogger.error("❌ Failed to create super admin permissions!");
       return;
     }
 
@@ -56,7 +56,7 @@ const createSuperAdmin = async () => {
 
     const [admin] = await Admin.create([adminData], { session });
     if (!admin) {
-      consoleLogger.error("Failed to create admin!");
+      consoleLogger.error("❌ Failed to create super admin name!");
       return;
     }
 
@@ -67,7 +67,7 @@ const createSuperAdmin = async () => {
 
     const [address] = await Address.create([addressData], { session });
     if (!address) {
-      consoleLogger.error("Failed to create address!");
+      consoleLogger.error("❌ Failed to create super admin address!");
       return;
     }
 
@@ -76,7 +76,7 @@ const createSuperAdmin = async () => {
       phoneNumber: config.phoneNumber,
       email: config.email,
       password: config.password,
-      role: "admin",
+      role: "superAdmin",
       admin: admin._id,
       address: address._id,
       permissions: [superAdminPermission._id],
@@ -86,11 +86,11 @@ const createSuperAdmin = async () => {
     await User.create([superAdminData], { session });
 
     await session.commitTransaction();
-    consoleLogger.info("Super admin created successfully.");
+    consoleLogger.info("✅ Super admin created successfully.");
   } catch (error) {
     await session.abortTransaction();
     consoleLogger.error(
-      "Transaction failed. Super admin creation aborted!",
+      "❌ Transaction failed. Super admin creation aborted!",
       error
     );
     throw error;
@@ -102,14 +102,14 @@ const createSuperAdmin = async () => {
 const seedSuperAdmin = async () => {
   try {
     // Check if super admin already exists
-    const existingSuperAdmin = await User.findOne({ role: "admin" });
+    const existingSuperAdmin = await User.findOne({ role: "superAdmin" });
     if (!existingSuperAdmin) {
       await createSuperAdmin();
     } else {
-      consoleLogger.info("Super admin already exists.");
+      consoleLogger.info("✅ Super admin already exists.");
     }
   } catch (error) {
-    consoleLogger.error("Error while seeding super admin!", error);
+    consoleLogger.error("❌ Error while seeding super admin!", error);
   }
 };
 

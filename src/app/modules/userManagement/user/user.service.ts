@@ -32,7 +32,7 @@ const getAllAdminAndStaffFromDB = async (
   user: TJwtPayload
 ) => {
   const matchQuery: Record<string, unknown> = {
-    role: { $in: ["admin", "staff"] },
+    role: { $in: ["superAdmin", "admin", "staff"] },
     status: { $ne: "deleted" },
   };
 
@@ -151,6 +151,7 @@ const getAllAdminAndStaffFromDB = async (
     (await User.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
       ?.total || 0;
   const meta = usersQuery.metaData(total);
+
   return { data, meta };
 };
 

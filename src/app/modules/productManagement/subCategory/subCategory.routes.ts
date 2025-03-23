@@ -36,6 +36,6 @@ router.delete(
   }),
   SubCategoryControllers.deleteSubCategory
 );
-router.get("/:id", SubCategoryControllers.getAllsubCategoriesbyCategory);
+router.get("/:id", SubCategoryControllers.getAllSubCategoriesCategory);
 
 export const SubCategoryRoutes = router;

@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post(
   "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   validateRequest(SliderSectionValidation.sliderSection),
   SliderSectionController.createSliderSection
 );
@@ -17,14 +17,14 @@ router.get("/", SliderSectionController.getSliderSections);
 
 router.patch(
   "/:id",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   validateRequest(SliderSectionValidation.updateSliderSection),
   SliderSectionController.updateSliderSection
 );
 
 router.delete(
   "/",
-  authGuard({ requiredRoles: ["superAdmin", "admin"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   SliderSectionController.deleteSliderSection
 );
 

@@ -44,3 +44,6 @@ yarn.lock
 
 # Ignore uploads folder
 uploads
+
+
+prev_orders

@@ -58,10 +58,10 @@ const deleteSubCategory = catchAsync(async (req, res) => {
     data: null,
   });
 });
-const getAllsubCategoriesbyCategory = catchAsync(async (req, res) => {
+const getAllSubCategoriesCategory = catchAsync(async (req, res) => {
   const categoryId = req.params.id;
   const result =
-    await SubCategoryServices.getSubCategoriesByCatgeoryFromDB(categoryId);
+    await SubCategoryServices.getSubCategoriesByCategoryFromDB(categoryId);
   successResponse(res, {
     statusCode: httpStatus.OK,
     message: "Sub categories retrieved successfully",
@@ -74,5 +74,5 @@ export const SubCategoryControllers = {
   getAllSubCategories,
   updateSubCategory,
   deleteSubCategory,
-  getAllsubCategoriesbyCategory,
+  getAllSubCategoriesCategory,
 };

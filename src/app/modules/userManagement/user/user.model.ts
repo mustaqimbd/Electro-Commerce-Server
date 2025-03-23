@@ -58,7 +58,6 @@ const UserSchema = new Schema<TUser, TUserModel>(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Permission",
-        unique: true,
       },
     ],
     status: {

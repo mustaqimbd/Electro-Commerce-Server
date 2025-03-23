@@ -39,11 +39,23 @@ export default {
     auth_token: env.TWILIO_AUTH_TOKEN,
     phone_number: env.TWILIO_PHONE_NUMBER,
   },
-  c_api_access_token: env.C_API_ACCESS_TOKEN,
-  pixel_id: env.PIXEL_ID,
   stead_fast: {
     api_key: env.STEAD_FAST_API_KEY,
     secret_key: env.STEAD_FAST_SECRET_KEY,
+    email: env.STEADFAST_EMAIL,
+    password: env.STEADFAST_PASSWORD,
+  },
+  pathao: {
+    username: env.PATHAO_USERNAME,
+    password: env.PATHAO_PASSWORD,
+  },
+  redx: {
+    phoneNumber: env.REDX_PHONE_NUMBER,
+    password: env.REDX_PASSWORD,
+  },
+  paperfly: {
+    username: env.PAPERFLY_USERNAME,
+    password: env.PAPERFLY_PASSWORD,
   },
   courier_provider_id: env.COURIER_PROVIDER_ID,
   google: {
@@ -55,4 +67,5 @@ export default {
   email: env.EMAIL,
   password: env.PASSWORD,
   fullAddress: env.FULL_ADDRESS,
+  tmp_shipping_id: env.SHIPPING_ID,
 };

@@ -19,7 +19,6 @@ const createOrderValidation = z.object({
         required_error: "Shipping charge id is required",
       }),
       shipping: shippingValidationZodSchema(true),
-      eventId: z.string({ required_error: "Event id is required." }),
       orderSource: z.object(
         {
           name: z.enum([...orderSources] as [string, ...string[]], {
@@ -128,6 +127,8 @@ const updateOrderDetailsByAdmin = z.object({
     officialNotes: z.string().optional(),
     invoiceNotes: z.string().optional(),
     courierNotes: z.string().optional(),
+    reasonNotes: z.string().optional(),
+    monitoringNotes: z.string().optional(),
     shipping: shippingValidationZodSchema(true).optional(),
     followUpDate: validateDateInput().optional(),
     productDetails: z.array(productDetailsSchema()).optional(),

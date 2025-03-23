@@ -15,6 +15,19 @@ const getAllCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getSingleCustomerByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const data = await CustomerServices.getSingleCustomerByAdminFromDB(
+      req.params.id
+    );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "Single customer retrieved successfully",
+      data,
+    });
+  }
+);
+
 const updateCustomer = catchAsync(async (req: Request, res: Response) => {
   const result = await CustomerServices.updateCustomerIntoDB(
     req.user as TJwtPayload,
@@ -27,7 +40,23 @@ const updateCustomer = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateCustomerByAdmin = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await CustomerServices.updateCustomerNyAdminIntoDB(
+      req.params.id,
+      req.body
+    );
+    successResponse(res, {
+      statusCode: httpStatus.OK,
+      message: "User updated successfully",
+      data: result,
+    });
+  }
+);
+
 export const CustomerControllers = {
   getAllCustomer,
   updateCustomer,
+  getSingleCustomerByAdmin,
+  updateCustomerByAdmin,
 };

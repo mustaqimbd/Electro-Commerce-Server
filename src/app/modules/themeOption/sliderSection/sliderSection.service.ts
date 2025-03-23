@@ -65,7 +65,7 @@ const getSliderSections = async (isActive?: boolean) => {
           src: "$image.src",
           alt: "$image.alt",
         },
-        link: 1,
+        bannerLink: 1,
         isActive: 1, // Include the isActive field
       },
     },

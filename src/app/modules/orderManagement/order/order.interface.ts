@@ -1,4 +1,5 @@
 import mongoose, { Document, Types } from "mongoose";
+import { TCategory } from "../../productManagement/category/category.interface";
 import { TInventory } from "../../productManagement/inventory/inventory.interface";
 import { TPrice } from "../../productManagement/price/price.interface";
 import {
@@ -6,8 +7,15 @@ import {
   TVariation,
 } from "../../productManagement/product/product.interface";
 import { TUser } from "../../userManagement/user/user.interface";
-import { TWarranty } from "../../warrantyManagement/warranty/warranty.interface";
-import { TClaimedCodes } from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
+import {
+  TWarranty,
+  TWarrantyCodes,
+} from "../../warrantyManagement/warranty/warranty.interface";
+import {
+  TClaimedCodes,
+  TWarrantyClaimPrevWarrantyInformation,
+} from "../../warrantyManagement/warrantyClaim/warrantyClaim.interface";
+import { TWarrantyClaimHistory } from "../../warrantyManagement/warrantyClaimHistory/warrantyClaimHistory.interface";
 import { TOrderStatusHistory } from "../orderStatusHistory/orderStatusHistory.interface";
 import { TShipping } from "../shipping/shipping.interface";
 import { TShippingCharge } from "../shippingCharge/shippingCharge.interface";
@@ -35,7 +43,8 @@ export type TOrderSourceName =
   | "Social Media"
   | "From Office"
   | "Warranty Claimed"
-  | "Image to order";
+  | "Image to order"
+  | "Old Server";
 
 export type TCourierProviders = "steadfast";
 
@@ -56,9 +65,11 @@ export type TProductDetails = {
   total: number;
   warranty?: mongoose.Types.ObjectId | TWarranty;
   isWarrantyClaim?: boolean;
+  warrantyClaimHistory: Types.ObjectId | TWarrantyClaimHistory;
   claimedCodes?: {
     code: string;
   }[];
+  prevWarrantyInformation?: TWarrantyClaimPrevWarrantyInformation;
 } & Document;
 
 export type TCourierDetails = {
@@ -83,6 +94,8 @@ export type TOrderData = {
   payment: Types.ObjectId;
   status: TOrderStatus;
   deliveryStatus: string;
+  monitoringStatus: string;
+  trackingStatus: string;
   followUpDate?: string;
   statusHistory: Types.ObjectId | TOrderStatusHistory;
   shipping: Types.ObjectId | TShipping;
@@ -91,11 +104,13 @@ export type TOrderData = {
   officialNotes?: string;
   invoiceNotes?: string;
   courierNotes?: string;
-  riderNotes?: string;
+  monitoringNotes?: string;
   reasonNotes?: string;
   courierDetails?: TCourierDetails;
   orderSource: TOrderSource;
   userIp?: string;
+  division?: string;
+  district?: string;
 };
 
 export type TOrder = TOrderData & Document;
@@ -109,11 +124,17 @@ export type TSanitizedOrProduct = {
     stock: TInventory;
     defaultInventory: Types.ObjectId;
     isVariationAvailable?: boolean;
+    category: TCategory;
   };
   quantity: number;
   variation?: Types.ObjectId;
   isWarrantyClaim?: boolean;
   claimedCodes?: TClaimedCodes[];
+  prevWarrantyInformation?: TWarrantyClaimPrevWarrantyInformation;
+  attributes?: {
+    [key: string]: string;
+  };
+  warrantyClaimHistory?: Types.ObjectId;
 };
 
 export type TCourierResponse = {
@@ -142,3 +163,39 @@ export type TOrderDeliveryStatus =
   | "hold"
   | "in_review"
   | "unknown";
+
+export type TFindOrderForUpdatingOrder = {
+  _id: Types.ObjectId;
+  productDetails: {
+    _id: Types.ObjectId;
+    product: Types.ObjectId;
+    productTitle: string;
+    attributes: Record<string, string>;
+    unitPrice: number;
+    quantity: number;
+    total: number;
+    productWarrantyDetails: TWarranty;
+    isWarrantyClaim: boolean;
+    variation: Types.ObjectId;
+    variations: TVariation[];
+    // inventoryInfo: TInventory & { variation?: Types.ObjectId };
+    inventoryInfo: {
+      variationInventory: TInventory & { variation?: Types.ObjectId };
+      defaultInventory: TInventory;
+    };
+    warranty: Types.ObjectId;
+    claimedCodes?: TWarrantyCodes[];
+  }[];
+  couponDetails: Types.ObjectId;
+  subtotal: number;
+  tax: number;
+  shippingCharge: { _id: Types.ObjectId; amount: number };
+  discount: number;
+  shipping: Types.ObjectId;
+  advance: number;
+  couponDiscount: number;
+  warrantyAmount: number;
+  total: number;
+  status: TOrderStatus;
+  deliveryStatus: string;
+};

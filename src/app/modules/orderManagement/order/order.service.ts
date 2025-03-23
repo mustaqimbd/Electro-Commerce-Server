@@ -29,6 +29,7 @@ import {
   TProductDetails,
 } from "./order.interface";
 import { Order } from "./order.model";
+// import steedFastApi from "../../../utilities/steedfastApi";
 import {
   createNewOrder,
   createOrderOnSteedFast,
@@ -74,7 +75,7 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
     "processing",
     "follow up",
   ];
-  if (query.search) {
+  if (query.search || query.userId) {
     acceptableStatus.push(
       "warranty processing",
       "processing done",
@@ -96,6 +97,10 @@ const getAllOrdersAdminFromDB = async (query: Record<string, string>) => {
       httpStatus.BAD_REQUEST,
       `Can't get ${query.status} orders`
     );
+  }
+
+  if (query.userId) {
+    matchQuery.userId = new Types.ObjectId(query.userId);
   }
 
   if (query.status) {
@@ -207,8 +212,6 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing",
     "warranty added",
     "processing done",
-    "returned",
-    "partial completed",
   ];
 
   if (query.search) {
@@ -278,8 +281,6 @@ const getProcessingOrdersAdminFromDB = async (
     "warranty processing": 0,
     "warranty added": 0,
     "processing done": 0,
-    returned: 0,
-    "partial completed": 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -303,6 +304,7 @@ const getProcessingOrdersAdminFromDB = async (
     name,
     total,
   }));
+
   return { countsByStatus: formattedCount, meta, data };
 };
 
@@ -313,11 +315,7 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   query: Record<string, string>
 ) => {
   const matchQuery: Record<string, unknown> = {};
-  const acceptableStatus: TOrderStatus[] = [
-    "processing done",
-    "On courier",
-    "completed",
-  ];
+  const acceptableStatus: TOrderStatus[] = ["processing done", "On courier"];
 
   if (query.search) {
     acceptableStatus.push(
@@ -385,7 +383,6 @@ const getProcessingDoneCourierOrdersAdminFromDB = async (
   const statusMap = {
     "processing done": 0,
     "On courier": 0,
-    completed: 0,
   };
   const countRes = await Order.aggregate([
     {
@@ -472,8 +469,10 @@ const getOrdersByDeliveryStatusFromDB = async (
 
   const data = await orderQuery.model;
   const total =
-    (await Order.aggregate([{ $match: matchQuery }, { $count: "total" }]))![0]
-      ?.total || 0;
+    (await Order.aggregate([
+      { $match: { ...matchQuery, status: "On courier" } },
+      { $count: "total" },
+    ]))![0]?.total || 0;
   const meta = orderQuery.metaData(total);
 
   // Orders counts
@@ -513,6 +512,198 @@ const getOrdersByDeliveryStatusFromDB = async (
     total,
   }));
 
+  return { countsByStatus: formattedCount, meta, data };
+};
+
+/* -----------------------------------------
+          Get completed orders
+----------------------------------------- */
+const getCompletedOrdersAdminFromDB = async (query: Record<string, string>) => {
+  let queryProducts: string[] = [];
+  const orderedTimes: string | undefined = query.orderedTimes;
+
+  if (query.products) {
+    queryProducts = Array.isArray(query.products)
+      ? query.products
+      : [query.products];
+  }
+
+  const matchQuery: Record<string, unknown> = {};
+  const acceptableStatus: TOrderStatus[] = [
+    "completed",
+    "partial completed",
+    "returned",
+    "canceled",
+  ];
+
+  if (query.search) {
+    acceptableStatus.push(
+      "pending",
+      "confirmed",
+      "follow up",
+      "On courier",
+      "canceled",
+      "deleted",
+      "processing",
+      "processing done",
+      "warranty added",
+      "warranty processing"
+    );
+  }
+
+  if (query.status) {
+    matchQuery.status = query?.status as string;
+  }
+
+  if ((!query.status || query.status === "all") && !query.search) {
+    matchQuery.status = {
+      $in: acceptableStatus,
+    };
+  }
+
+  if (query.division) {
+    matchQuery.division = query.division;
+  }
+  if (query.district) {
+    matchQuery.district = query.district;
+  }
+
+  if (query.startFrom) {
+    const startTime = convertIso(query.startFrom);
+    matchQuery.createdAt = {
+      ...(matchQuery.createdAt || {}),
+      $gte: startTime,
+    };
+  }
+
+  if (query.endAt) {
+    const endTime = convertIso(query.endAt, false);
+    matchQuery.createdAt = {
+      ...(matchQuery.createdAt || {}),
+      $lte: endTime,
+    };
+  }
+
+  if (![...acceptableStatus, undefined].includes(query.status as never)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Can't get ${query.status} orders`
+    );
+  }
+
+  const pipeline = OrderHelper.orderDetailsPipeline();
+
+  pipeline.unshift({
+    $match: matchQuery,
+  });
+
+  let matchSuffix: Record<string, unknown> = {};
+
+  if (query.search) {
+    const searchRegex = new RegExp(query.search, "i"); // 'i' for case-insensitive matching
+    matchSuffix.$or = [
+      { "shipping.phoneNumber": { $regex: searchRegex } },
+      { "shipping.fullName": { $regex: searchRegex } },
+      { division: { $regex: searchRegex } },
+      { district: { $regex: searchRegex } },
+      { orderId: { $regex: searchRegex } },
+    ];
+  }
+
+  if (queryProducts.length > 0) {
+    matchSuffix = {
+      ...matchSuffix,
+      "products.productId": {
+        $in: queryProducts.map((item) => new Types.ObjectId(item)),
+      },
+    };
+  }
+
+  if (orderedTimes) {
+    const groupedOrders = await Order.aggregate([
+      { $match: matchQuery },
+      {
+        $lookup: {
+          from: "shippings",
+          localField: "shipping",
+          foreignField: "_id",
+          as: "shippingData",
+        },
+      },
+      {
+        $group: {
+          _id: "$shippingData.phoneNumber",
+          orders: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          orders: 1,
+          orderedTimes: { $size: "$orders" },
+        },
+      },
+      {
+        $match: {
+          orderedTimes: { $eq: Number(orderedTimes) },
+        },
+      },
+    ]);
+
+    const matchedOrderIds = groupedOrders.flatMap((group) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      group.orders.map((order: { _id: any }) => order._id)
+    );
+
+    matchSuffix = {
+      ...matchSuffix,
+      _id: { $in: matchedOrderIds },
+    };
+  }
+
+  if (Object.keys(matchSuffix).length > 0) {
+    pipeline.push({ $match: { ...matchSuffix } });
+  }
+
+  const orderQuery = new AggregateQueryHelper(Order.aggregate(pipeline), query)
+    .sort()
+    .paginate();
+
+  const data = await orderQuery.model;
+
+  const total =
+    (await Order.aggregate([...pipeline, { $count: "total" }]))![0]?.total || 0;
+  const meta = orderQuery.metaData(total);
+
+  // Orders counts
+  const statusMap = {
+    completed: 0,
+    "partial completed": 0,
+    returned: 0,
+    canceled: 0,
+  };
+  const countRes = await Order.aggregate([
+    {
+      $match: {
+        status: {
+          $in: Object.keys(statusMap),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$status",
+        total: { $sum: 1 },
+      },
+    },
+  ]);
+  countRes.forEach(({ _id, total }) => {
+    statusMap[_id as keyof typeof statusMap] = total;
+  });
+  const formattedCount = Object.entries(statusMap).map(([name, total]) => ({
+    name,
+    total,
+  }));
   return { countsByStatus: formattedCount, meta, data };
 };
 
@@ -719,7 +910,6 @@ const updateOrderStatusIntoDB = async (
         }
       }
     }
-    // throw new ApiError(400, "Break");
     await session.commitTransaction();
   } catch (error) {
     await session.abortTransaction();
@@ -741,6 +931,7 @@ const updateProcessingStatusIntoDB = async (
     "processing",
     "warranty added",
     "processing done",
+    "warranty processing",
   ];
   const acceptableStatus = ["warranty added", "processing done", "canceled"];
   if (![...acceptableStatus].includes(status)) {
@@ -821,7 +1012,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
   courierProvider: Types.ObjectId,
   user: TJwtPayload
 ) => {
-  if (!["On courier", "canceled"].includes(status)) {
+  if (!["On courier", "canceled", "completed"].includes(status)) {
     throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
   }
   if (orderIds.length > maxOrderStatusChangeAtATime) {
@@ -871,12 +1062,13 @@ const bookCourierAndUpdateStatusIntoDB = async (
         failedCourierOrders = failedRequests.map((item) => item.orderId);
       }
     }
-    let successOrders = orders;
+
+    let ordersForUpdateIntoDB = orders;
     if (failedCourierOrders.length) {
       const courierOrdersOrderId = successCourierOrders.map(
         (item) => item.orderId
       );
-      successOrders = orders.filter((item) =>
+      ordersForUpdateIntoDB = orders.filter((item) =>
         courierOrdersOrderId.includes(item?.orderId)
       );
     }
@@ -885,7 +1077,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
     const orderUpdateQuery: any[] = [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const historyUpdateQuery: any[] = [];
-    successOrders.forEach((order) => {
+    ordersForUpdateIntoDB.forEach((order) => {
       if (status === "On courier") {
         const trackingId = successCourierOrders.find(
           (item) => item.orderId === order?.orderId
@@ -916,6 +1108,7 @@ const bookCourierAndUpdateStatusIntoDB = async (
       });
     });
 
+    // Update status on our DB
     if (status === "canceled") {
       await Order.updateMany(
         { _id: orders.map((item) => new Types.ObjectId(item?._id)) },
@@ -942,10 +1135,14 @@ const bookCourierAndUpdateStatusIntoDB = async (
       }
     } else if (status === "On courier") {
       await Order.bulkWrite(orderUpdateQuery, { session });
+    } else if (status === "completed") {
+      await Order.updateMany(
+        { _id: orders.map((item) => new Types.ObjectId(item?._id)) },
+        { $set: { status: "completed" } },
+        { session }
+      );
     }
     await OrderStatusHistory.bulkWrite(historyUpdateQuery, { session });
-
-    // throw new ApiError(400, "break");
 
     await session.commitTransaction();
   } catch (error) {
@@ -979,11 +1176,17 @@ const updateOrderDetailsByAdminIntoDB = async (
     officialNotes,
     courierNotes,
     followUpDate,
-    riderNotes,
+    monitoringNotes,
+    reasonNotes,
     productDetails: updatedProductDetails,
     status,
+    monitoringStatus,
+    trackingStatus,
+    division,
+    district,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } = payload as any;
+
   const findOrder = await OrderHelper.findOrderForUpdatingOrder(id);
 
   if (!findOrder) {
@@ -1002,7 +1205,7 @@ const updateOrderDetailsByAdminIntoDB = async (
       ).session(session);
     }
 
-    const updatedDoc: Partial<TOrder> = {};
+    const updatedDoc: Record<string, unknown> = {};
     let increments = 0;
     let decrements = 0;
 
@@ -1014,23 +1217,41 @@ const updateOrderDetailsByAdminIntoDB = async (
       (updatedProductDetails as unknown as TProductDetails[])?.length > 0
     ) {
       for (const updatedProduct of updatedProductDetails || []) {
-        const existingProductIndex = findOrder.productDetails.findIndex(
-          (product) =>
-            product?._id?.toString() === updatedProduct?.id?.toString()
-        );
+        if (updatedProduct.id) {
+          const existingProductIndex = findOrder.productDetails.findIndex(
+            (product) =>
+              product?._id?.toString() === updatedProduct?.id?.toString()
+          );
 
-        if (existingProductIndex > -1) {
           if (updatedProduct.isDelete) {
-            findOrder.productDetails.splice(existingProductIndex, 1);
+            const removedProduct = findOrder.productDetails.splice(
+              existingProductIndex,
+              1
+            );
+
+            if (findOrder.deliveryStatus == "partial_delivered") {
+              updatedDoc.deliveryStatus = "partial completed";
+            }
+            if (removedProduct.length > 0) {
+              // Extract all warranty IDs that exist (filter out undefined/null)
+              const warrantyIds = removedProduct
+                .map((product) => product.warranty)
+                .filter((warranty) => warranty); // Remove undefined/null values
+
+              if (warrantyIds.length > 0) {
+                // Delete all warranties that match the extracted IDs
+                await Warranty.deleteMany({
+                  _id: { $in: warrantyIds },
+                }).session(session);
+              }
+            }
           } else {
             // Update existing product details
-            const currentProduct = findOrder.productDetails[
-              existingProductIndex
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ] as any;
+            const currentProduct =
+              findOrder.productDetails[existingProductIndex];
 
             const previousQuantity = currentProduct.quantity;
-            if (updatedProduct.quantity) {
+            if (updatedProduct.quantity || updatedProduct.quantity === 0) {
               currentProduct.total =
                 currentProduct.unitPrice * updatedProduct.quantity;
               currentProduct.quantity = updatedProduct.quantity;
@@ -1055,6 +1276,10 @@ const updateOrderDetailsByAdminIntoDB = async (
                     );
                   }
                   seen.add(item.code);
+                }
+
+                if (currentProduct?.quantity === 0) {
+                  updatedProduct.warrantyCodes = [];
                 }
 
                 await Warranty.updateOne(
@@ -1104,40 +1329,45 @@ const updateOrderDetailsByAdminIntoDB = async (
                 );
               }
             }
-            const quantityCalculation =
-              currentProduct?.inventoryInfo?.stockAvailable +
-              previousQuantity -
-              updatedProduct.quantity;
 
-            if (
-              updatedProduct.quantity &&
-              previousQuantity !== updatedProduct.quantity
-            ) {
-              if (currentProduct.inventoryInfo.manageStock) {
-                if (currentProduct.variation) {
-                  if (currentProduct.isVariationDeleted !== true) {
-                    await ProductModel.updateOne(
-                      {
-                        _id: currentProduct.product,
-                        "variations._id": currentProduct.variation,
-                      },
-                      {
-                        "variations.$.inventory.stockAvailable":
-                          quantityCalculation,
-                      }
-                    ).session(session);
+            if (currentProduct.variation) {
+              if (
+                currentProduct?.inventoryInfo?.variationInventory?.variation
+              ) {
+                const quantityCalculation =
+                  Number(
+                    currentProduct?.inventoryInfo?.variationInventory
+                      ?.stockAvailable || 0
+                  ) +
+                  previousQuantity -
+                  updatedProduct.quantity;
+                await ProductModel.updateOne(
+                  {
+                    _id: currentProduct.product,
+                    "variations._id": currentProduct.variation,
+                  },
+                  {
+                    "variations.$.inventory.stockAvailable":
+                      quantityCalculation,
                   }
-                } else {
-                  await InventoryModel.updateOne(
-                    { _id: currentProduct.inventoryInfo._id },
-                    { stockAvailable: quantityCalculation },
-                    { session }
-                  );
-                }
+                ).session(session);
               }
+            } else {
+              const quantityCalculation =
+                Number(
+                  currentProduct?.inventoryInfo?.defaultInventory
+                    ?.stockAvailable || 0
+                ) +
+                previousQuantity -
+                updatedProduct.quantity;
+              await InventoryModel.updateOne(
+                { _id: currentProduct?.inventoryInfo?.defaultInventory?._id },
+                { stockAvailable: quantityCalculation },
+                { session }
+              );
             }
           }
-        } else {
+        } else if (updatedProduct.newProductId) {
           const productInfo = (
             await ProductModel.aggregate([
               {
@@ -1174,9 +1404,11 @@ const updateOrderDetailsByAdminIntoDB = async (
           if (!productInfo) {
             throw new ApiError(httpStatus.BAD_REQUEST, "No product found");
           }
+
           if (productInfo?.variations?.length)
             if (!updatedProduct?.variation)
               throw new ApiError(httpStatus.BAD_REQUEST, "Select a variation");
+
           const selectedVariation = productInfo?.variations?.find(
             (item) =>
               (item as unknown as Types.ObjectId)?._id.toString() ===
@@ -1186,15 +1418,20 @@ const updateOrderDetailsByAdminIntoDB = async (
           if (productInfo?.variations?.length)
             if (!selectedVariation)
               throw new ApiError(httpStatus.BAD_REQUEST, "Invalid variation");
-
           const { salePrice, regularPrice } = productInfo?.price as TPrice;
           const unitPrice = salePrice || regularPrice;
+          const variationUnitPrice =
+            selectedVariation?.price.salePrice ||
+            selectedVariation?.price.regularPrice;
+
           const newProductDetails = {
             product: productInfo?._id,
             attributes: selectedVariation?.attributes,
-            unitPrice,
+            unitPrice: selectedVariation ? variationUnitPrice : unitPrice,
             quantity: updatedProduct.quantity,
-            total: unitPrice * updatedProduct.quantity,
+            total: selectedVariation
+              ? variationUnitPrice
+              : unitPrice * updatedProduct.quantity,
             warranty: updatedProduct.warranty,
             isWarrantyClaim: updatedProduct.isWarrantyClaim,
             claimedCodes: updatedProduct.claimedCodes,
@@ -1215,9 +1452,13 @@ const updateOrderDetailsByAdminIntoDB = async (
             }
           }
 
-          findOrder.productDetails.push(
-            newProductDetails as unknown as TProductDetails
-          );
+          if (newProductDetails) {
+            findOrder.productDetails.push(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              newProductDetails as any
+            );
+          }
+
           if (selectedVariation) {
             if (selectedVariation?.inventory?.manageStock) {
               await ProductModel.updateOne(
@@ -1247,8 +1488,6 @@ const updateOrderDetailsByAdminIntoDB = async (
         }
       }
 
-      // throw new ApiError(400, "Bad request---custom");
-
       findOrder.productDetails.forEach((product) => {
         if (product.isWarrantyClaim) {
           newWarrantyAmount += product.total;
@@ -1264,9 +1503,6 @@ const updateOrderDetailsByAdminIntoDB = async (
     }
     updatedDoc.subtotal = newSubtotal;
     updatedDoc.warrantyAmount = newWarrantyAmount;
-
-    // throw new ApiError(400, "Break");
-
     // Update shipping chare
     if (payload?.shippingCharge) {
       const shippingMethod = await ShippingCharge.findById(
@@ -1302,11 +1538,18 @@ const updateOrderDetailsByAdminIntoDB = async (
       decrements += findOrder.discount || 0;
     }
 
+    // if the order have any coupon discount
+    if (findOrder.couponDiscount) {
+      decrements += findOrder.couponDiscount;
+    }
+
     if (status) {
       if (status !== "partial completed")
         throw new ApiError(httpStatus.BAD_REQUEST, `Can't change to ${status}`);
       updatedDoc.status = status;
     }
+    updatedDoc.monitoringStatus = monitoringStatus;
+    updatedDoc.trackingStatus = trackingStatus;
 
     const totalIncDec = increments - decrements;
 
@@ -1315,7 +1558,10 @@ const updateOrderDetailsByAdminIntoDB = async (
     updatedDoc.officialNotes = officialNotes;
     updatedDoc.courierNotes = courierNotes;
     updatedDoc.followUpDate = followUpDate;
-    updatedDoc.riderNotes = riderNotes;
+    updatedDoc.monitoringNotes = monitoringNotes;
+    updatedDoc.reasonNotes = reasonNotes;
+    updatedDoc.division = division;
+    updatedDoc.district = district;
 
     await Order.findByIdAndUpdate(
       id,
@@ -1465,6 +1711,7 @@ const getCustomersOrdersCountByPhoneFromDB = async (phoneNumber: string) => {
     returned: 0,
     "partly returned": 0,
     completed: 0,
+    "partial completed": 0,
     deleted: 0,
   };
   orders.forEach(({ _id, total }) => {
@@ -1651,6 +1898,7 @@ export const OrderServices = {
   getOrderInfoByOrderIdCustomerFromDB,
   getOrderInfoByOrderIdAdminFromDB,
   getAllOrdersAdminFromDB,
+  getCompletedOrdersAdminFromDB,
   updateOrderDetailsByAdminIntoDB,
   deleteOrdersByIdFromBD,
   orderCountsByStatusFromBD,

@@ -7,8 +7,14 @@ const router = express.Router();
 
 router.get(
   "/",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   CustomerControllers.getAllCustomer
+);
+
+router.get(
+  "/:id",
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
+  CustomerControllers.getSingleCustomerByAdmin
 );
 
 router.patch(
@@ -16,6 +22,12 @@ router.patch(
   authGuard({ requiredRoles: ["customer"] }),
   validateRequest(CustomerValidation.updateUser),
   CustomerControllers.updateCustomer
+);
+
+router.patch(
+  "/admin/:id",
+  authGuard({ requiredRoles: ["admin", "staff", "superAdmin"] }),
+  CustomerControllers.updateCustomerByAdmin
 );
 
 export const CustomerRoutes = router;

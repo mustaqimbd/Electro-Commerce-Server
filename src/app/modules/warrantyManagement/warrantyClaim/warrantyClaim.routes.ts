@@ -11,7 +11,7 @@ const router = Router();
 
 router.get(
   "/",
-  authGuard({ requiredRoles: ["admin", "staff"] }),
+  authGuard({ requiredRoles: ["superAdmin", "admin", "staff"] }),
   WarrantyClaimController.getAllWarrantyClaimReq
 );
 
@@ -33,7 +33,7 @@ router.post(
 router.patch(
   "/update-request/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage warranty claim",
   }),
   validateRequest(WarrantyClaimValidation.updateWarrantyClaimReq),
@@ -43,7 +43,7 @@ router.patch(
 router.post(
   "/create-order/:id",
   authGuard({
-    requiredRoles: ["admin", "staff"],
+    requiredRoles: ["superAdmin", "admin", "staff"],
     requiredPermission: "manage warranty claim",
   }),
   validateRequest(WarrantyClaimValidation.approveAndCreateOrder),

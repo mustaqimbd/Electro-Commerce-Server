@@ -29,7 +29,7 @@ export const orderSources: TOrderSourceName[] = [
   "Social Media",
   "From Office",
   "Warranty Claimed",
-  "Image to order",
+  "Old Server",
 ];
 
 export const orderStatusWithDesc: TOrderStatusWithDesc[] = [

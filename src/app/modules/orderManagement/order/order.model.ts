@@ -32,6 +32,10 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
     ref: "Warranty",
   },
   isWarrantyClaim: Boolean,
+  warrantyClaimHistory: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "warranty_claim_histories",
+  },
   claimedCodes: {
     type: [
       {
@@ -41,6 +45,17 @@ const ProductDetailsSchema = new Schema<TProductDetails>({
       },
     ],
     default: undefined,
+  },
+  prevWarrantyInformation: {
+    duration: {
+      type: String,
+    },
+    startDate: {
+      type: String,
+    },
+    endsDate: {
+      type: String,
+    },
   },
 });
 
@@ -125,6 +140,16 @@ const OrderSchema = new Schema<TOrder>(
     deliveryStatus: {
       type: String,
     },
+    monitoringStatus: {
+      type: String,
+      enum: ["monitoring", "not monitoring", "low warning", "high warning"],
+      default: "not monitoring",
+    },
+    trackingStatus: {
+      type: String,
+      enum: ["not contacted", "contact again", "completed today"],
+      default: "not contacted",
+    },
     followUpDate: {
       type: String,
     },
@@ -156,7 +181,7 @@ const OrderSchema = new Schema<TOrder>(
     reasonNotes: {
       type: String,
     },
-    riderNotes: {
+    monitoringNotes: {
       type: String,
     },
     courierDetails: CourierDetailsSchema,
@@ -171,6 +196,12 @@ const OrderSchema = new Schema<TOrder>(
       lpNo: {
         type: String,
       },
+    },
+    division: {
+      type: String,
+    },
+    district: {
+      type: String,
     },
   },
   {
