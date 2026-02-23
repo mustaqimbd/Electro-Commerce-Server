@@ -153,7 +153,3 @@ The API documentation is available via [Postman](https://galactic-crescent-55250
 ## 👥 Team
 
 Developed by **Md. Mustaqim Khan** and **Md. Abir Mahmud**.
-
-## 📧 Contact
-
-For inquiries, reach out via [mustaqimkhanbd@gmail.com](mailto:mustaqimkhanbd@gmail.com) or visit [LinkedIn](https://www.linkedin.com/in/mustaqimbd/).
